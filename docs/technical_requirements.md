@@ -51,10 +51,13 @@ Redux is explicitly out of scope.
 
 ### 2.4 WZ parsing
 
-- **Primary parser**: [`@tybys/wz`](https://www.npmjs.com/package/@tybys/wz) — TypeScript-friendly, browser-oriented WZ reader.
-- **Worker isolation**: [`comlink`](https://www.npmjs.com/package/comlink) so the main thread never blocks on parsing.
+- **Primary parser**: [`@tybys/wz`](https://www.npmjs.com/package/@tybys/wz) — TypeScript-friendly, browser-oriented WZ reader. **Phase 1 verdict: go.** Validated against real MapleRoyals client files; resolves Red Potion (ID 2000000) end-to-end through the worker pipeline.
+- **Encryption version**: `WzMapleVersion.GMS` for the v83-era MapleRoyals client. The name is misleading — it's the "old Global MapleStory" encryption scheme. `BMS` opens the files but produces garbled names; treat that as the canary for a wrong version.
+- **Worker isolation**: [`comlink`](https://www.npmjs.com/package/comlink) so the main thread never blocks on parsing. Browser uses a Vite-bundled Worker; the same `WzDataSource` class runs directly in Node for Vitest integration tests.
+- **WASM bootstrap**: the library ships a small `wz.wasm` (crypto). In the browser we resolve its URL with Vite's `?url` import and pass that URL via `init({ locateFile })`. In Node, `init()` is a no-op and native crypto is used.
+- **Lazy image parsing**: `WzImage.parseImage()` must be awaited before reading properties. The path resolver in `WzDataSource` calls it on demand as it traverses.
 - **Reference correctness**: MapleLib / HaRepacker-resurrected used as an out-of-band oracle. Not a runtime dependency.
-- **Go/no-go**: Phase 1 spike is the gate. Fallback: a MapleLib-based local CLI importer that emits a SQLite file the frontend consumes.
+- **Fallback (not needed)**: A MapleLib-based local CLI importer that emits a SQLite file the frontend consumes. Held in reserve in case future client versions break the JS parser.
 
 ### 2.5 Storage
 

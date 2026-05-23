@@ -16,6 +16,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: false,
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'test/**/*.test.{ts,tsx}'],
+    // Default to a generous timeout — WZ parsing of real files can take a while.
+    testTimeout: 30_000,
   },
 });

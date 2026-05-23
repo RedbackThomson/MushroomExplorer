@@ -24,10 +24,8 @@
 
           shellHook = ''
             export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-            export PNPM_HOME="$PWD/.pnpm-store"
-            export PATH="$PNPM_HOME:$PATH"
 
-            # Make sure the pnpm version pinned in package.json is available.
+            # Activate the pnpm version pinned in package.json's packageManager field.
             corepack prepare --activate >/dev/null 2>&1 || true
 
             echo "mge dev shell"

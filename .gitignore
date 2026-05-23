@@ -47,3 +47,9 @@ result-*
 /fixtures/proprietary/
 *.sqlite
 *.sqlite-journal
+
+# Local test fixtures (real WZ files) — never committed. The README and
+# .gitkeep inside are the only tracked files.
+apps/web/test/fixtures/local/*
+!apps/web/test/fixtures/local/README.md
+!apps/web/test/fixtures/local/.gitkeep

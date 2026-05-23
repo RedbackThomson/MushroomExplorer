@@ -22,6 +22,10 @@ export const router = createBrowserRouter([
         lazy: () => import('@/routes/Quests').then((m) => ({ Component: m.default })),
       },
       {
+        path: 'debug',
+        lazy: () => import('@/routes/Debug').then((m) => ({ Component: m.default })),
+      },
+      {
         path: '*',
         lazy: () => import('@/routes/NotFound').then((m) => ({ Component: m.default })),
       },

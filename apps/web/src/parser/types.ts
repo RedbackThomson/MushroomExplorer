@@ -1,0 +1,90 @@
+// Public types for the parser layer.
+//
+// These types cross the worker → main-thread boundary, so everything here
+// must be structurally cloneable. Do not put class instances or WZ-library
+// objects in these types.
+
+export type WzNodeKind = 'file' | 'directory' | 'image' | 'property';
+
+export type WzPropertyKind =
+  | 'string'
+  | 'int'
+  | 'long'
+  | 'short'
+  | 'float'
+  | 'double'
+  | 'vector'
+  | 'canvas'
+  | 'sub'
+  | 'uol'
+  | 'binary'
+  | 'lua'
+  | 'null'
+  | 'convex'
+  | 'unknown';
+
+export interface WzNodeInfo {
+  /** Display name of this node (last path segment). */
+  name: string;
+  /** Slash-separated path from the root, e.g. "Item.wz/Use/0200" or "0200.img/info/icon". */
+  fullPath: string;
+  kind: WzNodeKind;
+  /** For `kind === 'property'`, the specific property type. */
+  propertyKind?: WzPropertyKind;
+  /** Whether this node has children that can be listed. */
+  hasChildren: boolean;
+  /** Best-effort scalar value for primitive properties (strings, numbers). */
+  scalar?: string | number | null;
+}
+
+export type WzMapleVersionName = 'BMS' | 'GMS' | 'EMS' | 'CLASSIC';
+
+export interface LoadFileSpec {
+  /** Logical name (e.g. "String.wz"). Used as the root segment of paths. */
+  name: string;
+  /** Browser path: pass a File. Node path: pass an absolute filepath string. */
+  source: File | string;
+}
+
+/**
+ * Boundary contract for the parser layer. Implementations may run in the main
+ * thread (Node/tests) or in a Web Worker (browser, via comlink).
+ */
+export interface GameDataSource {
+  init(version: WzMapleVersionName): Promise<void>;
+  load(files: LoadFileSpec[]): Promise<LoadResult>;
+  /** Get info for a single node by path. Returns null if not found. */
+  getNode(path: string): Promise<WzNodeInfo | null>;
+  /** List the immediate children of a node. */
+  listChildren(path: string): Promise<WzNodeInfo[]>;
+  /** List the loaded top-level files. */
+  listFiles(): Promise<WzNodeInfo[]>;
+  /** Diagnostics for bug reports. */
+  diagnose(): Promise<Diagnostics>;
+  dispose(): Promise<void>;
+}
+
+export interface LoadResult {
+  loaded: { name: string; rootDirectories: string[] }[];
+  errors: { name: string; message: string }[];
+}
+
+import type { LogEntry } from '@/lib/logger';
+
+/**
+ * Snapshot of the parser-side log buffer and a synchronous smoke test of the
+ * AES path. Surfaced via `GameDataSource.diagnose()` so the UI can include it
+ * in user-submitted bug reports.
+ */
+export interface Diagnostics {
+  /** Log entries from the Worker (or Node-side data source). */
+  log: LogEntry[];
+  /**
+   * Result of a 32-byte zero-key `aesCreate` call. If `ok` is false, image
+   * decryption is broken — likely the WASM init/crypto patch didn't fully
+   * succeed.
+   */
+  aesSmokeTest: { ok: true } | { ok: false; error: string };
+  /** Files currently held open by the parser. */
+  loadedFiles: { name: string }[];
+}

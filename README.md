@@ -39,6 +39,17 @@ pnpm dev
 
 Or, with [direnv](https://direnv.net/) installed, `direnv allow` will load the dev shell automatically.
 
+## Reporting parser issues
+
+If something goes wrong loading WZ files, open the **Parser debug** page in the
+sidebar and click **Copy log**. That captures the parser's log buffer (main
+thread + worker), the AES smoke-test result, and minimal environment info.
+Paste that into your GitHub issue along with what you tried.
+
+For extra verbosity, set `localStorage.setItem('mge.debug', '1')` in the
+browser console before reproducing — that enables debug-level entries that are
+otherwise filtered out of the console (they're always captured in the buffer).
+
 ## Scripts
 
 | Script           | What it does                               |

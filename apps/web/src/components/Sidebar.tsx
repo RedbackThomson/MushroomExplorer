@@ -7,6 +7,7 @@ import {
   Map as MapIcon,
   ScrollText,
   Home,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ const sections: SidebarSection[] = [
   { label: 'NPCs', to: '/npcs', icon: Users },
   { label: 'Maps', to: '/maps', icon: MapIcon },
   { label: 'Quests', to: '/quests', icon: ScrollText },
+  { label: 'Parser debug', to: '/debug', icon: Wrench },
 ];
 
 export function Sidebar() {
