@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, ChevronDown, ClipboardCopy, FileWarning, Loader2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  ChevronDown,
+  ChevronRight,
+  ClipboardCopy,
+  Database,
+  FileWarning,
+  Loader2,
+  Save,
+} from 'lucide-react';
 import { FilePicker } from '@/components/FilePicker';
 import { Button } from '@/components/ui/button';
 import { getParserClient, type WzNodeInfo, type WzMapleVersionName } from '@/parser';
+import { getDbClient } from '@/db';
 import { cn } from '@/lib/utils';
 import { buildReport } from '@/lib/diagnosticsReport';
 
@@ -154,14 +164,143 @@ export default function Debug() {
           )}
           {lookupResult === null && <p className="text-muted-foreground text-sm">No result yet.</p>}
           {lookupResult && typeof lookupResult === 'object' && (
-            <pre className="border-border bg-muted/40 overflow-x-auto rounded-md border p-3 text-xs">
-              {JSON.stringify(lookupResult, null, 2)}
-            </pre>
+            <>
+              <pre className="border-border bg-muted/40 overflow-x-auto rounded-md border p-3 text-xs">
+                {JSON.stringify(lookupResult, null, 2)}
+              </pre>
+              <SaveItemPanel node={lookupResult} />
+            </>
           )}
         </section>
       )}
     </div>
   );
+}
+
+/**
+ * Phase 2 round-trip demo: take a String.wz item node, fetch its localized
+ * name + description, and write it to the local database. The Items route
+ * shows what's in the DB across reloads.
+ */
+function SaveItemPanel({ node }: { node: WzNodeInfo }) {
+  const parser = useMemo(() => getParserClient(), []);
+  const db = useMemo(() => getDbClient(), []);
+  const queryClient = useQueryClient();
+
+  // The "item" is the deepest path segment that looks like a numeric ID. If
+  // the user looked up the item directly (e.g. `String.wz/Consume.img/2000000`,
+  // whose WZ node is a SubProperty container) or one of its leaf properties
+  // (e.g. `…/2000000/name`), both forms target the same row in the items
+  // table.
+  const target = resolveItemTarget(node.fullPath);
+
+  const saveM = useMutation({
+    mutationFn: async () => {
+      if (!target) {
+        throw new Error('No numeric item ID found in this path');
+      }
+      const [nameNode, descNode] = await Promise.all([
+        parser.getNode(`${target.itemPath}/name`),
+        parser.getNode(`${target.itemPath}/desc`),
+      ]);
+      const name =
+        typeof nameNode?.scalar === 'string' && nameNode.scalar
+          ? nameNode.scalar
+          : `Item ${target.id}`;
+      const description = typeof descNode?.scalar === 'string' ? descNode.scalar : null;
+      const category = inferCategory(target.itemPath);
+      await db.upsertItem({
+        id: target.id,
+        name,
+        description,
+        category,
+        subcategory: null,
+        iconPath: null,
+        price: null,
+        stackSize: null,
+        requiredLevel: null,
+        sourcePath: target.itemPath,
+      });
+      return { id: target.id, name };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['db'] }),
+  });
+
+  if (!target) {
+    return (
+      <div className="border-border bg-muted/40 rounded-md border p-3 text-xs">
+        <span className="font-medium">No item ID in this path.</span>{' '}
+        <span className="text-muted-foreground">
+          Look up something like <code className="font-mono">String.wz/Consume.img/2000000</code>{' '}
+          (or one of its children) to save it to the database.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-border bg-card text-card-foreground flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4" />
+          <span className="font-medium">Save to local database</span>
+        </div>
+        <div className="text-muted-foreground mt-1 truncate text-xs">
+          ID {target.id} · <code className="font-mono">{target.itemPath}</code>
+        </div>
+        {saveM.isSuccess && (
+          <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+            Saved “{saveM.data.name}”. Visit <code className="font-mono">/items</code> to see it.
+          </div>
+        )}
+        {saveM.isError && (
+          <div className="text-destructive mt-1 text-xs">{(saveM.error as Error).message}</div>
+        )}
+      </div>
+      <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
+        {saveM.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
+        Save
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Locate the deepest numeric segment in a WZ path — that's the item ID. Works
+ * whether the user looks up the item container itself or any descendant
+ * property under it.
+ */
+function resolveItemTarget(fullPath: string): { itemPath: string; id: number } | null {
+  const segments = fullPath.split('/').filter(Boolean);
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (/^\d+$/.test(segments[i])) {
+      return {
+        itemPath: segments.slice(0, i + 1).join('/'),
+        id: Number(segments[i]),
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Best-effort category inference from a String.wz path. Replaced by proper
+ * extractors in Phase 3.
+ */
+function inferCategory(path: string): string | null {
+  const match = path.match(/String\.wz\/([^/]+)\.img/i);
+  if (!match) return null;
+  const img = match[1].toLowerCase();
+  if (img === 'consume') return 'use';
+  if (img === 'eqp') return 'equip';
+  if (img === 'etc') return 'etc';
+  if (img === 'cash') return 'cash';
+  if (img === 'ins') return 'setup';
+  return img;
 }
 
 function TreeRoot({ path }: { path: string }) {

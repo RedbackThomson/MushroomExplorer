@@ -1,12 +1,17 @@
 // Database layer.
 //
-// Owns the SQLite-WASM engine, schema, migrations, and query helpers.
-// Hides the storage engine behind a stable read/write API so the UI never
-// imports the engine directly.
-//
-// Implementation lands in Phase 2 (storage layer).
+// Public surface: types + a comlink-wrapped client that talks to the DB
+// worker. The worker owns the SQLite-WASM engine and OPFS persistence.
 
-export interface GameDatabase {
-  ready: Promise<void>;
-  // Read/write API will be defined in Phase 2.
-}
+export type {
+  DatasetRecord,
+  DbStatus,
+  EquipRecord,
+  GameDatabase,
+  ItemRecord,
+  MapRecord,
+  MobRecord,
+  NpcRecord,
+  QuestRecord,
+} from './types';
+export { getDbClient, terminateDbClient } from './client';

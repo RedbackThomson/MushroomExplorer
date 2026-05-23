@@ -76,7 +76,23 @@ export class WzDataSource implements GameDataSource {
       const size = typeof spec.source !== 'string' ? spec.source.size : undefined;
       log.info('loading file', { name: spec.name, size, version: this.version });
       try {
-        const file = new WzFile(spec.source, toWzMapleVersion(this.version));
+        // Buffer the entire File into memory before handing it to the library.
+        // The library's underlying `AsyncBinaryReader` has two code paths:
+        // a synchronous in-memory `Uint8Array` path, and an async per-read
+        // `FileReader` path that allocates a new FileReader for every byte.
+        // The FileReader path adds an event-loop turn to every read; an image
+        // like `Consume.img` with ~2,500 entries means tens of thousands of
+        // reads which can take minutes. The Uint8Array path resolves the same
+        // parse in milliseconds. The TS types claim `string | File` only, but
+        // the runtime accepts `Uint8Array` — see binreader's AsyncBinaryReader
+        // constructor.
+        //
+        // Memory: this buffers the whole file. Fine for files up to a few
+        // hundred MB (Item.wz is ~96 MB, String.wz ~5 MB on MapleRoyals).
+        // Map.wz (~880 MB) and Character.wz (~800 MB) will need a different
+        // strategy when those phases land.
+        const source = await this.toSource(spec.source, spec.name);
+        const file = new WzFile(source, toWzMapleVersion(this.version));
         const status = await file.parseWzFile();
         if (status !== WzFileParseStatus.SUCCESS) {
           const msg = `parseWzFile failed: ${getErrorDescription(status)} (status ${status})`;
@@ -191,6 +207,20 @@ export class WzDataSource implements GameDataSource {
       }
     }
     this.files.clear();
+  }
+
+  private async toSource(input: File | string, logName: string): Promise<File | string> {
+    if (typeof input === 'string') return input;
+    const started = performance.now();
+    const buf = new Uint8Array(await input.arrayBuffer());
+    log.info('buffered file into memory', {
+      name: logName,
+      bytes: buf.byteLength,
+      ms: Math.round(performance.now() - started),
+    });
+    // Cast: the library accepts Uint8Array at runtime even though the TS
+    // signature is `string | File`.
+    return buf as unknown as File;
   }
 
   private loadedFor(path: string): LoadedFile | null {
