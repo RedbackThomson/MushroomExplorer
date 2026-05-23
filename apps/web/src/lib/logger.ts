@@ -17,7 +17,7 @@ export interface LogEntry {
   data?: unknown;
 }
 
-const BUFFER_SIZE = 500;
+const BUFFER_SIZE = 2000;
 const buffer: LogEntry[] = [];
 
 function debugEnabled(): boolean {
@@ -29,10 +29,17 @@ function debugEnabled(): boolean {
 }
 
 function record(scope: string, level: LogLevel, msg: string, data?: unknown): void {
-  const entry: LogEntry = { t: Date.now(), scope, level, msg };
-  if (data !== undefined) entry.data = data;
-  buffer.push(entry);
-  if (buffer.length > BUFFER_SIZE) buffer.shift();
+  // Debug entries are firehose-y (e.g. one per getNode call inside the parser
+  // worker). Without gating them, a single extraction run can evict 500
+  // useful INFO/WARN entries before the user even opens the diagnostics
+  // panel. Keep debug in the ring buffer only when mge.debug=1 is set, but
+  // still mirror to the console so live debugging in DevTools works.
+  if (level !== 'debug' || debugEnabled()) {
+    const entry: LogEntry = { t: Date.now(), scope, level, msg };
+    if (data !== undefined) entry.data = data;
+    buffer.push(entry);
+    if (buffer.length > BUFFER_SIZE) buffer.shift();
+  }
 
   if (level === 'debug' && !debugEnabled()) return;
   const fn = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';

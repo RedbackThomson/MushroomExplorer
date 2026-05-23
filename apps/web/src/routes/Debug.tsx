@@ -161,38 +161,39 @@ export default function Debug() {
 
       <DiagnosticsPanel />
 
-      {loadState && loadState.loaded.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Lookup by path</h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={lookupPath}
-              onChange={(e) => setLookupPath(e.target.value)}
-              placeholder="e.g. String.wz/Eqp.img/Eqp/Cap/1002000/name"
-              className="border-input bg-background h-9 flex-1 rounded-md border px-3 font-mono text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') runLookup();
-              }}
-            />
-            <Button onClick={runLookup} disabled={!lookupPath.trim()}>
-              Look up
-            </Button>
-          </div>
-          {lookupResult === 'pending' && (
-            <p className="text-muted-foreground text-sm">Resolving…</p>
-          )}
-          {lookupResult === null && <p className="text-muted-foreground text-sm">No result yet.</p>}
-          {lookupResult && typeof lookupResult === 'object' && (
-            <>
-              <pre className="border-border bg-muted/40 overflow-x-auto rounded-md border p-3 text-xs">
-                {JSON.stringify(lookupResult, null, 2)}
-              </pre>
-              <SaveItemPanel node={lookupResult} />
-            </>
-          )}
-        </section>
-      )}
+      {/* Lookup works against whatever the worker has loaded — including
+       *  files loaded via the first-run wizard — so it's available without
+       *  re-uploading on this page. */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Lookup by path</h2>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={lookupPath}
+            onChange={(e) => setLookupPath(e.target.value)}
+            placeholder="e.g. String.wz/Eqp.img/Eqp/Cap/1002000/name"
+            className="border-input bg-background h-9 flex-1 rounded-md border px-3 font-mono text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') runLookup();
+            }}
+          />
+          <Button onClick={runLookup} disabled={!lookupPath.trim()}>
+            Look up
+          </Button>
+        </div>
+        {lookupResult === 'pending' && (
+          <p className="text-muted-foreground text-sm">Resolving…</p>
+        )}
+        {lookupResult === null && <p className="text-muted-foreground text-sm">No result yet.</p>}
+        {lookupResult && typeof lookupResult === 'object' && (
+          <>
+            <pre className="border-border bg-muted/40 overflow-x-auto rounded-md border p-3 text-xs">
+              {JSON.stringify(lookupResult, null, 2)}
+            </pre>
+            <SaveItemPanel node={lookupResult} />
+          </>
+        )}
+      </section>
     </div>
   );
 }

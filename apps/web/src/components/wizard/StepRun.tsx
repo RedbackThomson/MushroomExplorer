@@ -36,6 +36,7 @@ export function StepRun({ version, files, onComplete }: Props) {
   const parser = useMemo(() => getParserClient(), []);
   const [loadProgress, setLoadProgress] = useState<ProgressUpdate | null>(null);
   const [loadDone, setLoadDone] = useState(false);
+  const [loadErrors, setLoadErrors] = useState<{ name: string; message: string }[]>([]);
 
   const includedFiles = useMemo(() => files.filter((f) => f.include), [files]);
   const filesToActuallyLoad = useMemo(
@@ -71,10 +72,14 @@ export function StepRun({ version, files, onComplete }: Props) {
         return;
       }
       const onLoadProgress = proxy((p: ProgressUpdate) => setLoadProgress(p));
-      await parser.load(
+      const result = await parser.load(
         filesToActuallyLoad.map((f) => ({ name: f.file.name, source: f.file })),
         onLoadProgress,
       );
+      if (result.errors.length > 0) {
+        log.warn('parser.load returned per-file errors', { errors: result.errors });
+        setLoadErrors(result.errors);
+      }
     },
     onSuccess: () => {
       setLoadProgress(null);
@@ -155,6 +160,28 @@ export function StepRun({ version, files, onComplete }: Props) {
             </p>
           </div>
         </div>
+        {loadErrors.length > 0 && (
+          <div className="border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-md border p-4">
+            <h3 className="text-sm font-semibold">
+              Some files didn't load ({loadErrors.length})
+            </h3>
+            <p className="mt-1 text-xs">
+              The corresponding extractors found nothing to do. Common cause: WZ encryption
+              version mismatch, or a corrupt/truncated file. Diagnostics on{' '}
+              <Link to="/debug" className="underline">
+                /debug
+              </Link>{' '}
+              have the full library output.
+            </p>
+            <ul className="mt-2 space-y-1 text-xs">
+              {loadErrors.map((e) => (
+                <li key={e.name}>
+                  <code className="font-mono">{e.name}</code> — {e.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div>
           <Link
             to="/"

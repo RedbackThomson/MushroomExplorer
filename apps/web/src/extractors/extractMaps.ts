@@ -42,10 +42,29 @@ export async function extractMaps(
   // `Map.wz/Map/Map0/`, `Map.wz/Map/Map1/`, … one bucket per ID prefix.
   const mapRoot = await source.listChildren('Map.wz/Map');
   if (mapRoot.length === 0) {
-    log.debug('Map.wz/Map absent or empty');
+    // Walk the top of Map.wz so we can tell whether the file is missing,
+    // mis-pathed, or simply has a different layout than v83 GMS.
+    const top = await source.listChildren('Map.wz');
+    log.warn('Map.wz/Map absent or empty', {
+      mapWzTopLevel: top.map((n) => `${n.name} (${n.kind})`),
+      hint:
+        top.length === 0
+          ? 'Map.wz appears to have failed to load — check parser.load errors.'
+          : 'Map.wz loaded but has no `Map` directory; layout may differ from v83.',
+    });
     return { maps, mapNpcs, mapMobs, mapPortals, skipped };
   }
   const buckets = mapRoot.filter((n) => /^Map\d+$/.test(n.name));
+  if (buckets.length === 0) {
+    log.warn('Map.wz/Map has children but none match Map\\d+', {
+      sample: mapRoot.slice(0, 10).map((n) => n.name),
+    });
+  } else {
+    log.info('Map.wz/Map bucket sample', {
+      total: buckets.length,
+      first: buckets[0]?.name,
+    });
+  }
 
   // Build a flat list of all map images first so we can report determinate
   // progress.

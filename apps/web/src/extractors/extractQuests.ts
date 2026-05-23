@@ -49,12 +49,60 @@ export async function extractQuests(
 
   const checkChildren = await source.listChildren('Quest.wz/Check.img');
   if (checkChildren.length === 0) {
-    log.debug('Quest.wz/Check.img absent or empty');
+    const top = await source.listChildren('Quest.wz');
+    log.warn('Quest.wz/Check.img absent or empty', {
+      questWzTopLevel: top.map((n) => `${n.name} (${n.kind})`),
+      hint:
+        top.length === 0
+          ? 'Quest.wz appears to have failed to load — check parser.load errors.'
+          : 'Quest.wz loaded but has no Check.img; layout may differ from v83.',
+    });
     return { quests, requirements, rewards, skipped };
   }
 
   const total = checkChildren.length;
   log.info('discovery complete', { totalQuests: total });
+
+  // Probe a few entries up front so a "0 quests extracted" outcome carries
+  // enough breadcrumbs to diagnose. If String.wz/Quest.img has a different
+  // shape (nested under chapters, different image name, etc.), this surfaces
+  // it in the diagnostics report. The "probe-v2" tag is so we can tell
+  // whether stale code is running after a Vite reload.
+  const probeIds = checkChildren
+    .filter((c) => /^\d+$/.test(c.name))
+    .slice(0, 3)
+    .map((c) => Number(c.name));
+  for (const probeId of probeIds) {
+    const nameNode = await source.getNode(`String.wz/Quest.img/${probeId}/name`);
+    const containerNode = await source.getNode(`String.wz/Quest.img/${probeId}`);
+    log.info('probe-v2 quest name', {
+      id: probeId,
+      stringPath: `String.wz/Quest.img/${probeId}/name`,
+      nameKind: nameNode?.propertyKind ?? null,
+      nameScalar: nameNode?.scalar ?? null,
+      containerExists: !!containerNode,
+      containerKind: containerNode?.kind ?? null,
+      containerHasChildren: containerNode?.hasChildren ?? null,
+    });
+    if (containerNode?.hasChildren) {
+      const containerChildren = await source.listChildren(
+        `String.wz/Quest.img/${probeId}`,
+      );
+      log.info('probe-v2 quest container children', {
+        id: probeId,
+        sample: containerChildren
+          .slice(0, 10)
+          .map((c) => `${c.name}:${c.propertyKind ?? c.kind}`),
+      });
+    }
+  }
+  if (probeIds.length > 0) {
+    const stringTop = await source.listChildren('String.wz/Quest.img');
+    log.info('probe-v2 String.wz/Quest.img top-level', {
+      total: stringTop.length,
+      first: stringTop.slice(0, 12).map((n) => `${n.name}:${n.propertyKind ?? n.kind}`),
+    });
+  }
 
   let processed = 0;
   for (const entry of checkChildren) {
