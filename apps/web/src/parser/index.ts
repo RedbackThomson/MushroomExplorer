@@ -9,4 +9,4 @@ export type {
   WzPropertyKind,
 } from './types';
 export { WzDataSource } from './WzDataSource';
-export { getParserClient, terminateParserClient } from './client';
+export { getParserClient, terminateParserClient, type ParserWorkerApi } from './client';

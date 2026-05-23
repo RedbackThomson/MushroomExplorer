@@ -4,7 +4,14 @@
 // Phase 3+ will add equip/mob/npc/map/quest helpers alongside these.
 
 import type { Sqlite, Row } from './sqlite';
-import type { DatasetRecord, DbStatus, ItemRecord, GameDatabase } from './types';
+import type {
+  DatasetRecord,
+  DbStatus,
+  EquipRecord,
+  ItemRecord,
+  GameDatabase,
+  SearchEntry,
+} from './types';
 
 interface ItemRow extends Row {
   id: number;
@@ -19,6 +26,29 @@ interface ItemRow extends Row {
   source_path: string;
 }
 
+interface EquipRow extends Row {
+  id: number;
+  name: string;
+  description: string | null;
+  slot: string | null;
+  category: string | null;
+  required_level: number | null;
+  required_str: number | null;
+  required_dex: number | null;
+  required_int: number | null;
+  required_luk: number | null;
+  required_job: number | null;
+  attack: number | null;
+  magic_attack: number | null;
+  defense: number | null;
+  magic_defense: number | null;
+  accuracy: number | null;
+  avoidability: number | null;
+  upgrade_slots: number | null;
+  icon_path: string | null;
+  source_path: string;
+}
+
 function rowToItem(r: ItemRow): ItemRecord {
   return {
     id: r.id,
@@ -30,6 +60,31 @@ function rowToItem(r: ItemRow): ItemRecord {
     price: r.price,
     stackSize: r.stack_size,
     requiredLevel: r.required_level,
+    sourcePath: r.source_path,
+  };
+}
+
+function rowToEquip(r: EquipRow): EquipRecord {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    slot: r.slot,
+    category: r.category,
+    requiredLevel: r.required_level,
+    requiredStr: r.required_str,
+    requiredDex: r.required_dex,
+    requiredInt: r.required_int,
+    requiredLuk: r.required_luk,
+    requiredJob: r.required_job,
+    attack: r.attack,
+    magicAttack: r.magic_attack,
+    defense: r.defense,
+    magicDefense: r.magic_defense,
+    accuracy: r.accuracy,
+    avoidability: r.avoidability,
+    upgradeSlots: r.upgrade_slots,
+    iconPath: r.icon_path,
     sourcePath: r.source_path,
   };
 }
@@ -75,20 +130,76 @@ export class DbApi implements GameDatabase {
     return row ? rowToItem(row) : null;
   }
 
-  async listItems(opts: { limit?: number; search?: string } = {}): Promise<ItemRecord[]> {
-    const limit = Math.min(Math.max(opts.limit ?? 200, 1), 1000);
+  async listItems(
+    opts: { limit?: number; search?: string; category?: string } = {},
+  ): Promise<ItemRecord[]> {
+    const limit = Math.min(Math.max(opts.limit ?? 200, 1), 5000);
+    const where: string[] = [];
+    const params: (string | number)[] = [];
     if (opts.search && opts.search.trim()) {
-      const q = `%${opts.search.trim()}%`;
-      return this.sql
-        .selectObjects<ItemRow>('SELECT * FROM items WHERE name LIKE ? ORDER BY name LIMIT ?', [
-          q,
-          limit,
-        ])
-        .map(rowToItem);
+      where.push('name LIKE ?');
+      params.push(`%${opts.search.trim()}%`);
     }
+    if (opts.category) {
+      where.push('category = ?');
+      params.push(opts.category);
+    }
+    const clause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+    params.push(limit);
     return this.sql
-      .selectObjects<ItemRow>('SELECT * FROM items ORDER BY name LIMIT ?', [limit])
+      .selectObjects<ItemRow>(`SELECT * FROM items ${clause} ORDER BY name LIMIT ?`, params)
       .map(rowToItem);
+  }
+
+  async upsertEquip(equip: EquipRecord): Promise<void> {
+    this.upsertEquipRow(equip);
+  }
+
+  async upsertEquips(equips: EquipRecord[]): Promise<number> {
+    this.sql.transaction(() => {
+      for (const e of equips) this.upsertEquipRow(e);
+    });
+    return equips.length;
+  }
+
+  async getEquip(id: number): Promise<EquipRecord | null> {
+    const row = this.sql.selectObject<EquipRow>('SELECT * FROM equips WHERE id = ?', [id]);
+    return row ? rowToEquip(row) : null;
+  }
+
+  async listEquips(
+    opts: { limit?: number; search?: string; slot?: string } = {},
+  ): Promise<EquipRecord[]> {
+    const limit = Math.min(Math.max(opts.limit ?? 200, 1), 5000);
+    const where: string[] = [];
+    const params: (string | number)[] = [];
+    if (opts.search && opts.search.trim()) {
+      where.push('name LIKE ?');
+      params.push(`%${opts.search.trim()}%`);
+    }
+    if (opts.slot) {
+      where.push('slot = ?');
+      params.push(opts.slot);
+    }
+    const clause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+    params.push(limit);
+    return this.sql
+      .selectObjects<EquipRow>(`SELECT * FROM equips ${clause} ORDER BY name LIMIT ?`, params)
+      .map(rowToEquip);
+  }
+
+  async listSearchEntries(): Promise<SearchEntry[]> {
+    const items = this.sql.selectObjects<{ id: number; name: string; category: string | null }>(
+      `SELECT id, name, category FROM items`,
+    );
+    const equips = this.sql.selectObjects<{ id: number; name: string; slot: string | null }>(
+      `SELECT id, name, slot FROM equips`,
+    );
+    const out: SearchEntry[] = [];
+    for (const r of items)
+      out.push({ id: r.id, name: r.name, entity: 'item', category: r.category });
+    for (const r of equips) out.push({ id: r.id, name: r.name, entity: 'equip', category: r.slot });
+    return out;
   }
 
   async recordDataset(input: {
@@ -146,6 +257,59 @@ export class DbApi implements GameDatabase {
   }
 
   // -- internals -------------------------------------------------------------
+
+  private upsertEquipRow(e: EquipRecord): void {
+    this.sql.exec(
+      `INSERT INTO equips (
+        id, name, description, slot, category, required_level,
+        required_str, required_dex, required_int, required_luk, required_job,
+        attack, magic_attack, defense, magic_defense, accuracy, avoidability,
+        upgrade_slots, icon_path, source_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name           = excluded.name,
+        description    = excluded.description,
+        slot           = excluded.slot,
+        category       = excluded.category,
+        required_level = excluded.required_level,
+        required_str   = excluded.required_str,
+        required_dex   = excluded.required_dex,
+        required_int   = excluded.required_int,
+        required_luk   = excluded.required_luk,
+        required_job   = excluded.required_job,
+        attack         = excluded.attack,
+        magic_attack   = excluded.magic_attack,
+        defense        = excluded.defense,
+        magic_defense  = excluded.magic_defense,
+        accuracy       = excluded.accuracy,
+        avoidability   = excluded.avoidability,
+        upgrade_slots  = excluded.upgrade_slots,
+        icon_path      = excluded.icon_path,
+        source_path    = excluded.source_path`,
+      [
+        e.id,
+        e.name,
+        e.description,
+        e.slot,
+        e.category,
+        e.requiredLevel,
+        e.requiredStr,
+        e.requiredDex,
+        e.requiredInt,
+        e.requiredLuk,
+        e.requiredJob,
+        e.attack,
+        e.magicAttack,
+        e.defense,
+        e.magicDefense,
+        e.accuracy,
+        e.avoidability,
+        e.upgradeSlots,
+        e.iconPath,
+        e.sourcePath,
+      ],
+    );
+  }
 
   private upsertItemRow(item: ItemRecord): void {
     this.sql.exec(

@@ -116,7 +116,15 @@ export interface GameDatabase {
   upsertItem(item: ItemRecord): Promise<void>;
   upsertItems(items: ItemRecord[]): Promise<number>;
   getItem(id: number): Promise<ItemRecord | null>;
-  listItems(opts?: { limit?: number; search?: string }): Promise<ItemRecord[]>;
+  listItems(opts?: { limit?: number; search?: string; category?: string }): Promise<ItemRecord[]>;
+
+  upsertEquip(equip: EquipRecord): Promise<void>;
+  upsertEquips(equips: EquipRecord[]): Promise<number>;
+  getEquip(id: number): Promise<EquipRecord | null>;
+  listEquips(opts?: { limit?: number; search?: string; slot?: string }): Promise<EquipRecord[]>;
+
+  /** Names + IDs of all entities for the in-app search index. */
+  listSearchEntries(): Promise<SearchEntry[]>;
 
   recordDataset(input: {
     label: string;
@@ -127,4 +135,12 @@ export interface GameDatabase {
   listDatasets(): Promise<DatasetRecord[]>;
 
   clearAllData(): Promise<void>;
+}
+
+export interface SearchEntry {
+  id: number;
+  name: string;
+  /** 'item' | 'equip' (extend as more entity types come online) */
+  entity: 'item' | 'equip';
+  category: string | null;
 }

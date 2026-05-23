@@ -14,8 +14,43 @@
 // Scope.navigator` exists and exposes `userAgent`, so the library's
 // platform-detection path resolves.
 
-const g = globalThis as { window?: unknown };
+const g = globalThis as {
+  window?: unknown;
+  OffscreenCanvas?: typeof OffscreenCanvas;
+};
 if (typeof g.window === 'undefined') {
   g.window = globalThis;
 }
+
+// `@tybys/wz`'s `Canvas` utility creates HTMLCanvasElements via
+// `window.document.createElement('canvas')` to decode WzCanvasProperty PNG
+// data. Workers don't have `document`. Shim it to return an OffscreenCanvas
+// (which exposes the same 2D context API) and patch a `toBlob` method that
+// delegates to `convertToBlob`, which is what `Canvas.getBufferAsync` calls
+// internally.
+const w = g.window as { document?: unknown };
+if (typeof g.OffscreenCanvas === 'function' && typeof w.document === 'undefined') {
+  type Cb = (blob: Blob | null) => void;
+  interface CanvasShim extends OffscreenCanvas {
+    toBlob?: (cb: Cb, type?: string) => void;
+  }
+  w.document = {
+    createElement(tag: string): unknown {
+      if (tag !== 'canvas') {
+        throw new Error(`[mge] worker document.createElement('${tag}') not supported`);
+      }
+      const oc = new OffscreenCanvas(1, 1) as CanvasShim;
+      if (typeof oc.toBlob !== 'function') {
+        oc.toBlob = function (cb, type) {
+          this.convertToBlob(type ? { type } : undefined).then(
+            (b) => cb(b),
+            () => cb(null),
+          );
+        };
+      }
+      return oc;
+    },
+  };
+}
+
 export {};

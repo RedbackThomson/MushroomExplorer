@@ -1,13 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Database, Loader2, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ItemIcon } from '@/components/ItemIcon';
 import { getDbClient } from '@/db';
+
+const CATEGORIES = ['all', 'use', 'setup', 'etc', 'cash'] as const;
+type Category = (typeof CATEGORIES)[number];
 
 export default function Items() {
   const client = useMemo(() => getDbClient(), []);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<Category>('all');
 
   const statusQ = useQuery({
     queryKey: ['db', 'status'],
@@ -15,8 +21,13 @@ export default function Items() {
   });
 
   const itemsQ = useQuery({
-    queryKey: ['db', 'items', { search }],
-    queryFn: () => client.listItems({ search: search || undefined, limit: 500 }),
+    queryKey: ['db', 'items', { search, category }],
+    queryFn: () =>
+      client.listItems({
+        search: search || undefined,
+        category: category === 'all' ? undefined : category,
+        limit: 1000,
+      }),
   });
 
   const clearM = useMutation({
@@ -31,13 +42,16 @@ export default function Items() {
   }, [clearM]);
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Items</h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            Items saved to the local SQLite database. Load WZ files on the{' '}
-            <code className="font-mono text-xs">/debug</code> page and use “Save to DB” to populate.
+            Items extracted from your local game files. Load WZ files on{' '}
+            <Link to="/debug" className="text-primary hover:underline">
+              /debug
+            </Link>{' '}
+            and run “Extract items + equips” to populate.
           </p>
         </div>
         <Button
@@ -62,15 +76,33 @@ export default function Items() {
       />
 
       <section className="space-y-3">
-        <div className="relative">
-          <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search items by name"
-            className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[16rem] flex-1">
+            <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search items by name"
+              className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2"
+            />
+          </div>
+          <div className="flex items-center gap-1 text-xs">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                className={
+                  category === c
+                    ? 'bg-primary text-primary-foreground rounded-md px-2.5 py-1.5 capitalize'
+                    : 'text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1.5 capitalize'
+                }
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
 
         {itemsQ.isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
@@ -80,22 +112,36 @@ export default function Items() {
         {itemsQ.data && itemsQ.data.length === 0 && (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No items yet. Save some from <code className="font-mono text-xs">/debug</code> to see
-              them here.
+              {search || category !== 'all' ? 'No items match.' : 'No items yet.'} Try{' '}
+              <Link to="/debug" className="text-primary hover:underline">
+                /debug
+              </Link>{' '}
+              → Extract items + equips.
             </p>
           </div>
         )}
         {itemsQ.data && itemsQ.data.length > 0 && (
           <ul className="divide-border border-border bg-card text-card-foreground divide-y rounded-md border">
             {itemsQ.data.map((item) => (
-              <li key={item.id} className="flex items-baseline justify-between gap-4 px-4 py-2">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{item.name}</div>
-                  {item.description && (
-                    <div className="text-muted-foreground truncate text-xs">{item.description}</div>
-                  )}
-                </div>
-                <div className="text-muted-foreground shrink-0 font-mono text-xs">{item.id}</div>
+              <li key={item.id}>
+                <Link
+                  to={`/items/${item.id}`}
+                  className="hover:bg-accent flex items-center gap-3 px-4 py-2 transition-colors"
+                >
+                  <ItemIcon path={item.iconPath} size={32} alt={item.name} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{item.name}</div>
+                    {item.description && (
+                      <div className="text-muted-foreground line-clamp-1 text-xs">
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground shrink-0 text-right text-xs">
+                    <div className="font-mono">{item.id}</div>
+                    {item.category && <div className="capitalize">{item.category}</div>}
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

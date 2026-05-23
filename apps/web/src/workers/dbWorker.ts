@@ -49,6 +49,26 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.listItems(opts);
   }
+  async upsertEquip(equip: Parameters<DbApi['upsertEquip']>[0]) {
+    await this.ensureOpen();
+    return this.api.upsertEquip(equip);
+  }
+  async upsertEquips(equips: Parameters<DbApi['upsertEquips']>[0]) {
+    await this.ensureOpen();
+    return this.api.upsertEquips(equips);
+  }
+  async getEquip(id: number) {
+    await this.ensureOpen();
+    return this.api.getEquip(id);
+  }
+  async listEquips(opts?: Parameters<DbApi['listEquips']>[0]) {
+    await this.ensureOpen();
+    return this.api.listEquips(opts);
+  }
+  async listSearchEntries() {
+    await this.ensureOpen();
+    return this.api.listSearchEntries();
+  }
   async recordDataset(input: Parameters<DbApi['recordDataset']>[0]) {
     await this.ensureOpen();
     return this.api.recordDataset(input);

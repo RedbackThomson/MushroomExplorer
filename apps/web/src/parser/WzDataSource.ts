@@ -18,6 +18,7 @@ import type {
 } from './types';
 import { toWzMapleVersion } from './wzVersion';
 import { toNodeInfo, WzSubProperty, WzConvexProperty } from './nodeInfo';
+import { decodePng } from './icons';
 import { createLogger, describeError, getLogEntries } from '@/lib/logger';
 import { getAesSmokeTestResult } from './wzInit';
 
@@ -186,6 +187,17 @@ export class WzDataSource implements GameDataSource {
         return [...props].map((c) => toNodeInfo(c as unknown as WzObject, join(c.name)));
       }
       return [];
+    });
+  }
+
+  async getIconPng(path: string): Promise<Uint8Array | null> {
+    log.debug('getIconPng', { path });
+    const loaded = this.loadedFor(path);
+    if (!loaded) return null;
+    return runExclusive(loaded, async () => {
+      const obj = await this.resolveInLock(loaded, path);
+      if (!obj) return null;
+      return decodePng(obj);
     });
   }
 

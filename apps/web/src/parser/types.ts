@@ -59,6 +59,12 @@ export interface GameDataSource {
   listChildren(path: string): Promise<WzNodeInfo[]>;
   /** List the loaded top-level files. */
   listFiles(): Promise<WzNodeInfo[]>;
+  /**
+   * Decode a `WzCanvasProperty` / `WzPngProperty` node to PNG bytes. Returns
+   * null if the path doesn't resolve, doesn't point to a canvas, or decoding
+   * fails. The main thread wraps the bytes in a Blob to make an object URL.
+   */
+  getIconPng(path: string): Promise<Uint8Array | null>;
   /** Diagnostics for bug reports. */
   diagnose(): Promise<Diagnostics>;
   dispose(): Promise<void>;

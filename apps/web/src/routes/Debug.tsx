@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { FilePicker } from '@/components/FilePicker';
 import { Button } from '@/components/ui/button';
+import { ExtractAllPanel } from '@/components/ExtractAllPanel';
 import { getParserClient, type WzNodeInfo, type WzMapleVersionName } from '@/parser';
 import { getDbClient } from '@/db';
 import { cn } from '@/lib/utils';
@@ -138,6 +139,8 @@ export default function Debug() {
           </ul>
         </section>
       )}
+
+      {loadState && loadState.loaded.length > 0 && <ExtractAllPanel />}
 
       <DiagnosticsPanel />
 
