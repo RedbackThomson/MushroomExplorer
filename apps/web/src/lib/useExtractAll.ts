@@ -14,6 +14,7 @@ export interface ExtractStats {
   mobs: number;
   npcs: number;
   maps: number;
+  quests: number;
   skipped: number;
   ms: number;
 }
@@ -73,6 +74,7 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
       let mobCount = 0;
       let npcCount = 0;
       let mapCount = 0;
+      let questCount = 0;
       let skippedTotal = 0;
 
       if (!shouldSkip(opts.skipWz, 'item')) {
@@ -136,6 +138,26 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
         log.info('skipping maps (Map.wz hash unchanged)');
       }
 
+      if (!shouldSkip(opts.skipWz, 'quest')) {
+        const r = await parser.extractQuests(onProgress);
+        setProgress({ phase: 'Saving quests to database', current: 0, total: r.quests.length });
+        questCount = r.quests.length > 0 ? await db.upsertQuests(r.quests) : 0;
+        skippedTotal += r.skipped.length;
+        if (r.requirements.length > 0 || r.rewards.length > 0) {
+          setProgress({
+            phase: 'Saving quest requirements + rewards',
+            current: 0,
+            total: r.requirements.length + r.rewards.length,
+          });
+          await db.replaceQuestRelations({
+            requirements: r.requirements,
+            rewards: r.rewards,
+          });
+        }
+      } else {
+        log.info('skipping quests (Quest.wz hash unchanged)');
+      }
+
       // Record a datasets row so feature flags pick up the new files.
       if (opts.recordFiles && opts.recordFiles.length > 0) {
         setProgress({ phase: 'Recording dataset', current: 0 });
@@ -153,6 +175,7 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
         mobs: mobCount,
         npcs: npcCount,
         maps: mapCount,
+        quests: questCount,
         skipped: skippedTotal,
         ms,
       };

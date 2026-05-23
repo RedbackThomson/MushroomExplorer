@@ -19,6 +19,12 @@ import type {
   MobRecord,
   NpcRecord,
   GameDatabase,
+  QuestRecord,
+  QuestRequirementRecord,
+  QuestRequirementWithName,
+  QuestRewardRecord,
+  QuestRewardWithName,
+  QuestSummary,
   SearchEntry,
 } from './types';
 
@@ -140,6 +146,32 @@ function rowToMap(r: MapRow): MapRecord {
     forcedReturnMapId: r.forced_return_map_id,
     fieldLimit: r.field_limit,
     mobRate: r.mob_rate,
+    sourcePath: r.source_path,
+  };
+}
+
+interface QuestRow extends Row {
+  id: number;
+  name: string;
+  parent: string | null;
+  description: string | null;
+  start_npc_id: number | null;
+  end_npc_id: number | null;
+  required_level: number | null;
+  required_job: number | null;
+  source_path: string;
+}
+
+function rowToQuest(r: QuestRow): QuestRecord {
+  return {
+    id: r.id,
+    name: r.name,
+    parent: r.parent,
+    description: r.description,
+    startNpcId: r.start_npc_id,
+    endNpcId: r.end_npc_id,
+    requiredLevel: r.required_level,
+    requiredJob: r.required_job,
     sourcePath: r.source_path,
   };
 }
@@ -554,6 +586,214 @@ export class DbApi implements GameDatabase {
     });
   }
 
+  async upsertQuests(quests: QuestRecord[]): Promise<number> {
+    this.sql.transaction(() => {
+      for (const q of quests) {
+        this.sql.exec(
+          `INSERT INTO quests (
+            id, name, parent, description, start_npc_id, end_npc_id,
+            required_level, required_job, source_path
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name           = excluded.name,
+            parent         = excluded.parent,
+            description    = excluded.description,
+            start_npc_id   = excluded.start_npc_id,
+            end_npc_id     = excluded.end_npc_id,
+            required_level = excluded.required_level,
+            required_job   = excluded.required_job,
+            source_path    = excluded.source_path`,
+          [
+            q.id,
+            q.name,
+            q.parent,
+            q.description,
+            q.startNpcId,
+            q.endNpcId,
+            q.requiredLevel,
+            q.requiredJob,
+            q.sourcePath,
+          ],
+        );
+      }
+    });
+    return quests.length;
+  }
+
+  async getQuest(id: number): Promise<QuestRecord | null> {
+    const row = this.sql.selectObject<QuestRow>('SELECT * FROM quests WHERE id = ?', [id]);
+    return row ? rowToQuest(row) : null;
+  }
+
+  async listQuests(
+    opts: { limit?: number; search?: string; parent?: string } = {},
+  ): Promise<QuestRecord[]> {
+    const limit = Math.min(Math.max(opts.limit ?? 200, 1), 5000);
+    const where: string[] = [];
+    const params: (string | number)[] = [];
+    if (opts.search?.trim()) {
+      where.push('name LIKE ?');
+      params.push(`%${opts.search.trim()}%`);
+    }
+    if (opts.parent) {
+      where.push('parent = ?');
+      params.push(opts.parent);
+    }
+    const clause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+    params.push(limit);
+    return this.sql
+      .selectObjects<QuestRow>(
+        `SELECT * FROM quests ${clause} ORDER BY parent NULLS LAST, name LIMIT ?`,
+        params,
+      )
+      .map(rowToQuest);
+  }
+
+  async listQuestParents(): Promise<string[]> {
+    return this.sql
+      .selectObjects<{ parent: string }>(
+        `SELECT DISTINCT parent FROM quests WHERE parent IS NOT NULL AND parent <> '' ORDER BY parent`,
+      )
+      .map((r) => r.parent);
+  }
+
+  async getQuestRequirements(questId: number): Promise<QuestRequirementWithName[]> {
+    // The display name comes from whichever side of the union the kind points
+    // at. We compute it inline with CASE so the result is a single homogenous
+    // result set the caller can render directly.
+    return this.sql
+      .selectObjects<{
+        quest_id: number;
+        kind: QuestRequirementRecord['kind'];
+        target_id: number | null;
+        amount: number | null;
+        target_name: string | null;
+      }>(
+        `SELECT
+           qr.quest_id, qr.kind, qr.target_id, qr.amount,
+           CASE qr.kind
+             WHEN 'item' THEN COALESCE(i.name, e.name)
+             WHEN 'mob'  THEN m.name
+             WHEN 'questPre' THEN q.name
+             ELSE NULL
+           END AS target_name
+         FROM quest_requirements qr
+         LEFT JOIN items  i ON qr.kind = 'item'     AND i.id = qr.target_id
+         LEFT JOIN equips e ON qr.kind = 'item'     AND e.id = qr.target_id
+         LEFT JOIN mobs   m ON qr.kind = 'mob'      AND m.id = qr.target_id
+         LEFT JOIN quests q ON qr.kind = 'questPre' AND q.id = qr.target_id
+         WHERE qr.quest_id = ?
+         ORDER BY qr.kind, qr.target_id`,
+        [questId],
+      )
+      .map((r) => ({
+        questId: r.quest_id,
+        kind: r.kind,
+        targetId: r.target_id,
+        amount: r.amount,
+        targetName: r.target_name,
+      }));
+  }
+
+  async getQuestRewards(questId: number): Promise<QuestRewardWithName[]> {
+    return this.sql
+      .selectObjects<{
+        quest_id: number;
+        kind: QuestRewardRecord['kind'];
+        target_id: number | null;
+        amount: number | null;
+        target_name: string | null;
+      }>(
+        `SELECT
+           qr.quest_id, qr.kind, qr.target_id, qr.amount,
+           CASE qr.kind
+             WHEN 'item' THEN COALESCE(i.name, e.name)
+             ELSE NULL
+           END AS target_name
+         FROM quest_rewards qr
+         LEFT JOIN items  i ON qr.kind = 'item' AND i.id = qr.target_id
+         LEFT JOIN equips e ON qr.kind = 'item' AND e.id = qr.target_id
+         WHERE qr.quest_id = ?
+         ORDER BY qr.kind, qr.target_id`,
+        [questId],
+      )
+      .map((r) => ({
+        questId: r.quest_id,
+        kind: r.kind,
+        targetId: r.target_id,
+        amount: r.amount,
+        targetName: r.target_name,
+      }));
+  }
+
+  async getNpcQuests(npcId: number): Promise<QuestSummary[]> {
+    return this.sql
+      .selectObjects<{ id: number; name: string; parent: string | null }>(
+        `SELECT id, name, parent FROM quests
+         WHERE start_npc_id = ? OR end_npc_id = ?
+         ORDER BY parent NULLS LAST, name`,
+        [npcId, npcId],
+      )
+      .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+  }
+
+  async getItemQuests(itemId: number): Promise<QuestSummary[]> {
+    return this.sql
+      .selectObjects<{ id: number; name: string; parent: string | null }>(
+        `SELECT DISTINCT q.id, q.name, q.parent
+         FROM quests q
+         JOIN quest_requirements qr ON qr.quest_id = q.id
+         WHERE qr.kind = 'item' AND qr.target_id = ?
+         ORDER BY q.parent NULLS LAST, q.name`,
+        [itemId],
+      )
+      .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+  }
+
+  async getMobQuests(mobId: number): Promise<QuestSummary[]> {
+    return this.sql
+      .selectObjects<{ id: number; name: string; parent: string | null }>(
+        `SELECT DISTINCT q.id, q.name, q.parent
+         FROM quests q
+         JOIN quest_requirements qr ON qr.quest_id = q.id
+         WHERE qr.kind = 'mob' AND qr.target_id = ?
+         ORDER BY q.parent NULLS LAST, q.name`,
+        [mobId],
+      )
+      .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+  }
+
+  async replaceQuestRelations(rows: {
+    requirements: QuestRequirementRecord[];
+    rewards: QuestRewardRecord[];
+  }): Promise<void> {
+    // Wipe rows for every quest mentioned in either list so re-extracts
+    // don't leave stale joins. Same pattern as replaceMapLife.
+    const questIds = new Set<number>();
+    for (const r of rows.requirements) questIds.add(r.questId);
+    for (const r of rows.rewards) questIds.add(r.questId);
+    this.sql.transaction(() => {
+      for (const id of questIds) {
+        this.sql.exec('DELETE FROM quest_requirements WHERE quest_id = ?', [id]);
+        this.sql.exec('DELETE FROM quest_rewards      WHERE quest_id = ?', [id]);
+      }
+      for (const r of rows.requirements) {
+        this.sql.exec(
+          `INSERT OR REPLACE INTO quest_requirements (quest_id, kind, target_id, amount)
+           VALUES (?, ?, ?, ?)`,
+          [r.questId, r.kind, r.targetId, r.amount],
+        );
+      }
+      for (const r of rows.rewards) {
+        this.sql.exec(
+          `INSERT OR REPLACE INTO quest_rewards (quest_id, kind, target_id, amount)
+           VALUES (?, ?, ?, ?)`,
+          [r.questId, r.kind, r.targetId, r.amount],
+        );
+      }
+    });
+  }
+
   async listSearchEntries(): Promise<SearchEntry[]> {
     const out: SearchEntry[] = [];
     for (const r of this.sql.selectObjects<{
@@ -598,6 +838,13 @@ export class DbApi implements GameDatabase {
         entity: 'map',
         category: r.street_name,
       });
+    }
+    for (const r of this.sql.selectObjects<{
+      id: number;
+      name: string;
+      parent: string | null;
+    }>(`SELECT id, name, parent FROM quests WHERE name IS NOT NULL AND name <> ''`)) {
+      out.push({ id: r.id, name: r.name, entity: 'quest', category: r.parent });
     }
     return out;
   }

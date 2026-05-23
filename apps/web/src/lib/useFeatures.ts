@@ -14,6 +14,7 @@ const WZ_FILE_FEATURE: Record<string, keyof FeatureFlags> = {
   'Mob.wz': 'hasMobs',
   'Npc.wz': 'hasNpcs',
   'Map.wz': 'hasMaps',
+  'Quest.wz': 'hasQuests',
 };
 
 export interface FeatureFlags {
@@ -22,6 +23,7 @@ export interface FeatureFlags {
   hasMobs: boolean;
   hasNpcs: boolean;
   hasMaps: boolean;
+  hasQuests: boolean;
 }
 
 export interface Features extends FeatureFlags {
@@ -77,6 +79,7 @@ export function useFeatures(): Features {
       hasMobs: false,
       hasNpcs: false,
       hasMaps: false,
+      hasQuests: false,
     };
     for (const file of loadedFiles) {
       const key = WZ_FILE_FEATURE[file];
@@ -88,11 +91,17 @@ export function useFeatures(): Features {
       hasMobs: fileFlags.hasMobs && (counts?.mobs ?? 0) > 0,
       hasNpcs: fileFlags.hasNpcs && (counts?.npcs ?? 0) > 0,
       hasMaps: fileFlags.hasMaps && (counts?.maps ?? 0) > 0,
+      hasQuests: fileFlags.hasQuests && (counts?.quests ?? 0) > 0,
     };
   }, [loadedFiles, counts]);
 
   const hasAny =
-    flags.hasItems || flags.hasEquips || flags.hasMobs || flags.hasNpcs || flags.hasMaps;
+    flags.hasItems ||
+    flags.hasEquips ||
+    flags.hasMobs ||
+    flags.hasNpcs ||
+    flags.hasMaps ||
+    flags.hasQuests;
 
   // First run: no datasets have ever been recorded *and* every entity table
   // is empty. The first condition alone would already imply "no setup", but

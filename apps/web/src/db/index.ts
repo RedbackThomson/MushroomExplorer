@@ -20,6 +20,11 @@ export type {
   MobRecord,
   NpcRecord,
   QuestRecord,
+  QuestRequirementRecord,
+  QuestRequirementWithName,
+  QuestRewardRecord,
+  QuestRewardWithName,
+  QuestSummary,
   SearchEntry,
 } from './types';
 export { getDbClient, terminateDbClient } from './client';

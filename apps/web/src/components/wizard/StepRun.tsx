@@ -147,8 +147,8 @@ export function StepRun({ version, files, onComplete }: Props) {
             <h2 className="text-lg font-semibold">Setup complete</h2>
             <p className="text-muted-foreground text-sm">
               Loaded {extract.stats.items} items, {extract.stats.equips} equips,{' '}
-              {extract.stats.mobs} mobs, {extract.stats.npcs} NPCs, {extract.stats.maps} maps in{' '}
-              {(extract.stats.ms / 1000).toFixed(1)}s.
+              {extract.stats.mobs} mobs, {extract.stats.npcs} NPCs, {extract.stats.maps} maps,{' '}
+              {extract.stats.quests} quests in {(extract.stats.ms / 1000).toFixed(1)}s.
               {extract.stats.skipped > 0 && (
                 <> {extract.stats.skipped} skipped (no localized name).</>
               )}

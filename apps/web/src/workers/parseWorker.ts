@@ -6,7 +6,14 @@ import './workerEnv';
 import { expose } from 'comlink';
 import { WzDataSource } from '@/parser/WzDataSource';
 import { ensureWzInit } from '@/parser/wzInit';
-import { extractItems, extractEquips, extractMobs, extractNpcs, extractMaps } from '@/extractors';
+import {
+  extractItems,
+  extractEquips,
+  extractMobs,
+  extractNpcs,
+  extractMaps,
+  extractQuests,
+} from '@/extractors';
 import { createLogger, describeError } from '@/lib/logger';
 import { throttleProgress, type ProgressFn } from '@/lib/progress';
 import type { GameDataSource, LoadFileSpec, WzMapleVersionName } from '@/parser/types';
@@ -16,6 +23,7 @@ import type {
   ExtractMobsResult,
   ExtractNpcsResult,
   ExtractMapsResult,
+  ExtractQuestsResult,
 } from '@/extractors';
 
 const log = createLogger('worker');
@@ -117,6 +125,20 @@ class WorkerGameDataSource implements GameDataSource {
       mapNpcs: result.mapNpcs.length,
       mapMobs: result.mapMobs.length,
       mapPortals: result.mapPortals.length,
+    });
+    return result;
+  }
+
+  async extractQuests(onProgress?: ProgressFn): Promise<ExtractQuestsResult> {
+    log.info('extractQuests requested');
+    const result = await extractQuests(this.inner, {
+      onProgress: onProgress ? throttleProgress(onProgress) : undefined,
+    });
+    log.info('extractQuests complete', {
+      quests: result.quests.length,
+      requirements: result.requirements.length,
+      rewards: result.rewards.length,
+      skipped: result.skipped.length,
     });
     return result;
   }

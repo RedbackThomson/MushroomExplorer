@@ -109,11 +109,65 @@ export interface MapMobWithName extends MapMobRecord {
 export interface QuestRecord {
   id: number;
   name: string;
+  /** Chain / area name from `String.wz/Quest.img/<id>/parent`. */
+  parent: string | null;
+  /** Long-form blurb from `String.wz/Quest.img/<id>/desc`, when present. */
+  description: string | null;
   startNpcId: number | null;
   endNpcId: number | null;
   requiredLevel: number | null;
+  /** Job bitfield from `Check.img/<id>/0/job`. Stored verbatim; UI decodes. */
   requiredJob: number | null;
   sourcePath: string;
+}
+
+/**
+ * One requirement row attached to a quest. `kind` identifies what must be
+ * supplied/satisfied; `targetId` and `amount` are interpreted per-kind:
+ *
+ *   - `item`     — collect `amount` of item `targetId`
+ *   - `mob`      — kill  `amount` of mob  `targetId`
+ *   - `questPre` — completed quest `targetId` (state = `amount`, usually 2)
+ *   - `level`    — minimum level (amount, targetId null)
+ *   - `job`      — required job bitfield (amount, targetId null)
+ */
+export interface QuestRequirementRecord {
+  questId: number;
+  kind: 'item' | 'mob' | 'questPre' | 'level' | 'job';
+  targetId: number | null;
+  amount: number | null;
+}
+
+/**
+ * One reward row attached to a quest. `kind`:
+ *
+ *   - `item` — give `amount` of item `targetId`
+ *   - `exp`  — `amount` exp (targetId null)
+ *   - `meso` — `amount` mesos (targetId null)
+ */
+export interface QuestRewardRecord {
+  questId: number;
+  kind: 'item' | 'exp' | 'meso';
+  targetId: number | null;
+  amount: number | null;
+}
+
+/** A row from `quest_requirements` joined to the target item/mob/quest's
+ *  display name. Targets may be null for `level` / `job` kinds. */
+export interface QuestRequirementWithName extends QuestRequirementRecord {
+  targetName: string | null;
+}
+
+/** A row from `quest_rewards` joined to the target item's display name. */
+export interface QuestRewardWithName extends QuestRewardRecord {
+  targetName: string | null;
+}
+
+/** Quest summary surfaced from a cross-link (e.g. "quests this NPC offers"). */
+export interface QuestSummary {
+  id: number;
+  name: string;
+  parent: string | null;
 }
 
 export interface DatasetFileRef {
@@ -186,6 +240,31 @@ export interface GameDatabase {
   getMapMobs(mapId: number): Promise<MapMobWithName[]>;
   getMapPortals(mapId: number): Promise<MapPortalRecord[]>;
 
+  upsertQuests(quests: QuestRecord[]): Promise<number>;
+  getQuest(id: number): Promise<QuestRecord | null>;
+  listQuests(opts?: {
+    limit?: number;
+    search?: string;
+    parent?: string;
+  }): Promise<QuestRecord[]>;
+  /** Distinct quest `parent` values for filter UIs. */
+  listQuestParents(): Promise<string[]>;
+  /** Requirements / rewards joined to the target's display name. */
+  getQuestRequirements(questId: number): Promise<QuestRequirementWithName[]>;
+  getQuestRewards(questId: number): Promise<QuestRewardWithName[]>;
+  /** Quests an NPC offers (start or end). */
+  getNpcQuests(npcId: number): Promise<QuestSummary[]>;
+  /** Quests that ask for the given item as a requirement. */
+  getItemQuests(itemId: number): Promise<QuestSummary[]>;
+  /** Quests that require killing the given mob. */
+  getMobQuests(mobId: number): Promise<QuestSummary[]>;
+  /** Replace requirements + rewards for the given quest IDs in one
+   *  transaction; mirrors `replaceMapLife`. */
+  replaceQuestRelations(rows: {
+    requirements: QuestRequirementRecord[];
+    rewards: QuestRewardRecord[];
+  }): Promise<void>;
+
   /** Replace all rows of a join table for the given map IDs. Used by the
    *  map extractor to keep join data consistent with re-extractions. */
   replaceMapLife(rows: {
@@ -212,7 +291,7 @@ export interface GameDatabase {
   clearAllData(): Promise<void>;
 }
 
-export type EntityKind = 'item' | 'equip' | 'mob' | 'npc' | 'map';
+export type EntityKind = 'item' | 'equip' | 'mob' | 'npc' | 'map' | 'quest';
 
 export interface SearchEntry {
   id: number;

@@ -1,18 +1,25 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Crown, Loader2, Skull } from 'lucide-react';
+import { ArrowLeft, Crown, Loader2, ScrollText, Skull } from 'lucide-react';
 import { getDbClient } from '@/db';
+import { useFeatures } from '@/lib/useFeatures';
 
 export default function MobDetail() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const client = useMemo(() => getDbClient(), []);
+  const features = useFeatures();
 
   const mobQ = useQuery({
     queryKey: ['db', 'mob', id],
     queryFn: () => client.getMob(id),
     enabled: Number.isFinite(id),
+  });
+  const questsQ = useQuery({
+    queryKey: ['db', 'mob', id, 'quests'],
+    queryFn: () => client.getMobQuests(id),
+    enabled: Number.isFinite(id) && features.hasQuests,
   });
 
   if (mobQ.isLoading) {
@@ -70,6 +77,35 @@ export default function MobDetail() {
             Drops, animations, and elemental modifiers come from server data; we only have the base
             stats from <code className="font-mono">Mob.wz</code>.
           </p>
+
+          {features.hasQuests && questsQ.data && questsQ.data.length > 0 && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                <ScrollText className="h-4 w-4" /> Required by quests
+                <span className="text-muted-foreground text-xs normal-case">
+                  ({questsQ.data.length})
+                </span>
+              </h2>
+              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
+                {questsQ.data.map((q) => (
+                  <li key={q.id}>
+                    <Link
+                      to={`/quests/${q.id}`}
+                      className="hover:bg-accent flex items-center gap-2 px-3 py-1.5 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {q.name}
+                        {q.parent && <span className="text-muted-foreground"> · {q.parent}</span>}
+                      </span>
+                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                        {q.id}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </article>
 
         <aside className="border-border bg-card text-card-foreground rounded-md border p-4 text-sm">

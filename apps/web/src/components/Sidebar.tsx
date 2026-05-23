@@ -20,8 +20,8 @@ interface SidebarSection {
   icon: LucideIcon;
   children?: { label: string; to: string }[];
   /** Which feature flag must be true for this entry to render. Always-visible
-   *  entries (Home, Settings, Debug, Quests placeholder) omit this. */
-  feature?: 'hasItems' | 'hasEquips' | 'hasMobs' | 'hasNpcs' | 'hasMaps';
+   *  entries (Home, Settings, Debug) omit this. */
+  feature?: 'hasItems' | 'hasEquips' | 'hasMobs' | 'hasNpcs' | 'hasMaps' | 'hasQuests';
 }
 
 const ENTITY_SECTIONS: SidebarSection[] = [
@@ -51,6 +51,7 @@ const ENTITY_SECTIONS: SidebarSection[] = [
   { label: 'Mobs', to: '/mobs', icon: Skull, feature: 'hasMobs' },
   { label: 'NPCs', to: '/npcs', icon: Users, feature: 'hasNpcs' },
   { label: 'Maps', to: '/maps', icon: MapIcon, feature: 'hasMaps' },
+  { label: 'Quests', to: '/quests', icon: ScrollText, feature: 'hasQuests' },
 ];
 
 export function Sidebar() {
@@ -108,8 +109,6 @@ export function Sidebar() {
               )}
             </li>
           ))}
-          {/* Quests stays as a placeholder until Phase 5; not gated on data. */}
-          <NavItem to="/quests" icon={ScrollText} label="Quests" />
         </ul>
         <div className="border-border mt-3 space-y-1 border-t pt-3">
           <NavItem to="/settings" icon={SettingsIcon} label="Settings" />

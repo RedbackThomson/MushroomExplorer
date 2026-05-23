@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Map as MapIcon,
   Package,
+  ScrollText,
   Shield,
   Skull,
   Sparkles,
@@ -88,6 +89,13 @@ function Dashboard({ features }: { features: ReturnType<typeof useFeatures> }) {
     { label: 'Mobs', to: '/mobs', icon: Skull, enabled: features.hasMobs, count: counts.mobs },
     { label: 'NPCs', to: '/npcs', icon: Users, enabled: features.hasNpcs, count: counts.npcs },
     { label: 'Maps', to: '/maps', icon: MapIcon, enabled: features.hasMaps, count: counts.maps },
+    {
+      label: 'Quests',
+      to: '/quests',
+      icon: ScrollText,
+      enabled: features.hasQuests,
+      count: counts.quests,
+    },
   ];
   const enabled = tiles.filter((t) => t.enabled);
   const missingAny = enabled.length < tiles.length;

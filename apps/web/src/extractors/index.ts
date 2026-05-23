@@ -20,3 +20,5 @@ export { extractNpcs } from './extractNpcs';
 export type { ExtractNpcsResult } from './extractNpcs';
 export { extractMaps } from './extractMaps';
 export type { ExtractMapsResult } from './extractMaps';
+export { extractQuests } from './extractQuests';
+export type { ExtractQuestsResult } from './extractQuests';

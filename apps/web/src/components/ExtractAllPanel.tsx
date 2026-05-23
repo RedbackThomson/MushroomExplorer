@@ -18,8 +18,9 @@ export function ExtractAllPanel() {
       <h2 className="text-lg font-semibold">Bulk extract to database</h2>
       <p className="text-muted-foreground text-sm">
         Walks every loaded WZ file: items + equips + mobs + NPCs + maps (with their NPC, mob, and
-        portal placements). Records are saved to the local SQLite database. Map.wz extraction is
-        memory-intensive — load it only if you want full map data.
+        portal placements) + quests (with their requirements and rewards). Records are saved to
+        the local SQLite database. Map.wz extraction is memory-intensive — load it only if you
+        want full map data.
       </p>
       <div className="flex items-center gap-3">
         <Button onClick={run} disabled={isRunning}>
@@ -35,7 +36,7 @@ export function ExtractAllPanel() {
             <Database className="h-4 w-4" />
             <span>
               {stats.items} items, {stats.equips} equips, {stats.mobs} mobs, {stats.npcs} NPCs,{' '}
-              {stats.maps} maps
+              {stats.maps} maps, {stats.quests} quests
               {stats.skipped > 0 ? `, ${stats.skipped} skipped` : ''} in {stats.ms} ms
             </span>
             <Link to="/items" className="text-primary text-xs hover:underline">

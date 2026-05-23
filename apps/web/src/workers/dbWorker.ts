@@ -133,6 +133,46 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.listSearchEntries();
   }
+  async upsertQuests(quests: Parameters<DbApi['upsertQuests']>[0]) {
+    await this.ensureOpen();
+    return this.api.upsertQuests(quests);
+  }
+  async getQuest(id: number) {
+    await this.ensureOpen();
+    return this.api.getQuest(id);
+  }
+  async listQuests(opts?: Parameters<DbApi['listQuests']>[0]) {
+    await this.ensureOpen();
+    return this.api.listQuests(opts);
+  }
+  async listQuestParents() {
+    await this.ensureOpen();
+    return this.api.listQuestParents();
+  }
+  async getQuestRequirements(questId: number) {
+    await this.ensureOpen();
+    return this.api.getQuestRequirements(questId);
+  }
+  async getQuestRewards(questId: number) {
+    await this.ensureOpen();
+    return this.api.getQuestRewards(questId);
+  }
+  async getNpcQuests(npcId: number) {
+    await this.ensureOpen();
+    return this.api.getNpcQuests(npcId);
+  }
+  async getItemQuests(itemId: number) {
+    await this.ensureOpen();
+    return this.api.getItemQuests(itemId);
+  }
+  async getMobQuests(mobId: number) {
+    await this.ensureOpen();
+    return this.api.getMobQuests(mobId);
+  }
+  async replaceQuestRelations(rows: Parameters<DbApi['replaceQuestRelations']>[0]) {
+    await this.ensureOpen();
+    return this.api.replaceQuestRelations(rows);
+  }
   async recordDataset(input: Parameters<DbApi['recordDataset']>[0]) {
     await this.ensureOpen();
     return this.api.recordDataset(input);

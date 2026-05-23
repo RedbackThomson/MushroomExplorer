@@ -48,6 +48,10 @@ export const router = createBrowserRouter([
         lazy: () => import('@/routes/Quests').then((m) => ({ Component: m.default })),
       },
       {
+        path: 'quests/:id',
+        lazy: () => import('@/routes/QuestDetail').then((m) => ({ Component: m.default })),
+      },
+      {
         path: 'settings',
         lazy: () => import('@/routes/Settings').then((m) => ({ Component: m.default })),
       },

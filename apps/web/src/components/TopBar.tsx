@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Map as MapIcon, Package, Search, Shield, Skull, Users } from 'lucide-react';
+import {
+  Loader2,
+  Map as MapIcon,
+  Package,
+  ScrollText,
+  Search,
+  Shield,
+  Skull,
+  Users,
+} from 'lucide-react';
 import type { EntityKind } from '@/db';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getDbClient } from '@/db';
@@ -30,6 +39,8 @@ function routeFor(entity: EntityKind, id: number): string {
       return `/npcs/${id}`;
     case 'map':
       return `/maps/${id}`;
+    case 'quest':
+      return `/quests/${id}`;
   }
 }
 
@@ -45,6 +56,8 @@ function iconFor(entity: EntityKind) {
       return Users;
     case 'map':
       return MapIcon;
+    case 'quest':
+      return ScrollText;
   }
 }
 
@@ -65,7 +78,7 @@ function GlobalSearch() {
   // moving forces the MiniSearch index to rebuild on the next query.
   const counts = statusQ.data?.counts;
   const epoch = counts
-    ? `${counts.items}.${counts.equips}.${counts.mobs}.${counts.npcs}.${counts.maps}`
+    ? `${counts.items}.${counts.equips}.${counts.mobs}.${counts.npcs}.${counts.maps}.${counts.quests}`
     : '';
   const hasContent =
     !!counts &&
@@ -73,7 +86,8 @@ function GlobalSearch() {
       counts.equips > 0 ||
       counts.mobs > 0 ||
       counts.npcs > 0 ||
-      counts.maps > 0);
+      counts.maps > 0 ||
+      counts.quests > 0);
 
   const indexQ = useQuery({
     queryKey: ['search-index', epoch],
@@ -125,7 +139,7 @@ function GlobalSearch() {
   const empty = !hasContent;
   const placeholder = empty
     ? 'Database is empty — extract on /debug'
-    : 'Search items, equips, mobs, NPCs, maps…';
+    : 'Search items, equips, mobs, NPCs, maps, quests…';
 
   return (
     <div ref={containerRef} className="relative max-w-xl flex-1">

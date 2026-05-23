@@ -199,4 +199,17 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX IF NOT EXISTS dataset_files_hash_idx ON dataset_files (hash);
     `,
   },
+  {
+    version: 4,
+    name: 'quest taxonomy fields',
+    sql: `
+      ALTER TABLE quests ADD COLUMN parent TEXT;
+      ALTER TABLE quests ADD COLUMN description TEXT;
+      CREATE INDEX IF NOT EXISTS quests_parent_idx ON quests (parent);
+      CREATE INDEX IF NOT EXISTS quest_requirements_target_idx
+        ON quest_requirements (kind, target_id);
+      CREATE INDEX IF NOT EXISTS quest_rewards_target_idx
+        ON quest_rewards (kind, target_id);
+    `,
+  },
 ];

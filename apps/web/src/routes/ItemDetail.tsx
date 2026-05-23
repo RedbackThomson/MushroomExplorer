@@ -1,19 +1,26 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ScrollText } from 'lucide-react';
 import { ItemIcon } from '@/components/ItemIcon';
 import { getDbClient } from '@/db';
+import { useFeatures } from '@/lib/useFeatures';
 
 export default function ItemDetail() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const client = useMemo(() => getDbClient(), []);
+  const features = useFeatures();
 
   const itemQ = useQuery({
     queryKey: ['db', 'item', id],
     queryFn: () => client.getItem(id),
     enabled: Number.isFinite(id),
+  });
+  const questsQ = useQuery({
+    queryKey: ['db', 'item', id, 'quests'],
+    queryFn: () => client.getItemQuests(id),
+    enabled: Number.isFinite(id) && features.hasQuests,
   });
 
   if (itemQ.isLoading) {
@@ -75,6 +82,35 @@ export default function ItemDetail() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{item.description}</p>
           ) : (
             <p className="text-muted-foreground text-sm italic">No description available.</p>
+          )}
+
+          {features.hasQuests && questsQ.data && questsQ.data.length > 0 && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                <ScrollText className="h-4 w-4" /> Used in quests
+                <span className="text-muted-foreground text-xs normal-case">
+                  ({questsQ.data.length})
+                </span>
+              </h2>
+              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
+                {questsQ.data.map((q) => (
+                  <li key={q.id}>
+                    <Link
+                      to={`/quests/${q.id}`}
+                      className="hover:bg-accent flex items-center gap-2 px-3 py-1.5 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {q.name}
+                        {q.parent && <span className="text-muted-foreground"> · {q.parent}</span>}
+                      </span>
+                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                        {q.id}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </article>
 

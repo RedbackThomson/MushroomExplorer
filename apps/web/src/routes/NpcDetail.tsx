@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Map as MapIcon, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, Map as MapIcon, ScrollText, Users } from 'lucide-react';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 
@@ -20,6 +20,11 @@ export default function NpcDetail() {
     queryKey: ['db', 'npc', id, 'maps'],
     queryFn: () => client.getNpcMaps(id),
     enabled: Number.isFinite(id) && features.hasMaps,
+  });
+  const questsQ = useQuery({
+    queryKey: ['db', 'npc', id, 'quests'],
+    queryFn: () => client.getNpcQuests(id),
+    enabled: Number.isFinite(id) && features.hasQuests,
   });
 
   if (npcQ.isLoading) {
@@ -67,6 +72,44 @@ export default function NpcDetail() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{n.description}</p>
           ) : (
             <p className="text-muted-foreground text-sm italic">No description.</p>
+          )}
+
+          {features.hasQuests && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                <ScrollText className="h-4 w-4" /> Quests
+                {questsQ.data && (
+                  <span className="text-muted-foreground text-xs normal-case">
+                    ({questsQ.data.length})
+                  </span>
+                )}
+              </h2>
+              {questsQ.data && questsQ.data.length === 0 && (
+                <p className="text-muted-foreground text-xs italic">None.</p>
+              )}
+              {questsQ.data && questsQ.data.length > 0 && (
+                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
+                  {questsQ.data.map((q) => (
+                    <li key={q.id}>
+                      <Link
+                        to={`/quests/${q.id}`}
+                        className="hover:bg-accent flex items-center gap-2 px-3 py-1.5 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          {q.name}
+                          {q.parent && (
+                            <span className="text-muted-foreground"> · {q.parent}</span>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                          {q.id}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
 
           {features.hasMaps && (
