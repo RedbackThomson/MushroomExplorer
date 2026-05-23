@@ -1,4 +1,4 @@
-import type { GameDataSource } from '@/parser';
+import type { GameDataSource, WzNodeInfo } from '@/parser';
 import type { EquipRecord } from '@/db';
 import { createLogger } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
@@ -16,6 +16,9 @@ export interface ExtractEquipsResult {
  * job/level requirements, upgrade slots…) live in `Character.wz`, which is
  * ~800 MB and not yet supported by the in-memory load path. When that lands,
  * extend this extractor to populate the empty stat columns.
+ *
+ * Progress: discovery first (count ids per slot), then determinate progress
+ * with `current / total` and the slot + id in the detail line.
  */
 export async function extractEquips(
   source: GameDataSource,
@@ -31,29 +34,40 @@ export async function extractEquips(
     return { equips, skipped };
   }
 
-  let slotIdx = 0;
+  // Discovery -------------------------------------------------------------
+  const work: { slot: WzNodeInfo; entries: WzNodeInfo[] }[] = [];
+  let total = 0;
   for (const slot of slots) {
-    if (!slot.hasChildren) {
-      slotIdx++;
-      continue;
-    }
-    const slotKey = slot.name.toLowerCase();
+    if (!slot.hasChildren) continue;
     opts.onProgress?.({
-      phase: 'Equips',
-      current: equips.length,
-      total: 0,
-      detail: `${slot.name} (${slotIdx + 1}/${slots.length})`,
+      phase: 'Discovering equips',
+      current: total,
+      detail: slot.name,
     });
-    const idEntries = await source.listChildren(slot.fullPath);
+    const entries = await source.listChildren(slot.fullPath);
+    const idEntries = entries.filter((e) => /^\d+$/.test(e.name));
+    work.push({ slot, entries: idEntries });
+    total += idEntries.length;
+  }
+  log.info('discovery complete', { totalEquips: total, slots: work.length });
 
-    for (const entry of idEntries) {
-      const idMatch = entry.name.match(/^(\d+)$/);
-      if (!idMatch) continue;
-      const id = Number(idMatch[1]);
+  // Extraction ------------------------------------------------------------
+  let processed = 0;
+  for (const { slot, entries } of work) {
+    const slotKey = slot.name.toLowerCase();
+    for (const entry of entries) {
+      const id = Number(entry.name);
+      opts.onProgress?.({
+        phase: 'Extracting equips',
+        current: processed,
+        total,
+        detail: `${slot.name} · ${id}`,
+      });
       const nameNode = await source.getNode(`${entry.fullPath}/name`);
       const descNode = await source.getNode(`${entry.fullPath}/desc`);
       if (typeof nameNode?.scalar !== 'string' || !nameNode.scalar) {
         skipped.push({ reason: 'no name', path: entry.fullPath });
+        processed += 1;
         continue;
       }
       equips.push({
@@ -81,9 +95,10 @@ export async function extractEquips(
         iconData: null,
         sourcePath: entry.fullPath,
       });
+      processed += 1;
     }
-    slotIdx++;
   }
+  opts.onProgress?.({ phase: 'Extracting equips', current: processed, total });
 
   log.info('equip extraction complete', { count: equips.length, skipped: skipped.length });
   return { equips, skipped };

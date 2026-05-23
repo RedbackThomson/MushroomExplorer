@@ -52,15 +52,27 @@ export interface ExtractItemsResult {
   skipped: { reason: string; path: string }[];
 }
 
+interface WorkUnit {
+  spec: CategorySpec;
+  group: WzNodeInfo;
+  ids: { id: number; node: WzNodeInfo }[];
+}
+
 /**
- * Walk `Item.wz` (one category at a time) and produce normalized `ItemRecord`s
- * with names + descriptions resolved through `String.wz`. The caller is
- * responsible for persisting the result.
+ * Walk `Item.wz`, decode each item's icon, join names + descriptions with
+ * `String.wz`, and return normalized `ItemRecord`s for persistence.
  *
- * Progress is indeterminate by item count (the total isn't knowable without
- * walking everything first, which costs the same as the actual extraction)
- * but each tick carries the current category + group so the UI can show
- * "Items · use — Consume / 0200.img".
+ * Progress is reported in two phases:
+ *
+ *   1. **Discovery** — list groups and count ids per group. Indeterminate
+ *      (we don't know the total yet) but ticks per group so the bar moves.
+ *      `parseImage()` runs here and caches; the extraction phase reuses that
+ *      cache, so this isn't double work.
+ *
+ *   2. **Extraction** — determinate progress with current/total. The detail
+ *      line carries the group + item-id currently being processed so the user
+ *      can see exactly where we are. Icon decoding is the dominant per-item
+ *      cost; throttling on the worker side keeps the message rate sane.
  */
 export async function extractItems(
   source: GameDataSource,
@@ -69,6 +81,9 @@ export async function extractItems(
   const items: ItemRecord[] = [];
   const skipped: { reason: string; path: string }[] = [];
 
+  // --- Phase 1: discovery -------------------------------------------------
+  const work: WorkUnit[] = [];
+  let total = 0;
   for (const spec of CATEGORIES) {
     const itemRoot = `Item.wz/${spec.itemDir}`;
     const groups = await source.listChildren(itemRoot);
@@ -76,37 +91,41 @@ export async function extractItems(
       log.debug('category absent or empty', { category: spec.category, path: itemRoot });
       continue;
     }
-
     for (const group of groups) {
       if (group.kind !== 'image') continue;
       opts.onProgress?.({
-        phase: `Items · ${spec.category}`,
-        current: items.length,
+        phase: 'Discovering items',
+        current: total,
         detail: `${spec.itemDir} / ${group.name}`,
       });
       const groupChildren = await source.listChildren(group.fullPath);
-      log.debug('walking group', {
-        category: spec.category,
-        group: group.name,
-        idCount: groupChildren.length,
-      });
-
+      const ids: WorkUnit['ids'] = [];
       for (const child of groupChildren) {
-        const idMatch = child.name.match(/^(\d+)$/);
-        if (!idMatch) continue;
-        const id = Number(idMatch[1]);
-
-        const record = await readItem(source, id, child, spec, skipped);
-        if (record) items.push(record);
+        const m = child.name.match(/^(\d+)$/);
+        if (m) ids.push({ id: Number(m[1]), node: child });
       }
-
-      opts.onProgress?.({
-        phase: `Items · ${spec.category}`,
-        current: items.length,
-        detail: `${spec.itemDir} / ${group.name}`,
-      });
+      work.push({ spec, group, ids });
+      total += ids.length;
     }
   }
+  log.info('discovery complete', { totalItems: total, groups: work.length });
+
+  // --- Phase 2: extraction -----------------------------------------------
+  let processed = 0;
+  for (const { spec, group, ids } of work) {
+    for (const { id, node } of ids) {
+      opts.onProgress?.({
+        phase: 'Extracting items',
+        current: processed,
+        total,
+        detail: `${spec.itemDir} / ${group.name} · ${id}`,
+      });
+      const record = await readItem(source, id, node, spec, skipped);
+      if (record) items.push(record);
+      processed += 1;
+    }
+  }
+  opts.onProgress?.({ phase: 'Extracting items', current: processed, total });
 
   log.info('extraction complete', { items: items.length, skipped: skipped.length });
   return { items, skipped };
@@ -128,8 +147,6 @@ async function readItem(
     icon: await source.getNode(`${itemPath}/info/icon`),
   };
 
-  // Localized strings. Different categories nest differently in String.wz;
-  // try each candidate root.
   let name: string | null = null;
   let description: string | null = null;
   for (const root of spec.stringRoots) {
@@ -147,8 +164,6 @@ async function readItem(
     return null;
   }
 
-  // Decode the icon to PNG bytes once, here, so it persists into SQLite and
-  // survives reloads without the WZ files being re-loaded.
   const iconPath = info.icon ? `${itemPath}/info/icon` : null;
   const iconData = iconPath ? await source.getIconPng(iconPath) : null;
 
