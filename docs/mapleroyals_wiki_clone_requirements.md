@@ -476,4 +476,3 @@ Create a tiny parser + database spike:
 - query SQLite to render its name/icon
 
 This validates the hardest unknown before building the full wiki UI.
-

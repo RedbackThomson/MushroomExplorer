@@ -14,38 +14,38 @@ Companion document to `mapleroyals_wiki_clone_requirements.md`. This document co
 
 ### 2.1 Language and tooling
 
-| Concern | Choice | Why |
-|---|---|---|
-| Language | TypeScript (strict) | Type safety across the parser → DB → UI boundary. |
-| Runtime | Node 20+ | Modern fetch/streams, native test runner where useful. |
-| Package manager | pnpm with workspaces | Disk-efficient; workspaces let us add a CLI/Tauri package later without restructuring. |
-| Bundler | Vite (React+TS template) | Fast HMR; first-class Web Worker + WASM support; no SSR overhead we don't need. |
-| Linting | ESLint + `@typescript-eslint` | Standard. |
-| Formatting | Prettier | Zero-config. |
-| Git hooks | husky + lint-staged | Pre-commit format + lint on changed files. |
-| Unit tests | Vitest | Shares Vite's config and ESM handling. |
-| E2E tests | Playwright (deferred to post-MVP) | Avoid the maintenance cost until UX stabilizes. |
-| CI | GitHub Actions | Typecheck + lint + unit tests on every PR. |
+| Concern         | Choice                            | Why                                                                                    |
+| --------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| Language        | TypeScript (strict)               | Type safety across the parser → DB → UI boundary.                                      |
+| Runtime         | Node 20+                          | Modern fetch/streams, native test runner where useful.                                 |
+| Package manager | pnpm with workspaces              | Disk-efficient; workspaces let us add a CLI/Tauri package later without restructuring. |
+| Bundler         | Vite (React+TS template)          | Fast HMR; first-class Web Worker + WASM support; no SSR overhead we don't need.        |
+| Linting         | ESLint + `@typescript-eslint`     | Standard.                                                                              |
+| Formatting      | Prettier                          | Zero-config.                                                                           |
+| Git hooks       | husky + lint-staged               | Pre-commit format + lint on changed files.                                             |
+| Unit tests      | Vitest                            | Shares Vite's config and ESM handling.                                                 |
+| E2E tests       | Playwright (deferred to post-MVP) | Avoid the maintenance cost until UX stabilizes.                                        |
+| CI              | GitHub Actions                    | Typecheck + lint + unit tests on every PR.                                             |
 
 ### 2.2 UI
 
-| Concern | Choice | Why |
-|---|---|---|
-| Framework | React 18+ | Largest ecosystem for wiki/data UI patterns. |
-| Routing | React Router v6 (`createBrowserRouter`) | Familiar, well-documented. TanStack Router considered but deferred unless type-safety pressure justifies the swap. |
-| Styling | Tailwind CSS v3, `class` dark-mode strategy | Utility-first; pairs with shadcn/ui. |
-| Component primitives | shadcn/ui (Radix-based) | Components copied into the repo — no runtime version lock-in, full control over markup. |
-| Icons | Lucide | Matches shadcn's defaults. |
-| Design tokens | CSS variables in `:root` / `.dark` | A future game-nostalgic theme is a token swap, not a rewrite. |
+| Concern              | Choice                                      | Why                                                                                                                |
+| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Framework            | React 18+                                   | Largest ecosystem for wiki/data UI patterns.                                                                       |
+| Routing              | React Router v6 (`createBrowserRouter`)     | Familiar, well-documented. TanStack Router considered but deferred unless type-safety pressure justifies the swap. |
+| Styling              | Tailwind CSS v3, `class` dark-mode strategy | Utility-first; pairs with shadcn/ui.                                                                               |
+| Component primitives | shadcn/ui (Radix-based)                     | Components copied into the repo — no runtime version lock-in, full control over markup.                            |
+| Icons                | Lucide                                      | Matches shadcn's defaults.                                                                                         |
+| Design tokens        | CSS variables in `:root` / `.dark`          | A future game-nostalgic theme is a token swap, not a rewrite.                                                      |
 
 ### 2.3 State and data
 
-| Concern | Choice | Why |
-|---|---|---|
-| Async cache | TanStack Query | Caching, retries, and request deduplication for parsing and DB queries. |
-| Global UI state | Zustand | Small, unopinionated, no provider boilerplate. Used for current dataset, theme, load status. |
-| Form state | React Hook Form (only if needed) | Defer unless a form materially exceeds a few inputs. |
-| Validation | Zod | Runtime validation at the parser → domain boundary. Schemas double as TS types. |
+| Concern         | Choice                           | Why                                                                                          |
+| --------------- | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Async cache     | TanStack Query                   | Caching, retries, and request deduplication for parsing and DB queries.                      |
+| Global UI state | Zustand                          | Small, unopinionated, no provider boilerplate. Used for current dataset, theme, load status. |
+| Form state      | React Hook Form (only if needed) | Defer unless a form materially exceeds a few inputs.                                         |
+| Validation      | Zod                              | Runtime validation at the parser → domain boundary. Schemas double as TS types.              |
 
 Redux is explicitly out of scope.
 
@@ -58,13 +58,13 @@ Redux is explicitly out of scope.
 
 ### 2.5 Storage
 
-| Concern | Choice |
-|---|---|
-| Engine | [`@sqlite.org/sqlite-wasm`](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) (official build), run in a Worker |
-| Persistence | OPFS-backed VFS where available; IndexedDB blob fallback elsewhere |
-| Migrations | Hand-rolled, versioned files under `apps/web/src/db/migrations/` |
+| Concern     | Choice                                                                                                                |
+| ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| Engine      | [`@sqlite.org/sqlite-wasm`](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) (official build), run in a Worker  |
+| Persistence | OPFS-backed VFS where available; IndexedDB blob fallback elsewhere                                                    |
+| Migrations  | Hand-rolled, versioned files under `apps/web/src/db/migrations/`                                                      |
 | Query layer | Drizzle ORM (spike during Phase 2; fall back to hand-written SQL if integration friction outweighs the type benefits) |
-| Small KV | `idb-keyval` for things like "last loaded dataset id" and theme preference |
+| Small KV    | `idb-keyval` for things like "last loaded dataset id" and theme preference                                            |
 
 Schema and join-table inventory follow §8.4 of the MVP doc.
 
@@ -295,12 +295,12 @@ Each phase maps to a milestone in the MVP doc where applicable. Phases ship in o
 
 Every phase ships with explicit success criteria (above) plus the automated checks below.
 
-| Layer | Approach |
-|---|---|
-| Manual | Load real user-provided WZ files; spot-check extracted records against MapleLib output for a known set of IDs. |
-| Unit | Extractor tests against small synthetic raw-tree fixtures committed to the repo. No proprietary data in tests. |
-| Integration | In-memory SQLite + extractor + query happy paths. |
-| CI | Typecheck + lint + unit tests on every PR. No proprietary fixtures in CI. |
+| Layer       | Approach                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Manual      | Load real user-provided WZ files; spot-check extracted records against MapleLib output for a known set of IDs. |
+| Unit        | Extractor tests against small synthetic raw-tree fixtures committed to the repo. No proprietary data in tests. |
+| Integration | In-memory SQLite + extractor + query happy paths.                                                              |
+| CI          | Typecheck + lint + unit tests on every PR. No proprietary fixtures in CI.                                      |
 
 ## 9. Open decisions deferred to implementation
 
@@ -311,10 +311,10 @@ Every phase ships with explicit success criteria (above) plus the automated chec
 
 ## 10. Risks
 
-| Risk | Mitigation |
-|---|---|
-| `@tybys/wz` cannot handle MapleRoyals-era encryption | Phase 1 is the gate. Fallback: MapleLib-based local CLI importer that emits a SQLite file the frontend consumes — preserves the UI investment. |
-| SQLite-WASM OPFS support varies by browser | IndexedDB fallback path is implemented and exercised in CI from Phase 2 onward. |
-| Asset decoding is slow at scale | Lazy decoding, LRU memoization, IndexedDB cache, optional manual cache-clear. Measure before optimizing. |
-| Scope creep into rendering maps/sprites in full | Hard rule: MVP does not render minimap geometry beyond static thumbnails. Revisit only after Phase 6. |
-| Public distribution attracts legal scrutiny | LEGAL notice and README make the "user provides files" model explicit. No proprietary data in repo or CI. License chosen with an eye toward defensibility (MIT/Apache-2.0). |
+| Risk                                                 | Mitigation                                                                                                                                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@tybys/wz` cannot handle MapleRoyals-era encryption | Phase 1 is the gate. Fallback: MapleLib-based local CLI importer that emits a SQLite file the frontend consumes — preserves the UI investment.                              |
+| SQLite-WASM OPFS support varies by browser           | IndexedDB fallback path is implemented and exercised in CI from Phase 2 onward.                                                                                             |
+| Asset decoding is slow at scale                      | Lazy decoding, LRU memoization, IndexedDB cache, optional manual cache-clear. Measure before optimizing.                                                                    |
+| Scope creep into rendering maps/sprites in full      | Hard rule: MVP does not render minimap geometry beyond static thumbnails. Revisit only after Phase 6.                                                                       |
+| Public distribution attracts legal scrutiny          | LEGAL notice and README make the "user provides files" model explicit. No proprietary data in repo or CI. License chosen with an eye toward defensibility (MIT/Apache-2.0). |

@@ -1,0 +1,65 @@
+# Mushroom Game Explorer
+
+A self-hostable, local-first wiki for MapleStory/MapleRoyals-style game data.
+
+The app parses **your own local game files** in your browser and renders pages for items, equips, mobs, NPCs, maps, and quests. Nothing is uploaded; nothing leaves your machine.
+
+> **Ship code only.** This repository contains no proprietary game data — no `.wz` archives, no extracted `.img` files, no sprites, no pre-built databases. You provide your own files at runtime.
+
+## Status
+
+Pre-alpha. Phase 0 (scaffold). See [`docs/technical_requirements.md`](docs/technical_requirements.md) for the phase plan.
+
+## Legal notice
+
+This project is not affiliated with, endorsed by, or sponsored by Nexon or any MapleStory operator. "MapleStory" and related names are trademarks of their respective owners; nominative references in this repository exist solely to describe the file formats the tool can parse.
+
+You are responsible for ensuring that any game files you load are files you are legally permitted to use. The maintainers do not distribute, host, or store such files.
+
+## Quickstart
+
+Requirements: Node 20+, [pnpm](https://pnpm.io/) 9+.
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Then open the printed URL.
+
+### Nix users
+
+A flake is provided. With Nix + flakes enabled:
+
+```bash
+nix develop
+pnpm install
+pnpm dev
+```
+
+Or, with [direnv](https://direnv.net/) installed, `direnv allow` will load the dev shell automatically.
+
+## Scripts
+
+| Script           | What it does                               |
+| ---------------- | ------------------------------------------ |
+| `pnpm dev`       | Start the Vite dev server for the web app. |
+| `pnpm build`     | Production build.                          |
+| `pnpm preview`   | Preview the production build locally.      |
+| `pnpm typecheck` | Run TypeScript in all packages.            |
+| `pnpm lint`      | Run ESLint in all packages.                |
+| `pnpm test`      | Run Vitest in all packages.                |
+| `pnpm format`    | Format the repo with Prettier.             |
+
+## Layout
+
+```
+apps/web/        Vite + React + TS app (the wiki UI)
+docs/            Product and technical requirements
+```
+
+See [`CLAUDE.md`](CLAUDE.md) for the rules every change in this repo follows.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
