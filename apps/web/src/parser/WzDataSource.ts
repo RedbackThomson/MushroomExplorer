@@ -243,7 +243,11 @@ export class WzDataSource implements GameDataSource {
     return runExclusive(loaded, async () => {
       const obj = await this.resolveInLock(loaded, path);
       if (!obj) {
-        log.warn('getIconPng: path did not resolve', { path });
+        // Demoted to debug: missing paths are routine for speculative
+        // lookups (e.g. probing `<map>/miniMap/canvas` on every map even
+        // though many maps don't have a minimap). decodePng itself still
+        // warns on real decode failures.
+        log.debug('getIconPng: path did not resolve', { path });
         return null;
       }
       return decodePng(obj);

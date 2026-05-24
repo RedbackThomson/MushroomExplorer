@@ -1,4 +1,4 @@
-import { WzCanvasProperty, WzPngProperty } from '@tybys/wz';
+import { WzCanvasProperty, WzPngProperty, WzUOLProperty } from '@tybys/wz';
 import type { WzObject } from '@tybys/wz';
 import { WzImage } from '@tybys/wz';
 import { createLogger, describeError } from '@/lib/logger';
@@ -27,7 +27,17 @@ export async function decodePng(node: WzObject): Promise<Uint8Array | null> {
   }
   try {
     const t0 = performance.now();
-    const canvas = await canvasNode.getBitmap();
+    // `getLinkedWzCanvasBitmap` first checks the canvas's `_inlink` /
+    // `_outlink` properties — when present, the actual PNG lives on
+    // another canvas (very common for map minimaps that reference a
+    // shared base, and for mob/NPC sprites that share animation
+    // frames). Falls through to `getBitmap()` when no link is set, so
+    // it's a strict superset of the old call. WzPngProperty only has
+    // `getBitmap` so we keep the original path for it.
+    const canvas =
+      canvasNode instanceof WzCanvasProperty
+        ? await canvasNode.getLinkedWzCanvasBitmap()
+        : await canvasNode.getBitmap();
     const t1 = performance.now();
     if (!canvas) {
       log.warn('decodePng: getBitmap returned null', {
@@ -70,12 +80,29 @@ export async function decodePng(node: WzObject): Promise<Uint8Array | null> {
  * helper accepts whatever the caller has and returns something we can call
  * `getBitmap()` on.
  */
-async function resolveCanvas(node: WzObject): Promise<WzCanvasProperty | WzPngProperty | null> {
+async function resolveCanvas(
+  node: WzObject,
+  depth = 0,
+): Promise<WzCanvasProperty | WzPngProperty | null> {
   // Some images aren't parsed at the time the caller grabs them. We need to
   // ensure their parent image was parsed already — the per-file lock around
   // resolve() handles that.
   if (node instanceof WzCanvasProperty) return node;
   if (node instanceof WzPngProperty) return node;
+
+  // UOL nodes (Universal Object Link) are aliases pointing at another
+  // node. Common for mob/NPC sprites where many entries share the same
+  // pose with a different palette. Follow the link, but cap recursion
+  // so a malformed file can't loop us.
+  if (node instanceof WzUOLProperty) {
+    if (depth > 4) {
+      log.warn('resolveCanvas: UOL chain too deep');
+      return null;
+    }
+    const linked = node.linkValue;
+    if (linked) return resolveCanvas(linked, depth + 1);
+    return null;
+  }
 
   // Look one level deeper. Some skins keep the canvas under a child.
   const child = (node as { at?(name: string): WzObject | null }).at?.('PNG');

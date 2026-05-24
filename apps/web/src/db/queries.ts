@@ -93,6 +93,8 @@ interface MobRow extends Row {
   is_boss: number;
   element_attack: string | null;
   element_defenses_json: string | null;
+  icon_path: string | null;
+  icon_data: Uint8Array | null;
   source_path: string;
 }
 
@@ -100,6 +102,8 @@ interface NpcRow extends Row {
   id: number;
   name: string;
   description: string | null;
+  icon_path: string | null;
+  icon_data: Uint8Array | null;
   source_path: string;
 }
 
@@ -111,6 +115,8 @@ interface MapRow extends Row {
   forced_return_map_id: number | null;
   field_limit: number | null;
   mob_rate: number | null;
+  minimap_path: string | null;
+  minimap_data: Uint8Array | null;
   source_path: string;
 }
 
@@ -125,6 +131,8 @@ function rowToMob(r: MobRow): MobRecord {
     isBoss: r.is_boss === 1,
     elementAttack: r.element_attack,
     elementDefensesJson: r.element_defenses_json,
+    iconPath: r.icon_path,
+    iconData: r.icon_data,
     sourcePath: r.source_path,
   };
 }
@@ -134,6 +142,8 @@ function rowToNpc(r: NpcRow): NpcRecord {
     id: r.id,
     name: r.name,
     description: r.description,
+    iconPath: r.icon_path,
+    iconData: r.icon_data,
     sourcePath: r.source_path,
   };
 }
@@ -147,6 +157,8 @@ function rowToMap(r: MapRow): MapRecord {
     forcedReturnMapId: r.forced_return_map_id,
     fieldLimit: r.field_limit,
     mobRate: r.mob_rate,
+    minimapPath: r.minimap_path,
+    minimapData: r.minimap_data,
     sourcePath: r.source_path,
   };
 }
@@ -339,8 +351,8 @@ export class DbApi implements GameDatabase {
         this.sql.exec(
           `INSERT INTO mobs (
             id, name, level, hp, mp, exp, is_boss,
-            element_attack, element_defenses_json, source_path
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            element_attack, element_defenses_json, icon_path, icon_data, source_path
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             name                  = excluded.name,
             level                 = excluded.level,
@@ -350,6 +362,10 @@ export class DbApi implements GameDatabase {
             is_boss               = excluded.is_boss,
             element_attack        = excluded.element_attack,
             element_defenses_json = excluded.element_defenses_json,
+            icon_path             = excluded.icon_path,
+            -- Preserve a previously-decoded icon when this run produced
+            -- none (e.g. transient decode failure on one mob).
+            icon_data             = COALESCE(excluded.icon_data, mobs.icon_data),
             source_path           = excluded.source_path`,
           [
             m.id,
@@ -361,12 +377,22 @@ export class DbApi implements GameDatabase {
             m.isBoss ? 1 : 0,
             m.elementAttack,
             m.elementDefensesJson,
+            m.iconPath,
+            m.iconData,
             m.sourcePath,
           ],
         );
       }
     });
     return mobs.length;
+  }
+
+  async getMobIcon(id: number): Promise<Uint8Array | null> {
+    const row = this.sql.selectObject<{ icon_data: Uint8Array | null }>(
+      'SELECT icon_data FROM mobs WHERE id = ?',
+      [id],
+    );
+    return row?.icon_data ?? null;
   }
 
   async getMob(id: number): Promise<MobRecord | null> {
@@ -389,9 +415,13 @@ export class DbApi implements GameDatabase {
     }
     const clause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     params.push(limit);
+    // Skip icon_data — fetched separately via getMobIcon for the rows
+    // the UI ends up rendering, so we don't drag MBs into every list call.
     return this.sql
       .selectObjects<MobRow>(
-        `SELECT * FROM mobs ${clause} ORDER BY level NULLS LAST, name LIMIT ?`,
+        `SELECT id, name, level, hp, mp, exp, is_boss, element_attack,
+                element_defenses_json, icon_path, NULL AS icon_data, source_path
+         FROM mobs ${clause} ORDER BY level NULLS LAST, name LIMIT ?`,
         params,
       )
       .map(rowToMob);
@@ -401,13 +431,15 @@ export class DbApi implements GameDatabase {
     this.sql.transaction(() => {
       for (const n of npcs) {
         this.sql.exec(
-          `INSERT INTO npcs (id, name, description, source_path)
-           VALUES (?, ?, ?, ?)
+          `INSERT INTO npcs (id, name, description, icon_path, icon_data, source_path)
+           VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
              name        = excluded.name,
              description = excluded.description,
+             icon_path   = excluded.icon_path,
+             icon_data   = COALESCE(excluded.icon_data, npcs.icon_data),
              source_path = excluded.source_path`,
-          [n.id, n.name, n.description, n.sourcePath],
+          [n.id, n.name, n.description, n.iconPath, n.iconData, n.sourcePath],
         );
       }
     });
@@ -417,6 +449,14 @@ export class DbApi implements GameDatabase {
   async getNpc(id: number): Promise<NpcRecord | null> {
     const row = this.sql.selectObject<NpcRow>('SELECT * FROM npcs WHERE id = ?', [id]);
     return row ? rowToNpc(row) : null;
+  }
+
+  async getNpcIcon(id: number): Promise<Uint8Array | null> {
+    const row = this.sql.selectObject<{ icon_data: Uint8Array | null }>(
+      'SELECT icon_data FROM npcs WHERE id = ?',
+      [id],
+    );
+    return row?.icon_data ?? null;
   }
 
   async listNpcs(opts: { limit?: number; search?: string } = {}): Promise<NpcRecord[]> {
@@ -430,14 +470,20 @@ export class DbApi implements GameDatabase {
     const clause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     params.push(limit);
     return this.sql
-      .selectObjects<NpcRow>(`SELECT * FROM npcs ${clause} ORDER BY name LIMIT ?`, params)
+      .selectObjects<NpcRow>(
+        `SELECT id, name, description, icon_path, NULL AS icon_data, source_path
+         FROM npcs ${clause} ORDER BY name LIMIT ?`,
+        params,
+      )
       .map(rowToNpc);
   }
 
   async getNpcMaps(npcId: number): Promise<MapRecord[]> {
     return this.sql
       .selectObjects<MapRow>(
-        `SELECT DISTINCT m.* FROM maps m
+        `SELECT DISTINCT m.id, m.name, m.street_name, m.return_map_id, m.forced_return_map_id,
+                m.field_limit, m.mob_rate, m.minimap_path, NULL AS minimap_data, m.source_path
+         FROM maps m
          JOIN map_npcs mn ON mn.map_id = m.id
          WHERE mn.npc_id = ?
          ORDER BY m.name`,
@@ -452,8 +498,8 @@ export class DbApi implements GameDatabase {
         this.sql.exec(
           `INSERT INTO maps (
             id, name, street_name, return_map_id, forced_return_map_id,
-            field_limit, mob_rate, source_path
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            field_limit, mob_rate, minimap_path, minimap_data, source_path
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             name                 = excluded.name,
             street_name          = excluded.street_name,
@@ -461,6 +507,8 @@ export class DbApi implements GameDatabase {
             forced_return_map_id = excluded.forced_return_map_id,
             field_limit          = excluded.field_limit,
             mob_rate             = excluded.mob_rate,
+            minimap_path         = excluded.minimap_path,
+            minimap_data         = COALESCE(excluded.minimap_data, maps.minimap_data),
             source_path          = excluded.source_path`,
           [
             m.id,
@@ -470,6 +518,8 @@ export class DbApi implements GameDatabase {
             m.forcedReturnMapId,
             m.fieldLimit,
             m.mobRate,
+            m.minimapPath,
+            m.minimapData,
             m.sourcePath,
           ],
         );
@@ -481,6 +531,14 @@ export class DbApi implements GameDatabase {
   async getMap(id: number): Promise<MapRecord | null> {
     const row = this.sql.selectObject<MapRow>('SELECT * FROM maps WHERE id = ?', [id]);
     return row ? rowToMap(row) : null;
+  }
+
+  async getMapMinimap(id: number): Promise<Uint8Array | null> {
+    const row = this.sql.selectObject<{ minimap_data: Uint8Array | null }>(
+      'SELECT minimap_data FROM maps WHERE id = ?',
+      [id],
+    );
+    return row?.minimap_data ?? null;
   }
 
   async listMaps(opts: { limit?: number; search?: string } = {}): Promise<MapRecord[]> {
@@ -496,7 +554,9 @@ export class DbApi implements GameDatabase {
     params.push(limit);
     return this.sql
       .selectObjects<MapRow>(
-        `SELECT * FROM maps ${clause} ORDER BY street_name, name LIMIT ?`,
+        `SELECT id, name, street_name, return_map_id, forced_return_map_id,
+                field_limit, mob_rate, minimap_path, NULL AS minimap_data, source_path
+         FROM maps ${clause} ORDER BY street_name, name LIMIT ?`,
         params,
       )
       .map(rowToMap);

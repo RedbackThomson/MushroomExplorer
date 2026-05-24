@@ -21,3 +21,4 @@
 - [ ] Detect version automatically
 - [ ] Clean up wizard copy
 - [ ] Think about support for smooth version upgrades
+- [ ] Any hyperlinks should have a tooltip showing a summary of the target page

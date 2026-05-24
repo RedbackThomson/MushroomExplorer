@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Crown, Loader2, ScrollText, Skull } from 'lucide-react';
+import { EntityIcon } from '@/components/EntityIcon';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 
@@ -59,7 +60,13 @@ export default function MobDetail() {
       <div className="grid gap-6 sm:grid-cols-[1fr_18rem]">
         <article className="space-y-4">
           <header className="flex items-center gap-3">
-            <Skull className="text-muted-foreground h-12 w-12" />
+            <EntityIcon
+              entity="mob"
+              id={m.id}
+              size={96}
+              placeholder={Skull}
+              alt={m.name}
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-3xl font-semibold tracking-tight">{m.name}</h1>

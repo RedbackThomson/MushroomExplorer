@@ -1,8 +1,27 @@
 import { useEffect, useState } from 'react';
-import { getDbClient } from '@/db';
+import { getDbClient, type GameDatabase } from '@/db';
+import type { Remote } from 'comlink';
 import { createLogger, describeError } from '@/lib/logger';
 
 const log = createLogger('icons-client');
+
+async function fetchBytes(
+  db: Remote<GameDatabase>,
+  ref: IconRef,
+): Promise<Uint8Array | null> {
+  switch (ref.entity) {
+    case 'item':
+      return db.getItemIcon(ref.id);
+    case 'equip':
+      return db.getEquipIcon(ref.id);
+    case 'mob':
+      return db.getMobIcon(ref.id);
+    case 'npc':
+      return db.getNpcIcon(ref.id);
+    case 'map-mini':
+      return db.getMapMinimap(ref.id);
+  }
+}
 
 /**
  * Identifier for an icon stored in the local database.
@@ -14,7 +33,7 @@ const log = createLogger('icons-client');
  * from SQLite.
  */
 export interface IconRef {
-  entity: 'item' | 'equip';
+  entity: 'item' | 'equip' | 'mob' | 'npc' | 'map-mini';
   id: number;
 }
 
@@ -40,8 +59,7 @@ async function fetchIcon(ref: IconRef): Promise<string | null> {
         const cached = cache.get(key);
         if (cached) return cached;
         const db = getDbClient();
-        const bytes =
-          ref.entity === 'item' ? await db.getItemIcon(ref.id) : await db.getEquipIcon(ref.id);
+        const bytes = await fetchBytes(db, ref);
         if (!bytes || bytes.byteLength === 0) {
           log.debug('no icon bytes in db', { ...ref });
           return null;

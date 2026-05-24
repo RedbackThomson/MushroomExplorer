@@ -1,6 +1,6 @@
 import type { GameDataSource, WzNodeInfo, WzNodeTree } from '@/parser';
 import type { MapMobRecord, MapNpcRecord, MapPortalRecord, MapRecord } from '@/db';
-import { createLogger } from '@/lib/logger';
+import { createLogger, describeError } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
 
 const log = createLogger('extract-maps');
@@ -97,8 +97,11 @@ export async function extractMaps(
 
     // One mutex acquisition + one parseImage + one in-memory tree walk.
     // The maxDepth=3 is `image -> info/life/portal -> entries -> scalars`.
+    // `miniMap` is included so we can detect whether a minimap canvas
+    // exists without paying a separate path-resolution round-trip per
+    // map (most maps don't have one).
     const tree = await source.readImageTree(node.fullPath, {
-      subtrees: ['info', 'life', 'portal'],
+      subtrees: ['info', 'life', 'portal', 'miniMap'],
       maxDepth: 3,
     });
     if (!tree) {
@@ -111,6 +114,47 @@ export async function extractMaps(
 
     const infoTree = subs.get('info');
     const strs = nameLookup.get(id);
+
+    // Minimap canvas. Two layouts seen in the wild:
+    //   A) `<map>/miniMap` is a sub-property whose `canvas` child is the
+    //      WzCanvasProperty. PNG lives at `<map>/miniMap/canvas`.
+    //   B) `<map>/miniMap` *is* the WzCanvasProperty directly. PNG
+    //      lives at `<map>/miniMap` itself. MapleRoyals dumps appear
+    //      to use this layout.
+    // Probe via propertyKind so we pick the right path without
+    // round-tripping through getIconPng twice.
+    let minimapPath: string | null = null;
+    let minimapData: Uint8Array | null = null;
+    const minimapTree = subs.get('miniMap');
+    let minimapTry: string | null = null;
+    if (minimapTree?.propertyKind === 'canvas') {
+      minimapTry = minimapTree.fullPath;
+    } else if (minimapTree) {
+      const canvasChild = minimapTree.children.find((c) => c.propertyKind === 'canvas');
+      if (canvasChild) minimapTry = canvasChild.fullPath;
+    }
+    if (minimapTry) {
+      try {
+        const bytes = await source.getIconPng(minimapTry);
+        if (bytes && bytes.byteLength > 0) {
+          minimapPath = minimapTry;
+          minimapData = bytes;
+        }
+      } catch (e) {
+        log.debug('minimap decode threw', { path: minimapTry, ...describeError(e) });
+      }
+    }
+    if (processed < 3 && minimapTree) {
+      // Log layout for the first few maps so we can confirm which case
+      // applies on this dump.
+      log.info('minimap probe', {
+        id,
+        minimapKind: minimapTree.propertyKind ?? minimapTree.kind,
+        minimapChildren: minimapTree.children.map((c) => `${c.name}:${c.propertyKind ?? c.kind}`),
+        chosenPath: minimapTry,
+      });
+    }
+
     maps.push({
       id,
       name: strs?.mapName ?? null,
@@ -119,6 +163,8 @@ export async function extractMaps(
       forcedReturnMapId: numberOf(infoTree, 'forcedReturn'),
       fieldLimit: numberOf(infoTree, 'fieldLimit'),
       mobRate: numberOf(infoTree, 'mobRate'),
+      minimapPath,
+      minimapData,
       sourcePath: node.fullPath,
     });
 
@@ -164,11 +210,13 @@ export async function extractMaps(
   }
 
   opts.onProgress?.({ phase: 'Extracting maps', current: processed, total });
+  const withMinimaps = maps.filter((m) => m.minimapData !== null).length;
   log.info('extraction complete', {
     maps: maps.length,
     mapNpcs: mapNpcs.length,
     mapMobs: mapMobs.length,
     mapPortals: mapPortals.length,
+    withMinimaps,
     skipped: skipped.length,
   });
   return { maps, mapNpcs, mapMobs, mapPortals, skipped };

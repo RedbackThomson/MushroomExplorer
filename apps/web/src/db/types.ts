@@ -53,6 +53,10 @@ export interface MobRecord {
   isBoss: boolean;
   elementAttack: string | null;
   elementDefensesJson: string | null;
+  /** WZ path the sprite came from (e.g. `Mob.wz/0100100.img/stand/0`). */
+  iconPath: string | null;
+  /** Decoded PNG bytes for the stand sprite. */
+  iconData: Uint8Array | null;
   sourcePath: string;
 }
 
@@ -60,6 +64,8 @@ export interface NpcRecord {
   id: number;
   name: string;
   description: string | null;
+  iconPath: string | null;
+  iconData: Uint8Array | null;
   sourcePath: string;
 }
 
@@ -71,6 +77,10 @@ export interface MapRecord {
   forcedReturnMapId: number | null;
   fieldLimit: number | null;
   mobRate: number | null;
+  /** WZ path of the minimap canvas (e.g. `…/100000000.img/miniMap/canvas`). */
+  minimapPath: string | null;
+  /** Decoded PNG bytes for the minimap, or null if the map has none. */
+  minimapData: Uint8Array | null;
   sourcePath: string;
 }
 
@@ -263,16 +273,22 @@ export interface GameDatabase {
   upsertMobs(mobs: MobRecord[]): Promise<number>;
   getMob(id: number): Promise<MobRecord | null>;
   listMobs(opts?: { limit?: number; search?: string; bossOnly?: boolean }): Promise<MobRecord[]>;
+  /** Decoded PNG bytes for the mob's stand sprite, or null. */
+  getMobIcon(id: number): Promise<Uint8Array | null>;
 
   upsertNpcs(npcs: NpcRecord[]): Promise<number>;
   getNpc(id: number): Promise<NpcRecord | null>;
   listNpcs(opts?: { limit?: number; search?: string }): Promise<NpcRecord[]>;
   /** Maps where this NPC appears. */
   getNpcMaps(npcId: number): Promise<MapRecord[]>;
+  /** Decoded PNG bytes for the NPC's stand sprite, or null. */
+  getNpcIcon(id: number): Promise<Uint8Array | null>;
 
   upsertMaps(maps: MapRecord[]): Promise<number>;
   getMap(id: number): Promise<MapRecord | null>;
   listMaps(opts?: { limit?: number; search?: string }): Promise<MapRecord[]>;
+  /** Decoded PNG bytes for the map minimap, or null. */
+  getMapMinimap(id: number): Promise<Uint8Array | null>;
   /** NPCs + mobs + portals attached to a single map. */
   getMapNpcs(mapId: number): Promise<MapNpcWithName[]>;
   getMapMobs(mapId: number): Promise<MapMobWithName[]>;

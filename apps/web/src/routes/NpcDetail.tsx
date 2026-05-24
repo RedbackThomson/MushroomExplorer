@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Map as MapIcon, ScrollText, Users } from 'lucide-react';
+import { EntityIcon } from '@/components/EntityIcon';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 
@@ -61,7 +62,13 @@ export default function NpcDetail() {
       <div className="grid gap-6 sm:grid-cols-[1fr_18rem]">
         <article className="space-y-6">
           <header className="flex items-center gap-3">
-            <Users className="text-muted-foreground h-12 w-12" />
+            <EntityIcon
+              entity="npc"
+              id={n.id}
+              size={96}
+              placeholder={Users}
+              alt={n.name}
+            />
             <div>
               <h1 className="text-3xl font-semibold tracking-tight">{n.name}</h1>
               <p className="text-muted-foreground font-mono text-xs">{n.id}</p>

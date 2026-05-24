@@ -2,8 +2,16 @@ import type { GameDataSource } from '@/parser';
 import type { MobRecord } from '@/db';
 import { createLogger } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
+import { pickSprite } from './sprites';
 
 const log = createLogger('extract-mobs');
+
+/**
+ * Candidates for a mob's display sprite. `stand/0` covers most regular
+ * monsters; flying / boss mobs often skip stand entirely so we fall back
+ * through their alternate idle animations.
+ */
+const MOB_SPRITE_CANDIDATES = ['stand/0', 'move/0', 'fly/0', 'regen/0', 'jump/0'];
 
 export interface ExtractMobsResult {
   mobs: MobRecord[];
@@ -67,6 +75,8 @@ export async function extractMobs(
       continue;
     }
 
+    const { iconPath, iconData } = await pickSprite(source, img.fullPath, MOB_SPRITE_CANDIDATES);
+
     mobs.push({
       id,
       name,
@@ -77,6 +87,8 @@ export async function extractMobs(
       isBoss: bossN === 1,
       elementAttack: typeof elemN?.scalar === 'string' ? elemN.scalar : null,
       elementDefensesJson: null,
+      iconPath,
+      iconData,
       sourcePath: img.fullPath,
     });
     processed += 1;

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Crown, Search, Skull } from 'lucide-react';
+import { EntityIcon } from '@/components/EntityIcon';
 import { getDbClient } from '@/db';
 
 export default function Mobs() {
@@ -69,7 +70,13 @@ export default function Mobs() {
                   to={`/mobs/${m.id}`}
                   className="hover:bg-accent flex items-center gap-3 px-4 py-2 transition-colors"
                 >
-                  <Skull className="text-muted-foreground h-5 w-5 shrink-0" />
+                  <EntityIcon
+                    entity="mob"
+                    id={m.id}
+                    size={32}
+                    placeholder={Skull}
+                    alt={m.name}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">{m.name}</span>

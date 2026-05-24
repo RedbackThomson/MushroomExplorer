@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Map as MapIcon, Search } from 'lucide-react';
+import { EntityIcon } from '@/components/EntityIcon';
 import { getDbClient } from '@/db';
 
 export default function Maps() {
@@ -56,7 +57,15 @@ export default function Maps() {
                   to={`/maps/${m.id}`}
                   className="hover:bg-accent flex items-center gap-3 px-4 py-2 transition-colors"
                 >
-                  <MapIcon className="text-muted-foreground h-5 w-5 shrink-0" />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+                    <EntityIcon
+                      entity="map-mini"
+                      id={m.id}
+                      placeholder={MapIcon}
+                      fit={{ maxWidth: 32, maxHeight: 32 }}
+                      alt={m.name ?? `Map ${m.id}`}
+                    />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{m.name ?? `Map ${m.id}`}</div>
                     {m.streetName && (

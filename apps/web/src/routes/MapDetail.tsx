@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, DoorOpen, Loader2, Map as MapIcon, Skull, Users } from 'lucide-react';
+import { EntityIcon } from '@/components/EntityIcon';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 
@@ -74,6 +75,21 @@ export default function MapDetail() {
             </div>
           </header>
 
+          {m.minimapPath && (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide">Minimap</h2>
+              <div className="border-border bg-card inline-flex max-w-full items-center justify-start rounded-md border p-3">
+                <EntityIcon
+                  entity="map-mini"
+                  id={m.id}
+                  placeholder={MapIcon}
+                  fit={{ maxWidth: 480, maxHeight: 360 }}
+                  alt={`Minimap for ${m.name ?? `Map ${m.id}`}`}
+                />
+              </div>
+            </section>
+          )}
+
           {features.hasNpcs && (
             <section>
               <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
@@ -95,6 +111,13 @@ export default function MapDetail() {
                         to={`/npcs/${n.npcId}`}
                         className="hover:bg-accent flex items-center gap-3 px-3 py-1.5 text-sm"
                       >
+                        <EntityIcon
+                          entity="npc"
+                          id={n.npcId}
+                          size={24}
+                          placeholder={Users}
+                          alt={n.name ?? `NPC ${n.npcId}`}
+                        />
                         <span className="min-w-0 flex-1 truncate">
                           {n.name ?? `NPC ${n.npcId}`}
                         </span>
@@ -135,6 +158,13 @@ export default function MapDetail() {
                         to={`/mobs/${mob.mobId}`}
                         className="hover:bg-accent flex items-center gap-3 px-3 py-1.5 text-sm"
                       >
+                        <EntityIcon
+                          entity="mob"
+                          id={mob.mobId}
+                          size={24}
+                          placeholder={Skull}
+                          alt={mob.name ?? `Mob ${mob.mobId}`}
+                        />
                         <span className="min-w-0 flex-1 truncate">
                           {mob.name ?? `Mob ${mob.mobId}`}
                         </span>

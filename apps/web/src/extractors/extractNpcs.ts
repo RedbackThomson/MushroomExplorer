@@ -2,8 +2,16 @@ import type { GameDataSource } from '@/parser';
 import type { NpcRecord } from '@/db';
 import { createLogger } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
+import { pickSprite } from './sprites';
 
 const log = createLogger('extract-npcs');
+
+/**
+ * Candidate sub-paths under `Npc.wz/<id>.img/` for the NPC's idle sprite.
+ * `stand/0` is the canonical pose; the fallbacks cover NPCs that store
+ * their main sprite under a different animation key.
+ */
+const NPC_SPRITE_CANDIDATES = ['stand/0', 'default/0', 'look/0', 'stand1/0'];
 
 export interface ExtractNpcsResult {
   npcs: NpcRecord[];
@@ -58,10 +66,14 @@ export async function extractNpcs(
       continue;
     }
 
+    const { iconPath, iconData } = await pickSprite(source, img.fullPath, NPC_SPRITE_CANDIDATES);
+
     npcs.push({
       id,
       name,
       description: typeof funcNode?.scalar === 'string' ? funcNode.scalar : null,
+      iconPath,
+      iconData,
       sourcePath: img.fullPath,
     });
     processed += 1;

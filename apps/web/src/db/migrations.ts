@@ -241,4 +241,20 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 6,
+    name: 'sprites for npcs, mobs, maps',
+    sql: `
+      -- Same shape as items.icon_data / equips.icon_data: the WZ path
+      -- where the sprite came from (for debugging / re-extraction) plus
+      -- the decoded PNG bytes the UI renders. NULL on rows that pre-date
+      -- this migration; the next extraction backfills them.
+      ALTER TABLE npcs ADD COLUMN icon_path    TEXT;
+      ALTER TABLE npcs ADD COLUMN icon_data    BLOB;
+      ALTER TABLE mobs ADD COLUMN icon_path    TEXT;
+      ALTER TABLE mobs ADD COLUMN icon_data    BLOB;
+      ALTER TABLE maps ADD COLUMN minimap_path TEXT;
+      ALTER TABLE maps ADD COLUMN minimap_data BLOB;
+    `,
+  },
 ];

@@ -77,6 +77,10 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.upsertMobs(mobs);
   }
+  async getMobIcon(id: number) {
+    await this.ensureOpen();
+    return this.api.getMobIcon(id);
+  }
   async getMob(id: number) {
     await this.ensureOpen();
     return this.api.getMob(id);
@@ -101,6 +105,10 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.getNpcMaps(id);
   }
+  async getNpcIcon(id: number) {
+    await this.ensureOpen();
+    return this.api.getNpcIcon(id);
+  }
   async upsertMaps(maps: Parameters<DbApi['upsertMaps']>[0]) {
     await this.ensureOpen();
     return this.api.upsertMaps(maps);
@@ -108,6 +116,10 @@ class WorkerDb {
   async getMap(id: number) {
     await this.ensureOpen();
     return this.api.getMap(id);
+  }
+  async getMapMinimap(id: number) {
+    await this.ensureOpen();
+    return this.api.getMapMinimap(id);
   }
   async listMaps(opts?: Parameters<DbApi['listMaps']>[0]) {
     await this.ensureOpen();
