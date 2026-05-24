@@ -20,6 +20,11 @@ export {
   findVersionCandidates,
 } from './file/versionHash';
 export {
+  detectVersion,
+  type DetectVersionResult,
+  type DetectVersionOptions,
+} from './file/detectVersion';
+export {
   readImage,
   type ParsedImage,
 } from './img/readImage';

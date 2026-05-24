@@ -4,10 +4,7 @@ import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, XCircle } from 'lucid
 import { ProgressBar } from '@/components/ProgressBar';
 import type { WzMapleVersionName } from '@/parser';
 import { POOL_WORKER_NAMES, type PoolWorkerName } from '@/parser';
-import {
-  useWizardExtract,
-  type WorkerStatus,
-} from '@/lib/useWizardExtract';
+import { useWizardExtract, type WorkerStatus } from '@/lib/useWizardExtract';
 import { cn } from '@/lib/utils';
 import { buildPlan } from './plan';
 import type { WizardFile } from './StepFiles';
@@ -107,10 +104,8 @@ export function StepRun({ version, files, forceAll, onComplete }: Props) {
           </div>
         </div>
         {failedWorkers.length > 0 && (
-          <div className="border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-md border p-4">
-            <h3 className="text-sm font-semibold">
-              Some workers failed ({failedWorkers.length})
-            </h3>
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-100">
+            <h3 className="text-sm font-semibold">Some workers failed ({failedWorkers.length})</h3>
             <p className="mt-1 text-xs">
               Diagnostics on{' '}
               <Link to="/debug" className="underline">
@@ -127,14 +122,6 @@ export function StepRun({ version, files, forceAll, onComplete }: Props) {
             </ul>
           </div>
         )}
-        <div>
-          <Link
-            to="/"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium"
-          >
-            Open the wiki <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
       </section>
     );
   }
@@ -210,4 +197,3 @@ function WorkerCard({ name, status }: { name: PoolWorkerName; status: WorkerStat
     </div>
   );
 }
-
