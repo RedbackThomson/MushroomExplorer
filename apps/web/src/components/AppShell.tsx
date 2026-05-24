@@ -26,6 +26,13 @@ export function AppShell() {
  * as: features hook has loaded AND no datasets have ever been recorded AND
  * every entity table is empty. The wizard's recordDataset call flips this
  * off before the user navigates away.
+ *
+ * `isFetching` gate: the wizard invalidates the db queries after
+ * `recordDataset`, but no observers are mounted while the wizard is up.
+ * When the user clicks "Go Explore", AppShell remounts and the queries
+ * synchronously serve their stale pre-extraction data (datasets=0) while
+ * a refetch is in flight — without this gate we'd redirect right back to
+ * /setup based on that stale snapshot.
  */
 function useFirstRunRedirect(): void {
   const features = useFeatures();
@@ -33,8 +40,15 @@ function useFirstRunRedirect(): void {
   const location = useLocation();
   useEffect(() => {
     if (!features.ready) return;
+    if (features.isFetching) return;
     if (!features.isFirstRun) return;
     if (location.pathname === '/setup') return;
     navigate('/setup', { replace: true });
-  }, [features.ready, features.isFirstRun, location.pathname, navigate]);
+  }, [
+    features.ready,
+    features.isFetching,
+    features.isFirstRun,
+    location.pathname,
+    navigate,
+  ]);
 }

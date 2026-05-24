@@ -29,6 +29,12 @@ export interface FeatureFlags {
 export interface Features extends FeatureFlags {
   /** Both queries have resolved at least once. */
   ready: boolean;
+  /**
+   * Either query is currently fetching. When true, `counts` / `loadedFiles`
+   * may reflect stale cached data — callers making routing decisions should
+   * wait for a non-fetching state before acting on `isFirstRun`.
+   */
+  isFetching: boolean;
   /** No datasets recorded AND every entity table empty. */
   isFirstRun: boolean;
   /** Distinct WZ file names ever recorded into a dataset. */
@@ -66,6 +72,7 @@ export function useFeatures(): Features {
   });
 
   const ready = !!statusQ.data && !!filesQ.data;
+  const isFetching = statusQ.isFetching || filesQ.isFetching;
   const counts = statusQ.data?.counts ?? null;
   const loadedFiles = useMemo(() => {
     if (!filesQ.data) return EMPTY_SET;
@@ -111,6 +118,7 @@ export function useFeatures(): Features {
 
   return {
     ready,
+    isFetching,
     isFirstRun,
     loadedFiles,
     ...flags,
