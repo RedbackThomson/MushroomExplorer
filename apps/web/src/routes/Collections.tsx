@@ -1,14 +1,29 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bookmark, Loader2, Plus } from 'lucide-react';
+import { Bookmark, Download, Loader2, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CollectionFormDialog } from '@/components/collections';
-import { useCollectionsList } from '@/lib/useCollections';
+import {
+  CollectionFormDialog,
+  CollectionsImportDialog,
+  downloadJson,
+  todayStamp,
+} from '@/components/collections';
+import { useCollectionsList, useExportAllJson } from '@/lib/useCollections';
 import type { CollectionRecord } from '@/db/user';
 
 export default function Collections() {
   const collectionsQ = useCollectionsList();
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const exportAllM = useExportAllJson();
+
+  const onExportAll = async () => {
+    const payload = await exportAllM.mutateAsync();
+    downloadJson(`collections-${todayStamp()}.json`, payload);
+  };
+
+  const hasAny = (collectionsQ.data?.length ?? 0) > 0;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -20,13 +35,46 @@ export default function Collections() {
             from your loaded game data — they survive WZ re-imports.
           </p>
         </div>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          New collection
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onExportAll}
+            disabled={!hasAny || exportAllM.isPending}
+            title={hasAny ? 'Export all collections as JSON' : 'No collections to export yet'}
+          >
+            {exportAllM.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            Export all
+          </Button>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New collection
+          </Button>
+        </div>
       </header>
 
       <CollectionFormDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CollectionsImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+
+      {exportAllM.isError && (
+        <p className="text-destructive text-sm">
+          Export failed: {(exportAllM.error as Error).message}
+        </p>
+      )}
 
       <section className="space-y-3">
         {collectionsQ.isPending ? (
@@ -41,8 +89,8 @@ export default function Collections() {
         ) : collectionsQ.data!.length === 0 ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No collections yet. Click "New collection" to create one, or open any item, mob, or
-              map page and click "Save".
+              No collections yet. Click "New collection" to create one, "Import" to restore from a
+              JSON file, or open any item, mob, or map page and click "Save".
             </p>
           </div>
         ) : (

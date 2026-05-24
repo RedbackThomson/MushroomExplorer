@@ -1,10 +1,18 @@
 // Domain query helpers for the user-data SQLite file.
 //
-// Phase A surface: status + listCollections + createCollection + addMember.
 // Mirrors `db/queries.ts` shape so the worker passthrough stays uniform.
+// Phase C adds JSON and raw-bytes export/import for portability.
 
 import { Sqlite, type Row } from '../sqlite';
 import { USER_MIGRATIONS } from './migrations';
+import {
+  COLLECTIONS_JSON_VERSION,
+  collectionsExportSchema,
+  type CollectionBundleJson,
+  type CollectionsExportJson,
+  type ImportConflictMode,
+  type ImportReport,
+} from './collectionsJson';
 import type {
   AddMemberOptions,
   BulkAddResult,
@@ -273,6 +281,201 @@ export class UserDbApi implements UserDatabase {
         );
       }
     });
+  }
+
+  async exportCollectionJson(id: number): Promise<CollectionsExportJson> {
+    const bundle = this.buildBundle(id);
+    if (!bundle) throw new Error(`Collection ${id} not found`);
+    return {
+      version: COLLECTIONS_JSON_VERSION,
+      kind: 'collection',
+      collection: bundle,
+    };
+  }
+
+  async exportAllJson(): Promise<CollectionsExportJson> {
+    const ids = this.db
+      .selectObjects<{ id: number }>('SELECT id FROM collections ORDER BY name COLLATE NOCASE ASC')
+      .map((r) => r.id);
+    const bundles: CollectionBundleJson[] = [];
+    for (const id of ids) {
+      const b = this.buildBundle(id);
+      if (b) bundles.push(b);
+    }
+    return {
+      version: COLLECTIONS_JSON_VERSION,
+      kind: 'all',
+      collections: bundles,
+    };
+  }
+
+  async importJson(payload: unknown, conflict: ImportConflictMode): Promise<ImportReport> {
+    const parsed = collectionsExportSchema.parse(payload);
+    const bundles: CollectionBundleJson[] =
+      parsed.kind === 'collection' ? [parsed.collection] : parsed.collections;
+
+    const report: ImportReport = {
+      createdCollections: 0,
+      mergedCollections: 0,
+      renamedCollections: 0,
+      skippedCollections: 0,
+      addedMembers: 0,
+      skippedMembers: 0,
+      importedNames: [],
+    };
+
+    this.db.transaction(() => {
+      for (const bundle of bundles) {
+        const existingId = this.findCollectionIdByName(bundle.name);
+
+        if (existingId === null) {
+          // Fresh import — no conflict.
+          const newId = this.insertCollection(bundle);
+          this.insertBundleMembers(newId, bundle, report);
+          report.createdCollections++;
+          report.importedNames.push(bundle.name);
+          continue;
+        }
+
+        if (conflict === 'skip') {
+          report.skippedCollections++;
+          continue;
+        }
+
+        if (conflict === 'merge') {
+          this.insertBundleMembers(existingId, bundle, report);
+          report.mergedCollections++;
+          report.importedNames.push(bundle.name);
+          continue;
+        }
+
+        // rename
+        const newName = this.uniqueImportedName(bundle.name);
+        const newId = this.insertCollection({ ...bundle, name: newName });
+        this.insertBundleMembers(newId, bundle, report);
+        report.renamedCollections++;
+        report.importedNames.push(newName);
+      }
+    });
+
+    return report;
+  }
+
+  async exportBytes(): Promise<Uint8Array> {
+    return this.db.exportBytes();
+  }
+
+  async importBytes(
+    bytes: Uint8Array,
+  ): Promise<{ backend: 'opfs' | 'memory'; schemaVersion: number }> {
+    return this.db.importBytes(bytes);
+  }
+
+  // -- helpers ---------------------------------------------------------------
+
+  private buildBundle(id: number): CollectionBundleJson | null {
+    const c = this.db.selectObject<Row>(
+      'SELECT name, description, color, icon FROM collections WHERE id = ?',
+      [id],
+    );
+    if (!c) return null;
+    const members = this.db.selectObjects<Row>(
+      `SELECT entity_type, entity_id, note, quantity, done
+       FROM collection_members WHERE collection_id = ?
+       ORDER BY entity_type ASC, added_at ASC`,
+      [id],
+    );
+    return {
+      name: String(c.name),
+      description: c.description == null ? null : String(c.description),
+      color: c.color == null ? null : String(c.color),
+      icon: c.icon == null ? null : String(c.icon),
+      members: members.map((m) => ({
+        entityType: String(m.entity_type) as CollectionEntityType,
+        entityId: Number(m.entity_id),
+        note: m.note == null ? null : String(m.note),
+        quantity: m.quantity == null ? null : Number(m.quantity),
+        done: Number(m.done) === 1,
+      })),
+    };
+  }
+
+  private findCollectionIdByName(name: string): number | null {
+    const id = this.db.selectValue<number>(
+      'SELECT id FROM collections WHERE name = ?',
+      [name],
+    );
+    return id == null ? null : Number(id);
+  }
+
+  /**
+   * Resolve a unique destination name for `rename` conflicts. Tries
+   * "<name> (imported)" first, then "<name> (imported 2)" and so on.
+   * Stops at a sensible ceiling so a runaway loop on broken data can't
+   * lock up the worker.
+   */
+  private uniqueImportedName(name: string): string {
+    const base = `${name} (imported)`;
+    if (this.findCollectionIdByName(base) === null) return base;
+    for (let i = 2; i < 1000; i++) {
+      const candidate = `${name} (imported ${i})`;
+      if (this.findCollectionIdByName(candidate) === null) return candidate;
+    }
+    throw new Error(`Could not find a unique name for "${name}"`);
+  }
+
+  private insertCollection(bundle: CollectionBundleJson): number {
+    const now = Date.now();
+    this.db.exec(
+      `INSERT INTO collections (name, description, color, icon, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        bundle.name,
+        bundle.description ?? null,
+        bundle.color ?? null,
+        bundle.icon ?? null,
+        now,
+        now,
+      ],
+    );
+    const id = this.db.selectValue<number>('SELECT last_insert_rowid()');
+    if (id == null) throw new Error('Failed to read inserted collection id');
+    return Number(id);
+  }
+
+  private insertBundleMembers(
+    collectionId: number,
+    bundle: CollectionBundleJson,
+    report: ImportReport,
+  ): void {
+    const now = Date.now();
+    for (const m of bundle.members) {
+      const exists =
+        this.db.selectValue<number>(
+          `SELECT 1 FROM collection_members
+           WHERE collection_id = ? AND entity_type = ? AND entity_id = ?`,
+          [collectionId, m.entityType, m.entityId],
+        ) ?? null;
+      if (exists !== null) {
+        report.skippedMembers++;
+        continue;
+      }
+      this.db.exec(
+        `INSERT INTO collection_members
+           (collection_id, entity_type, entity_id, note, quantity, done, added_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          collectionId,
+          m.entityType,
+          m.entityId,
+          m.note ?? null,
+          m.quantity ?? null,
+          m.done ? 1 : 0,
+          now,
+        ],
+      );
+      report.addedMembers++;
+    }
   }
 
   async listMembershipsFor(

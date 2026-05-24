@@ -6,6 +6,11 @@
 // structured-cloneable.
 
 import type { EntityKind } from '../types';
+import type {
+  CollectionsExportJson,
+  ImportConflictMode,
+  ImportReport,
+} from './collectionsJson';
 
 export type CollectionEntityType = Extract<
   EntityKind,
@@ -147,4 +152,16 @@ export interface UserDatabase {
     entityType: CollectionEntityType,
     entityId: number,
   ): Promise<MembershipBadge[]>;
+
+  exportCollectionJson(id: number): Promise<CollectionsExportJson>;
+  exportAllJson(): Promise<CollectionsExportJson>;
+  importJson(payload: unknown, conflict: ImportConflictMode): Promise<ImportReport>;
+
+  /** Serialize the live user.sqlite3 to a Uint8Array. */
+  exportBytes(): Promise<Uint8Array>;
+  /** Replace the live user.sqlite3 with the given bytes. Migrations run
+   *  afterwards so an older export gets brought up to current. */
+  importBytes(
+    bytes: Uint8Array,
+  ): Promise<{ backend: 'opfs' | 'memory'; schemaVersion: number }>;
 }

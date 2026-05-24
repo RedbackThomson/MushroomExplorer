@@ -18,5 +18,13 @@ export type {
   UserDatabase,
   UserDbStatus,
 } from './types';
+export type {
+  CollectionBundleJson,
+  CollectionMemberJson,
+  CollectionsExportJson,
+  ImportConflictMode,
+  ImportReport,
+} from './collectionsJson';
+export { COLLECTIONS_JSON_VERSION } from './collectionsJson';
 export { COLLECTION_ENTITY_TYPES } from './types';
 export { getUserDbClient, terminateUserDbClient } from './client';

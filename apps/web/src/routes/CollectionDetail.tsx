@@ -10,13 +10,19 @@ import {
   ArrowLeft,
   Bookmark,
   Check,
+  Download,
   Loader2,
   Pencil,
   Trash2,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CollectionFormDialog } from '@/components/collections';
+import {
+  CollectionFormDialog,
+  downloadJson,
+  slugify,
+  todayStamp,
+} from '@/components/collections';
 import {
   EquipLink,
   ItemLink,
@@ -30,6 +36,7 @@ import {
   useCollection,
   useCollectionMembers,
   useDeleteCollection,
+  useExportCollectionJson,
   useRemoveMember,
   useUpdateMember,
 } from '@/lib/useCollections';
@@ -60,6 +67,7 @@ export default function CollectionDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const deleteM = useDeleteCollection();
+  const exportM = useExportCollectionJson();
 
   const members = membersQ.data ?? EMPTY_MEMBERS;
 
@@ -146,6 +154,11 @@ export default function CollectionDetail() {
     navigate('/collections');
   };
 
+  const onExport = async () => {
+    const payload = await exportM.mutateAsync(collection.id);
+    downloadJson(`${slugify(collection.name)}-${todayStamp()}.json`, payload);
+  };
+
   return (
     <div className="max-w-5xl space-y-6">
       <Link
@@ -169,7 +182,21 @@ export default function CollectionDetail() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExport}
+              disabled={exportM.isPending}
+              title="Export this collection as JSON"
+            >
+              {exportM.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              Export
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Pencil className="h-3.5 w-3.5" /> Edit
             </Button>

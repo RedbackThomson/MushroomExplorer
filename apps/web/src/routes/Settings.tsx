@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   AlertTriangle,
+  Bookmark,
   CheckCircle2,
   ChevronRight,
   Database,
@@ -17,7 +18,13 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { downloadBytes, todayStamp } from '@/components/collections';
 import { getDbClient, type DatasetRecord } from '@/db';
+import {
+  useCollectionsList,
+  useExportUserDbBytes,
+  useImportUserDbBytes,
+} from '@/lib/useCollections';
 import { useTheme } from '@/lib/theme';
 import { shortHash } from '@/lib/hashFile';
 import { createLogger, describeError } from '@/lib/logger';
@@ -313,6 +320,9 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* --- User data ------------------------------------------------------ */}
+      <UserDataSection />
+
       {/* --- Appearance ----------------------------------------------------- */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
@@ -531,5 +541,131 @@ function RunCard({ dataset: d }: { dataset: DatasetRecord }) {
         </div>
       </details>
     </li>
+  );
+}
+
+/**
+ * User-data section. Collections live in a separate OPFS SQLite file from
+ * the game data, so they need their own export/import controls. JSON
+ * import/export is offered on the /collections page (cleaner home for the
+ * full-library flow); this panel handles the raw `.sqlite3` file form for
+ * power users who want a literal bit-for-bit backup.
+ */
+function UserDataSection() {
+  const collectionsQ = useCollectionsList();
+  const exportM = useExportUserDbBytes();
+  const importM = useImportUserDbBytes();
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const onExport = async () => {
+    const bytes = await exportM.mutateAsync();
+    downloadBytes(
+      `mushroom-explorer-collections-${todayStamp()}.sqlite3`,
+      bytes,
+      'application/vnd.sqlite3',
+    );
+  };
+
+  const onImportPicked = useCallback(
+    async (file: File) => {
+      const sizeKb = (file.size / 1024).toFixed(0);
+      const proceed = confirm(
+        `Replace your collections with ${file.name} (${sizeKb} KB)?\n\n` +
+          `Every collection currently saved on this device will be discarded.`,
+      );
+      if (!proceed) return;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      importM.mutate(bytes);
+    },
+    [importM],
+  );
+
+  const collectionCount = collectionsQ.data?.length ?? 0;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Bookmark className="h-4 w-4" />
+        <h2 className="text-lg font-semibold">User data</h2>
+      </div>
+
+      <div className="border-border bg-card text-card-foreground rounded-md border p-4">
+        <h3 className="text-sm font-semibold">Collections</h3>
+        <p className="text-muted-foreground mt-1 text-xs">
+          You have {collectionCount.toLocaleString()} collection{collectionCount === 1 ? '' : 's'}.
+          Manage them, import from JSON, or export them on the{' '}
+          <Link to="/collections" className="text-primary hover:underline">
+            Collections page
+          </Link>
+          .
+        </p>
+      </div>
+
+      <div className="border-border bg-card text-card-foreground rounded-md border p-4">
+        <h3 className="text-sm font-semibold">Collections database file</h3>
+        <p className="text-muted-foreground mt-1 text-xs">
+          Export the raw <code className="font-mono">user.sqlite3</code> file — useful as a
+          bit-for-bit backup before clearing data, or to move collections between browsers. Import
+          replaces every collection currently stored on this device.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onExport}
+            disabled={exportM.isPending || importM.isPending || collectionCount === 0}
+            title={collectionCount === 0 ? 'No collections to export yet' : undefined}
+          >
+            {exportM.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Export user database
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => importInputRef.current?.click()}
+            disabled={exportM.isPending || importM.isPending}
+          >
+            {importM.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Import user database
+          </Button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".sqlite3,.sqlite,.db,application/vnd.sqlite3"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) void onImportPicked(file);
+            }}
+          />
+          {exportM.data && !exportM.isPending && (
+            <span className="text-muted-foreground text-xs">
+              Exported {(exportM.data.byteLength / 1024).toFixed(0)} KB
+            </span>
+          )}
+          {importM.isSuccess && !importM.isPending && (
+            <span className="text-xs text-green-600 dark:text-green-400">
+              Import complete · schema v{importM.data.schemaVersion}
+            </span>
+          )}
+        </div>
+        {(exportM.error || importM.error) && (
+          <p className="text-destructive mt-3 text-xs">
+            {((exportM.error ?? importM.error) as Error).message}
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

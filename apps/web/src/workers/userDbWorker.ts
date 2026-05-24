@@ -6,9 +6,10 @@ import type {
   CollectionEntityType,
   CreateCollectionInput,
   EntityRef,
+  ImportConflictMode,
   UpdateCollectionPatch,
   UpdateMemberPatch,
-} from '@/db/user/types';
+} from '@/db/user';
 import { createLogger, describeError } from '@/lib/logger';
 
 const log = createLogger('user-db-worker');
@@ -101,6 +102,26 @@ class WorkerUserDb {
   async listMembershipsFor(entityType: CollectionEntityType, entityId: number) {
     await this.ensureOpen();
     return this.api.listMembershipsFor(entityType, entityId);
+  }
+  async exportCollectionJson(id: number) {
+    await this.ensureOpen();
+    return this.api.exportCollectionJson(id);
+  }
+  async exportAllJson() {
+    await this.ensureOpen();
+    return this.api.exportAllJson();
+  }
+  async importJson(payload: unknown, conflict: ImportConflictMode) {
+    await this.ensureOpen();
+    return this.api.importJson(payload, conflict);
+  }
+  async exportBytes() {
+    await this.ensureOpen();
+    return this.api.exportBytes();
+  }
+  async importBytes(bytes: Uint8Array) {
+    await this.ensureOpen();
+    return this.api.importBytes(bytes);
   }
 }
 

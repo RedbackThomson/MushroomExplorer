@@ -19,8 +19,11 @@ import {
   type CollectionEntityType,
   type CollectionMember,
   type CollectionRecord,
+  type CollectionsExportJson,
   type CreateCollectionInput,
   type EntityRef,
+  type ImportConflictMode,
+  type ImportReport,
   type MembershipBadge,
   type UpdateCollectionPatch,
   type UpdateMemberPatch,
@@ -190,6 +193,57 @@ export function useBulkAddMembers(): UseMutationResult<
   const invalidate = useInvalidateAll();
   return useMutation({
     mutationFn: ({ collectionId, refs }) => db.bulkAddMembers(collectionId, refs),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useExportCollectionJson(): UseMutationResult<
+  CollectionsExportJson,
+  Error,
+  number
+> {
+  const db = useUserDb();
+  return useMutation<CollectionsExportJson, Error, number>({
+    mutationFn: (id) => db.exportCollectionJson(id),
+  });
+}
+
+export function useExportAllJson(): UseMutationResult<CollectionsExportJson, Error, void> {
+  const db = useUserDb();
+  return useMutation<CollectionsExportJson, Error, void>({
+    mutationFn: () => db.exportAllJson(),
+  });
+}
+
+export function useImportJson(): UseMutationResult<
+  ImportReport,
+  Error,
+  { payload: unknown; conflict: ImportConflictMode }
+> {
+  const db = useUserDb();
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: ({ payload, conflict }) => db.importJson(payload, conflict),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useExportUserDbBytes(): UseMutationResult<Uint8Array, Error, void> {
+  const db = useUserDb();
+  return useMutation({
+    mutationFn: () => db.exportBytes(),
+  });
+}
+
+export function useImportUserDbBytes(): UseMutationResult<
+  { backend: 'opfs' | 'memory'; schemaVersion: number },
+  Error,
+  Uint8Array
+> {
+  const db = useUserDb();
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (bytes: Uint8Array) => db.importBytes(bytes),
     onSuccess: () => invalidate(),
   });
 }
