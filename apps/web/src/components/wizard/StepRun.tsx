@@ -182,7 +182,10 @@ export function StepRun({ version, files, onComplete }: Props) {
   }
 
   const phase = loadM.isPending ? 'Loading files' : extract.isRunning ? 'Extracting' : 'Starting';
-  const progress = loadProgress ?? extract.progress;
+  // Once load is finished we always show extract.progress, even if a
+  // throttled progress event from the worker arrives late and re-fills
+  // loadProgress with a stale value like "Parsing String.wz".
+  const progress = loadDone ? extract.progress : loadProgress;
 
   return (
     <section className="space-y-4">
