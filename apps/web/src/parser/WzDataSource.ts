@@ -181,9 +181,11 @@ export class WzDataSource implements GameDataSource {
       if (obj instanceof WzFile) {
         const root = obj.wzDirectory;
         if (!root) return [];
+        await ensureDirParsed(root, path);
         return [...root.wzDirectories, ...root.wzImages].map((c) => toNodeInfo(c, join(c.name)));
       }
       if (obj instanceof WzDirectory) {
+        await ensureDirParsed(obj, path);
         return [...obj.wzDirectories, ...obj.wzImages].map((c) => toNodeInfo(c, join(c.name)));
       }
       if (obj instanceof WzImage) {
@@ -306,12 +308,67 @@ export class WzDataSource implements GameDataSource {
       if (current instanceof WzImage) {
         const result = await tryParseImage(current, path);
         if (!result.ok) return null;
+      } else if (current instanceof WzDirectory) {
+        await ensureDirParsed(current, path);
+      } else if (current instanceof WzFile) {
+        const root = current.wzDirectory;
+        if (root) await ensureDirParsed(root, path);
       }
       const next = (current as { at(name: string): WzObject | null }).at(segment);
       if (!next) return null;
       current = next;
     }
     return current;
+  }
+}
+
+/**
+ * Ensure a `WzDirectory` has had its on-disk entries materialised into
+ * `wzDirectories` / `wzImages`. `@tybys/wz`'s root parser only recurses into
+ * sub-directories whose stored checksum is non-zero, and the WZ format
+ * legitimately uses `checksum === 0` to mark a directory whose children
+ * should be parsed on demand. The bare `Map` sub-directory of `Map.wz` is
+ * the most prominent case — `parseWzFile` produces it as an empty node,
+ * and without this call `listChildren('Map.wz/Map')` returns 0 entries
+ * even though the directory has ~60 k map images underneath.
+ *
+ * We treat "children empty AND `blockSize > 0`" as "not yet parsed".
+ * Genuinely empty directories (`blockSize === 0`) are left alone.
+ * `parseDirectory()` itself clears + re-reads, so we only call it when the
+ * children sets are still empty to avoid quadratic re-parsing on
+ * subsequent traversals.
+ */
+const parsedDirectories = new WeakSet<WzDirectory>();
+
+async function ensureDirParsed(dir: WzDirectory, contextPath: string): Promise<void> {
+  if (parsedDirectories.has(dir)) return;
+  if (dir.wzDirectories.size > 0 || dir.wzImages.size > 0) {
+    // The root WzDirectory is populated by `parseWzFile` itself, so it
+    // arrives already-parsed. Mark it so we don't accidentally call
+    // `parseDirectory()` (which would `_clearAllChildren`) on a refetch.
+    parsedDirectories.add(dir);
+    return;
+  }
+  const blockSize = (dir as unknown as { blockSize?: number }).blockSize ?? 0;
+  if (blockSize <= 0) {
+    parsedDirectories.add(dir);
+    return;
+  }
+  parsedDirectories.add(dir);
+  try {
+    await dir.parseDirectory();
+    log.info('lazy-parsed WzDirectory', {
+      path: contextPath,
+      name: dir.name,
+      subDirs: dir.wzDirectories.size,
+      images: dir.wzImages.size,
+    });
+  } catch (e) {
+    log.error('parseDirectory threw', {
+      path: contextPath,
+      name: dir.name,
+      ...describeError(e),
+    });
   }
 }
 

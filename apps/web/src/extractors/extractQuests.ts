@@ -97,10 +97,44 @@ export async function extractQuests(
     }
   }
   if (probeIds.length > 0) {
-    const stringTop = await source.listChildren('String.wz/Quest.img');
+    // Is Quest.img even present as a child of String.wz?
+    const stringRoot = await source.listChildren('String.wz');
+    const questImgPresent = stringRoot.some((n) => n.name === 'Quest.img');
+    log.info('probe-v2 String.wz top-level', {
+      total: stringRoot.length,
+      hasQuestImg: questImgPresent,
+      questRelated: stringRoot
+        .filter((n) => /quest/i.test(n.name))
+        .map((n) => `${n.name}:${n.kind}`),
+      sample: stringRoot.slice(0, 12).map((n) => `${n.name}:${n.kind}`),
+    });
+    // What does Quest.img itself look like?
+    const questImgNode = await source.getNode('String.wz/Quest.img');
+    log.info('probe-v2 String.wz/Quest.img node', {
+      exists: !!questImgNode,
+      kind: questImgNode?.kind ?? null,
+      hasChildren: questImgNode?.hasChildren ?? null,
+    });
+    const stringQuestTop = await source.listChildren('String.wz/Quest.img');
     log.info('probe-v2 String.wz/Quest.img top-level', {
-      total: stringTop.length,
-      first: stringTop.slice(0, 12).map((n) => `${n.name}:${n.propertyKind ?? n.kind}`),
+      total: stringQuestTop.length,
+      first: stringQuestTop.slice(0, 12).map((n) => `${n.name}:${n.propertyKind ?? n.kind}`),
+    });
+    // Fallback location: in v83, names sometimes live under
+    // Quest.wz/QuestInfo.img/<id>/0/name. Probe one to confirm.
+    const fallbackName = await source.getNode(
+      `Quest.wz/QuestInfo.img/${probeIds[0]}/0/name`,
+    );
+    log.info('probe-v2 Quest.wz/QuestInfo.img fallback', {
+      id: probeIds[0],
+      path: `Quest.wz/QuestInfo.img/${probeIds[0]}/0/name`,
+      kind: fallbackName?.propertyKind ?? null,
+      scalar: fallbackName?.scalar ?? null,
+    });
+    const questWzTop = await source.listChildren('Quest.wz');
+    log.info('probe-v2 Quest.wz top-level', {
+      total: questWzTop.length,
+      all: questWzTop.map((n) => `${n.name}:${n.kind}`),
     });
   }
 
