@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { ProgressBar } from '@/components/ProgressBar';
 import type { WzMapleVersionName } from '@/parser';
 import { POOL_WORKER_NAMES, type PoolWorkerName } from '@/parser';

@@ -16,6 +16,8 @@ import type {
   ItemRecord,
   ListOptsBase,
   MapMobRecord,
+  MapMobSpawnRecord,
+  MapMobSpawnWithName,
   MapMobWithName,
   MapNpcRecord,
   MapNpcWithName,
@@ -334,6 +336,11 @@ interface MapRow extends Row {
   mob_rate: number | null;
   minimap_path: string | null;
   minimap_data: Uint8Array | null;
+  minimap_center_x: number | null;
+  minimap_center_y: number | null;
+  minimap_width: number | null;
+  minimap_height: number | null;
+  minimap_mag: number | null;
   source_path: string;
 }
 
@@ -376,6 +383,11 @@ function rowToMap(r: MapRow): MapRecord {
     mobRate: r.mob_rate,
     minimapPath: r.minimap_path,
     minimapData: r.minimap_data,
+    minimapCenterX: r.minimap_center_x,
+    minimapCenterY: r.minimap_center_y,
+    minimapWidth: r.minimap_width,
+    minimapHeight: r.minimap_height,
+    minimapMag: r.minimap_mag,
     sourcePath: r.source_path,
   };
 }
@@ -827,7 +839,9 @@ export class DbApi implements GameDatabase {
     return this.sql
       .selectObjects<MapRow>(
         `SELECT DISTINCT m.id, m.name, m.street_name, m.return_map_id, m.forced_return_map_id,
-                m.field_limit, m.mob_rate, m.minimap_path, NULL AS minimap_data, m.source_path
+                m.field_limit, m.mob_rate, m.minimap_path, NULL AS minimap_data,
+                m.minimap_center_x, m.minimap_center_y, m.minimap_width, m.minimap_height,
+                m.minimap_mag, m.source_path
          FROM maps m
          JOIN map_npcs mn ON mn.map_id = m.id
          WHERE mn.npc_id = ?
@@ -843,8 +857,10 @@ export class DbApi implements GameDatabase {
         this.sql.exec(
           `INSERT INTO maps (
             id, name, street_name, return_map_id, forced_return_map_id,
-            field_limit, mob_rate, minimap_path, minimap_data, source_path
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            field_limit, mob_rate, minimap_path, minimap_data,
+            minimap_center_x, minimap_center_y, minimap_width, minimap_height,
+            minimap_mag, source_path
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             name                 = excluded.name,
             street_name          = excluded.street_name,
@@ -854,6 +870,11 @@ export class DbApi implements GameDatabase {
             mob_rate             = excluded.mob_rate,
             minimap_path         = excluded.minimap_path,
             minimap_data         = COALESCE(excluded.minimap_data, maps.minimap_data),
+            minimap_center_x     = COALESCE(excluded.minimap_center_x, maps.minimap_center_x),
+            minimap_center_y     = COALESCE(excluded.minimap_center_y, maps.minimap_center_y),
+            minimap_width        = COALESCE(excluded.minimap_width, maps.minimap_width),
+            minimap_height       = COALESCE(excluded.minimap_height, maps.minimap_height),
+            minimap_mag          = COALESCE(excluded.minimap_mag, maps.minimap_mag),
             source_path          = excluded.source_path`,
           [
             m.id,
@@ -865,6 +886,11 @@ export class DbApi implements GameDatabase {
             m.mobRate,
             m.minimapPath,
             m.minimapData,
+            m.minimapCenterX,
+            m.minimapCenterY,
+            m.minimapWidth,
+            m.minimapHeight,
+            m.minimapMag,
             m.sourcePath,
           ],
         );
@@ -909,7 +935,9 @@ export class DbApi implements GameDatabase {
       const rows = this.sql
         .selectObjects<MapRow>(
           `SELECT id, name, street_name, return_map_id, forced_return_map_id,
-                  field_limit, mob_rate, minimap_path, NULL AS minimap_data, source_path
+                  field_limit, mob_rate, minimap_path, NULL AS minimap_data,
+                  minimap_center_x, minimap_center_y, minimap_width, minimap_height,
+                  minimap_mag, source_path
            FROM maps ${clause}
            ORDER BY ${order.col} ${order.dir === 'desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC
            LIMIT ? OFFSET ?`,
@@ -944,43 +972,62 @@ export class DbApi implements GameDatabase {
     return this.sql
       .selectObjects<{
         map_id: number;
+        idx: number;
         portal_name: string;
         target_map_id: number | null;
         target_portal: string | null;
         x: number | null;
         y: number | null;
+        portal_type: number | null;
+        script: string | null;
       }>(
-        `SELECT map_id, portal_name, target_map_id, target_portal, x, y
-         FROM map_portals WHERE map_id = ? ORDER BY portal_name`,
+        `SELECT map_id, idx, portal_name, target_map_id, target_portal, x, y, portal_type, script
+         FROM map_portals WHERE map_id = ? ORDER BY idx`,
         [mapId],
       )
       .map((r) => ({
         mapId: r.map_id,
+        idx: r.idx,
         portalName: r.portal_name,
         targetMapId: r.target_map_id,
         targetPortal: r.target_portal,
         x: r.x,
         y: r.y,
+        portalType: r.portal_type,
+        script: r.script,
       }));
+  }
+
+  async getMapMobSpawns(mapId: number): Promise<MapMobSpawnWithName[]> {
+    return this.sql.selectObjects<MapMobSpawnWithName & Row>(
+      `SELECT ms.map_id AS mapId, ms.mob_id AS mobId, ms.x, ms.y, m.name, m.level
+       FROM map_mob_spawns ms LEFT JOIN mobs m ON m.id = ms.mob_id
+       WHERE ms.map_id = ?
+       ORDER BY m.level NULLS LAST, m.name`,
+      [mapId],
+    );
   }
 
   async replaceMapLife(rows: {
     npcs: MapNpcRecord[];
     mobs: MapMobRecord[];
     portals: MapPortalRecord[];
+    mobSpawns: MapMobSpawnRecord[];
   }): Promise<void> {
-    // Collect distinct map IDs across all three so we wipe their previous
+    // Collect distinct map IDs across every table so we wipe their previous
     // rows before reinserting. Avoids stale entries when a map is
     // re-extracted with different NPC/mob/portal sets.
     const mapIds = new Set<number>();
     for (const r of rows.npcs) mapIds.add(r.mapId);
     for (const r of rows.mobs) mapIds.add(r.mapId);
     for (const r of rows.portals) mapIds.add(r.mapId);
+    for (const r of rows.mobSpawns) mapIds.add(r.mapId);
     this.sql.transaction(() => {
       for (const id of mapIds) {
-        this.sql.exec('DELETE FROM map_npcs    WHERE map_id = ?', [id]);
-        this.sql.exec('DELETE FROM map_mobs    WHERE map_id = ?', [id]);
-        this.sql.exec('DELETE FROM map_portals WHERE map_id = ?', [id]);
+        this.sql.exec('DELETE FROM map_npcs        WHERE map_id = ?', [id]);
+        this.sql.exec('DELETE FROM map_mobs        WHERE map_id = ?', [id]);
+        this.sql.exec('DELETE FROM map_portals     WHERE map_id = ?', [id]);
+        this.sql.exec('DELETE FROM map_mob_spawns  WHERE map_id = ?', [id]);
       }
       for (const r of rows.npcs) {
         this.sql.exec(
@@ -997,9 +1044,25 @@ export class DbApi implements GameDatabase {
       }
       for (const r of rows.portals) {
         this.sql.exec(
-          `INSERT OR REPLACE INTO map_portals (map_id, portal_name, target_map_id, target_portal, x, y)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [r.mapId, r.portalName, r.targetMapId, r.targetPortal, r.x, r.y],
+          `INSERT OR REPLACE INTO map_portals (map_id, idx, portal_name, target_map_id, target_portal, x, y, portal_type, script)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            r.mapId,
+            r.idx,
+            r.portalName,
+            r.targetMapId,
+            r.targetPortal,
+            r.x,
+            r.y,
+            r.portalType,
+            r.script,
+          ],
+        );
+      }
+      for (const r of rows.mobSpawns) {
+        this.sql.exec(
+          'INSERT INTO map_mob_spawns (map_id, mob_id, x, y) VALUES (?, ?, ?, ?)',
+          [r.mapId, r.mobId, r.x, r.y],
         );
       }
     });

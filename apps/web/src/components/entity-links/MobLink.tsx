@@ -24,7 +24,7 @@ export function MobLink({ id, children, className, noPreview }: MobLinkProps) {
   return <HoverPopover content={<MobHoverCard id={id} />}>{link}</HoverPopover>;
 }
 
-function MobHoverCard({ id }: { id: number }) {
+export function MobHoverCard({ id }: { id: number }) {
   const client = useMemo(() => getDbClient(), []);
   const mobQ = useQuery({
     queryKey: ['db', 'mob', id],

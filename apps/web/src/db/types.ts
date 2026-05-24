@@ -81,6 +81,17 @@ export interface MapRecord {
   minimapPath: string | null;
   /** Decoded PNG bytes for the minimap, or null if the map has none. */
   minimapData: Uint8Array | null;
+  /**
+   * Minimap geometry — needed to project game coords onto the minimap:
+   *   pixelX = (gameX + minimapCenterX) / minimapMag
+   *   pixelY = (gameY + minimapCenterY) / minimapMag
+   * All five are null when the map has no minimap.
+   */
+  minimapCenterX: number | null;
+  minimapCenterY: number | null;
+  minimapWidth: number | null;
+  minimapHeight: number | null;
+  minimapMag: number | null;
   sourcePath: string;
 }
 
@@ -99,11 +110,40 @@ export interface MapMobRecord {
 
 export interface MapPortalRecord {
   mapId: number;
+  /**
+   * WZ child index of the portal in `<map>/portal/<idx>`. Unique within a
+   * map; identifies a portal even when its `portalName` (e.g. `sp`) is
+   * shared by several entries.
+   */
+  idx: number;
   portalName: string;
   targetMapId: number | null;
   targetPortal: string | null;
   x: number | null;
   y: number | null;
+  /**
+   * Portal type from the WZ `pt` property. 0 = player spawn, 2 = regular
+   * portal, 6 = script-driven warp, etc. Used by the map viewer to bucket
+   * portals into spawn / portal / internal-teleport layers.
+   */
+  portalType: number | null;
+  /** Optional `script` name attached to scripted portals. */
+  script: string | null;
+}
+
+/** One mob spawn position on a map. Multiple rows with the same (mapId, mobId)
+ *  are expected when a mob has several spawn points. */
+export interface MapMobSpawnRecord {
+  mapId: number;
+  mobId: number;
+  x: number | null;
+  y: number | null;
+}
+
+/** A row from `map_mob_spawns` joined back to the mob's name/level for display. */
+export interface MapMobSpawnWithName extends MapMobSpawnRecord {
+  name: string;
+  level: number | null;
 }
 
 /** A row from `map_npcs` joined back to the NPC's name for display. */
@@ -364,6 +404,8 @@ export interface GameDatabase {
   getMapNpcs(mapId: number): Promise<MapNpcWithName[]>;
   getMapMobs(mapId: number): Promise<MapMobWithName[]>;
   getMapPortals(mapId: number): Promise<MapPortalRecord[]>;
+  /** Per-spawn mob rows (one per spawn point, not aggregated by mob id). */
+  getMapMobSpawns(mapId: number): Promise<MapMobSpawnWithName[]>;
 
   upsertQuests(quests: QuestRecord[]): Promise<number>;
   getQuest(id: number): Promise<QuestRecord | null>;
@@ -392,6 +434,7 @@ export interface GameDatabase {
     npcs: MapNpcRecord[];
     mobs: MapMobRecord[];
     portals: MapPortalRecord[];
+    mobSpawns: MapMobSpawnRecord[];
   }): Promise<void>;
 
   /** Names + IDs of all entities for the in-app search index. */

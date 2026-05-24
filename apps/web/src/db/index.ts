@@ -17,6 +17,8 @@ export type {
   ItemRecord,
   ListOptsBase,
   MapMobRecord,
+  MapMobSpawnRecord,
+  MapMobSpawnWithName,
   MapMobWithName,
   MapNpcRecord,
   MapNpcWithName,

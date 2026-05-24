@@ -290,4 +290,59 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX IF NOT EXISTS mob_drops_item_idx ON mob_drops (item_id);
     `,
   },
+  {
+    version: 9,
+    name: 'minimap geometry, portals with idx, per-spawn mob rows',
+    sql: `
+      -- Minimap geometry needed to translate game coords to minimap pixels:
+      --   pixelX = (gameX + centerX) / mag
+      --   pixelY = (gameY + centerY) / mag
+      -- centerX/centerY/mag come from the WZ map's miniMap subnode siblings;
+      -- width/height are the canvas dimensions. All five are needed to draw
+      -- entity overlays on the minimap.
+      ALTER TABLE maps ADD COLUMN minimap_center_x INTEGER;
+      ALTER TABLE maps ADD COLUMN minimap_center_y INTEGER;
+      ALTER TABLE maps ADD COLUMN minimap_width    INTEGER;
+      ALTER TABLE maps ADD COLUMN minimap_height   INTEGER;
+      ALTER TABLE maps ADD COLUMN minimap_mag      INTEGER;
+
+      -- Rebuild map_portals from scratch.
+      --   * adds an idx column (the WZ child index, e.g. portal/0, portal/1)
+      --     so maps with multiple portals sharing a name -- most commonly
+      --     several 'sp' spawn points -- all survive extraction;
+      --   * PK becomes (map_id, idx) so duplicates by name no longer collide;
+      --   * folds in portal_type (pt) and script so the viewer can bucket
+      --     portals into spawn / external / internal-teleport layers.
+      DROP TABLE map_portals;
+      CREATE TABLE map_portals (
+        map_id        INTEGER NOT NULL,
+        idx           INTEGER NOT NULL,
+        portal_name   TEXT NOT NULL,
+        target_map_id INTEGER,
+        target_portal TEXT,
+        x             INTEGER,
+        y             INTEGER,
+        portal_type   INTEGER,
+        script        TEXT,
+        PRIMARY KEY (map_id, idx)
+      );
+      CREATE INDEX map_portals_target_idx ON map_portals (target_map_id);
+      CREATE INDEX map_portals_name_idx ON map_portals (map_id, portal_name);
+
+      -- One row per mob spawn point on a map. map_mobs keeps its aggregate
+      -- (mob_id, count) shape for the list view; this table preserves the
+      -- per-spawn (x, y) needed to render mob icons on the map viewer
+      -- canvas. Duplicate (map_id, mob_id, x, y) rows are legal — two
+      -- spawners can share a point — so no PK.
+      CREATE TABLE map_mob_spawns (
+        map_id INTEGER NOT NULL,
+        mob_id INTEGER NOT NULL,
+        x      INTEGER,
+        y      INTEGER
+      );
+
+      CREATE INDEX map_mob_spawns_map_idx ON map_mob_spawns (map_id);
+      CREATE INDEX map_mob_spawns_mob_idx ON map_mob_spawns (mob_id);
+    `,
+  },
 ];

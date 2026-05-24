@@ -1,5 +1,11 @@
 import type { GameDataSource, WzNodeInfo, WzNodeTree } from '@/parser';
-import type { MapMobRecord, MapNpcRecord, MapPortalRecord, MapRecord } from '@/db';
+import type {
+  MapMobRecord,
+  MapMobSpawnRecord,
+  MapNpcRecord,
+  MapPortalRecord,
+  MapRecord,
+} from '@/db';
 import { createLogger, describeError } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
 
@@ -9,6 +15,7 @@ export interface ExtractMapsResult {
   maps: MapRecord[];
   mapNpcs: MapNpcRecord[];
   mapMobs: MapMobRecord[];
+  mapMobSpawns: MapMobSpawnRecord[];
   mapPortals: MapPortalRecord[];
   skipped: { reason: string; path: string }[];
 }
@@ -41,6 +48,7 @@ export async function extractMaps(
   const maps: MapRecord[] = [];
   const mapNpcs: MapNpcRecord[] = [];
   const mapMobs: MapMobRecord[] = [];
+  const mapMobSpawns: MapMobSpawnRecord[] = [];
   const mapPortals: MapPortalRecord[] = [];
   const skipped: { reason: string; path: string }[] = [];
 
@@ -56,7 +64,7 @@ export async function extractMaps(
           ? 'Map.wz appears to have failed to load — check parser.load errors.'
           : 'Map.wz loaded but has no `Map` directory; layout may differ from v83.',
     });
-    return { maps, mapNpcs, mapMobs, mapPortals, skipped };
+    return { maps, mapNpcs, mapMobs, mapMobSpawns, mapPortals, skipped };
   }
   const buckets = mapRoot.filter((n) => /^Map\d+$/.test(n.name));
   if (buckets.length === 0) {
@@ -125,6 +133,11 @@ export async function extractMaps(
     // round-tripping through getIconPng twice.
     let minimapPath: string | null = null;
     let minimapData: Uint8Array | null = null;
+    let minimapCenterX: number | null = null;
+    let minimapCenterY: number | null = null;
+    let minimapWidth: number | null = null;
+    let minimapHeight: number | null = null;
+    let minimapMag: number | null = null;
     const minimapTree = subs.get('miniMap');
     let minimapTry: string | null = null;
     if (minimapTree?.propertyKind === 'canvas') {
@@ -143,6 +156,16 @@ export async function extractMaps(
       } catch (e) {
         log.debug('minimap decode threw', { path: minimapTry, ...describeError(e) });
       }
+    }
+    if (minimapTree) {
+      // Geometry scalars live alongside the canvas in both layouts (A: on
+      // the `miniMap` parent; B: as siblings of `canvas` on `miniMap`
+      // itself). Either way they're direct children of `minimapTree`.
+      minimapCenterX = numberOf(minimapTree, 'centerX');
+      minimapCenterY = numberOf(minimapTree, 'centerY');
+      minimapWidth = numberOf(minimapTree, 'width');
+      minimapHeight = numberOf(minimapTree, 'height');
+      minimapMag = numberOf(minimapTree, 'mag');
     }
     if (processed < 3 && minimapTree) {
       // Log layout for the first few maps so we can confirm which case
@@ -165,10 +188,17 @@ export async function extractMaps(
       mobRate: numberOf(infoTree, 'mobRate'),
       minimapPath,
       minimapData,
+      minimapCenterX,
+      minimapCenterY,
+      minimapWidth,
+      minimapHeight,
+      minimapMag,
       sourcePath: node.fullPath,
     });
 
-    // Life: NPCs and mob spawns at known positions.
+    // Life: NPCs and mob spawns at known positions. We emit both the per-
+    // spawn rows (one entry per `life/<n>` mob, with its coords) and the
+    // aggregated count per mob id (for the detail-page list view).
     const lifeTree = subs.get('life');
     if (lifeTree) {
       const mobCounts = new Map<number, number>();
@@ -182,6 +212,7 @@ export async function extractMaps(
           mapNpcs.push({ mapId: id, npcId: entityId, x, y });
         } else if (type === 'm') {
           mobCounts.set(entityId, (mobCounts.get(entityId) ?? 0) + 1);
+          mapMobSpawns.push({ mapId: id, mobId: entityId, x, y });
         }
       }
       for (const [mobId, count] of mobCounts) {
@@ -189,19 +220,27 @@ export async function extractMaps(
       }
     }
 
-    // Portals.
+    // Portals. The WZ child name is the numeric portal index (`portal/0`,
+    // `portal/1`, …); we persist it as `idx` so maps with multiple portals
+    // sharing a `pn` (e.g. several `sp` spawn points) don't collide on
+    // insert and can still be addressed individually by the UI.
     const portalTree = subs.get('portal');
     if (portalTree) {
       for (const portal of portalTree.children) {
         const portalName = stringOf(portal, 'pn') ?? portal.name;
         if (!portalName) continue;
+        const idx = Number(portal.name);
+        if (!Number.isFinite(idx)) continue;
         mapPortals.push({
           mapId: id,
+          idx,
           portalName,
           targetMapId: numberOf(portal, 'tm'),
           targetPortal: stringOf(portal, 'tn'),
           x: numberOf(portal, 'x'),
           y: numberOf(portal, 'y'),
+          portalType: numberOf(portal, 'pt'),
+          script: stringOf(portal, 'script'),
         });
       }
     }
@@ -215,11 +254,12 @@ export async function extractMaps(
     maps: maps.length,
     mapNpcs: mapNpcs.length,
     mapMobs: mapMobs.length,
+    mapMobSpawns: mapMobSpawns.length,
     mapPortals: mapPortals.length,
     withMinimaps,
     skipped: skipped.length,
   });
-  return { maps, mapNpcs, mapMobs, mapPortals, skipped };
+  return { maps, mapNpcs, mapMobs, mapMobSpawns, mapPortals, skipped };
 }
 
 interface MapStrings {

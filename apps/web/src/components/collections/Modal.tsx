@@ -17,10 +17,29 @@ interface ModalProps {
   children: ReactNode;
   /** Footer slot (typically action buttons). */
   footer?: ReactNode;
-  className?: string;
+  /**
+   * Width/height utility classes for the outer panel. Defaults to the
+   * `w-full max-w-md` used by the original collection dialogs.
+   */
+  panelClassName?: string;
+  /**
+   * Classes applied to the inner body container. Defaults to the standard
+   * `border-t px-4 py-3`; the map viewer overrides this to a no-padding
+   * flex column.
+   */
+  bodyClassName?: string;
 }
 
-export function Modal({ open, onClose, title, description, children, footer, className }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  panelClassName,
+  bodyClassName,
+}: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Escape close + initial focus.
@@ -67,8 +86,8 @@ export function Modal({ open, onClose, title, description, children, footer, cla
       <div
         ref={panelRef}
         className={cn(
-          'border-border bg-card text-card-foreground relative w-full max-w-md rounded-lg border shadow-lg',
-          className,
+          'border-border bg-card text-card-foreground relative flex flex-col rounded-lg border shadow-lg',
+          panelClassName ?? 'w-full max-w-md',
         )}
       >
         <div className="flex items-start justify-between gap-3 p-4">
@@ -88,7 +107,9 @@ export function Modal({ open, onClose, title, description, children, footer, cla
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="border-border border-t px-4 py-3">{children}</div>
+        <div className={cn('border-border border-t', bodyClassName ?? 'px-4 py-3')}>
+          {children}
+        </div>
         {footer && (
           <div className="border-border bg-muted/30 flex items-center justify-end gap-2 rounded-b-lg border-t px-4 py-3">
             {footer}

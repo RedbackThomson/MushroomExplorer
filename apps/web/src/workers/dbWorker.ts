@@ -157,6 +157,10 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.getMapPortals(mapId);
   }
+  async getMapMobSpawns(mapId: number) {
+    await this.ensureOpen();
+    return this.api.getMapMobSpawns(mapId);
+  }
   async replaceMapLife(rows: Parameters<DbApi['replaceMapLife']>[0]) {
     await this.ensureOpen();
     return this.api.replaceMapLife(rows);

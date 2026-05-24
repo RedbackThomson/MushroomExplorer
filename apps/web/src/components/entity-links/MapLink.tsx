@@ -24,7 +24,7 @@ export function MapLink({ id, children, className, noPreview }: MapLinkProps) {
   return <HoverPopover content={<MapHoverCard id={id} />}>{link}</HoverPopover>;
 }
 
-function MapHoverCard({ id }: { id: number }) {
+export function MapHoverCard({ id }: { id: number }) {
   const client = useMemo(() => getDbClient(), []);
   const mapQ = useQuery({
     queryKey: ['db', 'map', id],

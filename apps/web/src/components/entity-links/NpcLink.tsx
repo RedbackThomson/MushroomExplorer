@@ -27,7 +27,7 @@ export function NpcLink({ id, children, className, noPreview }: NpcLinkProps) {
   return <HoverPopover content={<NpcHoverCard id={id} />}>{link}</HoverPopover>;
 }
 
-function NpcHoverCard({ id }: { id: number }) {
+export function NpcHoverCard({ id }: { id: number }) {
   const client = useMemo(() => getDbClient(), []);
   const npcQ = useQuery({
     queryKey: ['db', 'npc', id],

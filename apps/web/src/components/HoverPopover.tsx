@@ -13,6 +13,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -30,6 +31,12 @@ interface HoverPopoverProps {
   hideDelay?: number;
   /** Additional className for the popover panel. */
   className?: string;
+  /** Classes applied to the trigger span itself (positioning, styling). */
+  triggerClassName?: string;
+  /** Inline style for the trigger span (e.g. absolute positioning). */
+  triggerStyle?: CSSProperties;
+  /** Extra attributes for the trigger span — typically `data-*` or `aria-*`. */
+  triggerProps?: Record<string, string | undefined>;
 }
 
 const POPOVER_HEIGHT_GUESS = 240;
@@ -40,6 +47,9 @@ export function HoverPopover({
   delay = 250,
   hideDelay = 120,
   className,
+  triggerClassName,
+  triggerStyle,
+  triggerProps,
 }: HoverPopoverProps) {
   const triggerRef = useRef<HTMLSpanElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -114,10 +124,13 @@ export function HoverPopover({
     <>
       <span
         ref={triggerRef}
+        className={triggerClassName}
+        style={triggerStyle}
         onMouseEnter={startShow}
         onMouseLeave={startHide}
         onFocus={startShow}
         onBlur={startHide}
+        {...triggerProps}
       >
         {children}
       </span>

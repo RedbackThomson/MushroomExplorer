@@ -353,11 +353,17 @@ async function runWorkerExtractors(
   if (name === 'maps' && willRun.has('map')) {
     const r = await worker.extractMaps(onProgress);
     const rows = r.maps.length > 0 ? await db.upsertMaps(r.maps) : 0;
-    if (r.mapNpcs.length > 0 || r.mapMobs.length > 0 || r.mapPortals.length > 0) {
+    if (
+      r.mapNpcs.length > 0 ||
+      r.mapMobs.length > 0 ||
+      r.mapPortals.length > 0 ||
+      r.mapMobSpawns.length > 0
+    ) {
       await db.replaceMapLife({
         npcs: r.mapNpcs,
         mobs: r.mapMobs,
         portals: r.mapPortals,
+        mobSpawns: r.mapMobSpawns,
       });
     }
     out.push({

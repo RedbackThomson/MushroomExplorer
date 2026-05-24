@@ -156,16 +156,26 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
           const mapCount = r.maps.length > 0 ? await db.upsertMaps(r.maps) : 0;
           tracker.ran('map', mapCount, r.skipped.length);
           skippedTotal += r.skipped.length;
-          if (r.mapNpcs.length > 0 || r.mapMobs.length > 0 || r.mapPortals.length > 0) {
+          if (
+            r.mapNpcs.length > 0 ||
+            r.mapMobs.length > 0 ||
+            r.mapPortals.length > 0 ||
+            r.mapMobSpawns.length > 0
+          ) {
             setProgress({
               phase: 'Saving map life + portals',
               current: 0,
-              total: r.mapNpcs.length + r.mapMobs.length + r.mapPortals.length,
+              total:
+                r.mapNpcs.length +
+                r.mapMobs.length +
+                r.mapPortals.length +
+                r.mapMobSpawns.length,
             });
             await db.replaceMapLife({
               npcs: r.mapNpcs,
               mobs: r.mapMobs,
               portals: r.mapPortals,
+              mobSpawns: r.mapMobSpawns,
             });
           }
         } catch (err) {
