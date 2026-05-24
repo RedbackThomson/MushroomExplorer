@@ -17,6 +17,9 @@ import { MapViewerModal, type MapViewerHighlight } from '@/components/MapViewer'
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 
+// Sentinel value the WZ data uses to mean "no map" for return / target fields.
+const NO_TARGET = 999999999;
+
 export default function MapDetail() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
@@ -43,6 +46,30 @@ export default function MapDetail() {
     queryFn: () => client.getMapPortals(id),
     enabled: Number.isFinite(id),
   });
+
+  // Batch-fetch display names for the return/forced-return maps so the aside
+  // can show "Henesys" instead of a raw ID.
+  const returnIds = useMemo(() => {
+    const m = mapQ.data;
+    if (!m) return [];
+    const ids = new Set<number>();
+    if (m.returnMapId !== null && m.returnMapId !== NO_TARGET) ids.add(m.returnMapId);
+    if (m.forcedReturnMapId !== null && m.forcedReturnMapId !== NO_TARGET) {
+      ids.add(m.forcedReturnMapId);
+    }
+    return [...ids].sort((a, b) => a - b);
+  }, [mapQ.data]);
+  const returnNamesQ = useQuery({
+    queryKey: ['db', 'map-summaries', returnIds],
+    queryFn: () => client.getEntitySummariesByIds('map', returnIds),
+    enabled: returnIds.length > 0,
+    staleTime: 5 * 60_000,
+  });
+  const returnNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const s of returnNamesQ.data ?? []) m.set(s.id, s.name);
+    return m;
+  }, [returnNamesQ.data]);
 
   // Viewer open + selection live in the URL (`?viewer=1`, `?viewer=npc:1234`,
   // …) so the modal can be hard-linked and restored on reload.
@@ -302,7 +329,7 @@ export default function MapDetail() {
                   >
                     <span className="font-mono text-xs">{p.portalName}</span>
                     <span className="text-muted-foreground">→</span>
-                    {p.targetMapId && p.targetMapId !== 999999999 ? (
+                    {p.targetMapId && p.targetMapId !== NO_TARGET ? (
                       <MapLink
                         id={p.targetMapId}
                         className="text-primary min-w-0 flex-1 truncate hover:underline"
@@ -348,11 +375,19 @@ export default function MapDetail() {
             <section>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide">Connections</h2>
               <dl className="divide-border divide-y">
-                {m.returnMapId !== null && m.returnMapId !== 999999999 && (
-                  <RowLink label="Return map" value={m.returnMapId} />
+                {m.returnMapId !== null && m.returnMapId !== NO_TARGET && (
+                  <RowLink
+                    label="Return map"
+                    id={m.returnMapId}
+                    name={returnNameById.get(m.returnMapId) ?? null}
+                  />
                 )}
-                {m.forcedReturnMapId !== null && m.forcedReturnMapId !== 999999999 && (
-                  <RowLink label="Forced return" value={m.forcedReturnMapId} />
+                {m.forcedReturnMapId !== null && m.forcedReturnMapId !== NO_TARGET && (
+                  <RowLink
+                    label="Forced return"
+                    id={m.forcedReturnMapId}
+                    name={returnNameById.get(m.forcedReturnMapId) ?? null}
+                  />
                 )}
               </dl>
             </section>
@@ -389,18 +424,14 @@ function Row({ label, value, mono = false }: { label: string; value: string; mon
   );
 }
 
-function RowLink({ label, value }: { label: string; value: number | null }) {
+function RowLink({ label, id, name }: { label: string; id: number; name: string | null }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <dt className="text-muted-foreground text-xs uppercase tracking-wide">{label}</dt>
-      <dd className="text-sm">
-        {value !== null && value !== 999999999 ? (
-          <MapLink id={value} className="text-primary hover:underline">
-            {value}
-          </MapLink>
-        ) : (
-          '—'
-        )}
+      <dd className="min-w-0 truncate text-sm">
+        <MapLink id={id} className="text-primary hover:underline">
+          {name ?? `Map ${id}`}
+        </MapLink>
       </dd>
     </div>
   );
