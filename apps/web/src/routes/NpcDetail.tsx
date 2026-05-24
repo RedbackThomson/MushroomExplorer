@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Map as MapIcon, ScrollText, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, Map as MapIcon, MapPin, ScrollText, Users } from 'lucide-react';
 import { EntityIcon } from '@/components/EntityIcon';
 import { MapLink, QuestLink } from '@/components/entity-links';
 import { CollectionBadgeStrip } from '@/components/collections';
@@ -133,10 +133,10 @@ export default function NpcDetail() {
               {mapsQ.data && mapsQ.data.length > 0 && (
                 <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
                   {mapsQ.data.map((m) => (
-                    <li key={m.id}>
+                    <li key={m.id} className="hover:bg-accent group flex items-center gap-1 px-1">
                       <MapLink
                         id={m.id}
-                        className="hover:bg-accent flex items-center gap-2 px-3 py-2 text-sm"
+                        className="flex flex-1 items-center gap-2 px-2 py-2 text-sm"
                       >
                         <MapIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                         <span className="min-w-0 flex-1 truncate">
@@ -149,6 +149,16 @@ export default function NpcDetail() {
                           {m.id}
                         </span>
                       </MapLink>
+                      {m.minimapPath && (
+                        <Link
+                          to={`/maps/${m.id}?viewer=npc:${n.id}`}
+                          aria-label={`Show ${n.name} on ${m.name ?? `Map ${m.id}`}`}
+                          title="Show on map"
+                          className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                        >
+                          <MapPin className="h-4 w-4" />
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
