@@ -15,6 +15,7 @@ import type { WizardFile } from './StepFiles';
 interface Props {
   version: WzMapleVersionName;
   files: WizardFile[];
+  forceAll: boolean;
   onComplete: () => void;
 }
 
@@ -34,8 +35,8 @@ const WORKER_LABELS: Record<PoolWorkerName, string> = {
  * their extractors in parallel; per-worker progress bars stack below.
  * The single shared dataset row is written at the end.
  */
-export function StepRun({ version, files, onComplete }: Props) {
-  const plan = useMemo(() => buildPlan(files), [files]);
+export function StepRun({ version, files, forceAll, onComplete }: Props) {
+  const plan = useMemo(() => buildPlan(files, { forceAll }), [files, forceAll]);
 
   const droppedFiles = useMemo(
     () => plan.filesToLoad.map((f) => ({ name: f.file.name, source: f.file })),

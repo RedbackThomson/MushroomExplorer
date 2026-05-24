@@ -33,9 +33,12 @@ export interface WizardFile {
 interface Props {
   files: WizardFile[];
   onChange: React.Dispatch<React.SetStateAction<WizardFile[]>>;
+  /** Master "force re-process all" override. Locks per-file checkboxes on. */
+  forceAll: boolean;
+  onForceAllChange: (v: boolean) => void;
 }
 
-export function StepFiles({ files, onChange }: Props) {
+export function StepFiles({ files, onChange, forceAll, onForceAllChange }: Props) {
   const db = useMemo(() => getDbClient(), []);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +139,7 @@ export function StepFiles({ files, onChange }: Props) {
 
   const knownNames = useMemo(() => new Set(files.map((f) => f.file.name)), [files]);
   const missingRecommended = RECOMMENDED.filter((r) => !knownNames.has(r));
+  const hasAnyMatched = useMemo(() => files.some((f) => f.matchedExisting !== null), [files]);
 
   return (
     <section className="space-y-4">
@@ -257,11 +261,17 @@ export function StepFiles({ files, onChange }: Props) {
                 </p>
               )}
               {f.matchedExisting && f.hashPhase === 'done' && (
-                <label className="text-muted-foreground flex items-center gap-2 pl-7 text-xs">
+                <label
+                  className={cn(
+                    'text-muted-foreground flex items-center gap-2 pl-7 text-xs',
+                    forceAll && 'opacity-60',
+                  )}
+                >
                   <input
                     type="checkbox"
-                    checked={f.forceReprocess}
+                    checked={forceAll || f.forceReprocess}
                     onChange={(e) => toggle(f, 'forceReprocess', e.target.checked)}
+                    disabled={forceAll}
                     className="accent-primary h-3.5 w-3.5"
                   />
                   Force re-process (extractors will run again for this file)
@@ -270,6 +280,18 @@ export function StepFiles({ files, onChange }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {hasAnyMatched && (
+        <label className="text-muted-foreground flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={forceAll}
+            onChange={(e) => onForceAllChange(e.target.checked)}
+            className="accent-primary h-3.5 w-3.5"
+          />
+          Force re-process all (re-run extractors for every hash-matched file)
+        </label>
       )}
     </section>
   );

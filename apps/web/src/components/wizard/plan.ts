@@ -84,11 +84,21 @@ export interface WizardPlan {
   recordFiles: DatasetFileRef[];
 }
 
+export interface BuildPlanOpts {
+  /**
+   * Master "force re-process all" override from the wizard. When true, every
+   * file is treated as if its per-file `forceReprocess` were on, so hash-
+   * matched primaries still trigger their extractors.
+   */
+  forceAll?: boolean;
+}
+
 /**
  * Compute the wizard plan from the current file list. Pure function —
  * call freely from any component without worrying about stable references.
  */
-export function buildPlan(files: WizardFile[]): WizardPlan {
+export function buildPlan(files: WizardFile[], opts: BuildPlanOpts = {}): WizardPlan {
+  const forceAll = opts.forceAll === true;
   const included = files.filter((f) => f.include);
   const byName = new Map(included.map((f) => [f.file.name, f]));
 
@@ -97,13 +107,14 @@ export function buildPlan(files: WizardFile[]): WizardPlan {
     const dep = EXTRACTOR_DEPS[key];
     const file = byName.get(dep.primary);
     if (!file) continue;
+    const forced = forceAll || file.forceReprocess;
     // Primary is dropped, but hash-matched without force → skip extraction.
-    if (file.matchedExisting && !file.forceReprocess) continue;
+    if (file.matchedExisting && !forced) continue;
     willRun.push({
       key,
       label: dep.label,
       primary: dep.primary,
-      forced: file.forceReprocess,
+      forced,
     });
   }
 

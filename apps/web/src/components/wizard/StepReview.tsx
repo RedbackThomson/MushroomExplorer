@@ -7,12 +7,14 @@ import type { WizardFile } from './StepFiles';
 interface Props {
   version: WzMapleVersionName;
   files: WizardFile[];
+  forceAll: boolean;
 }
 
-export function StepReview({ version, files }: Props) {
-  const plan = buildPlan(files);
-  const willProcess = files.filter((f) => f.include && (!f.matchedExisting || f.forceReprocess));
-  const loadOnly = files.filter((f) => f.include && f.matchedExisting && !f.forceReprocess);
+export function StepReview({ version, files, forceAll }: Props) {
+  const plan = buildPlan(files, { forceAll });
+  const isForced = (f: WizardFile) => forceAll || f.forceReprocess;
+  const willProcess = files.filter((f) => f.include && (!f.matchedExisting || isForced(f)));
+  const loadOnly = files.filter((f) => f.include && f.matchedExisting && !isForced(f));
   const excluded = files.filter((f) => !f.include);
   const totalBytes = plan.filesToLoad.reduce((acc, f) => acc + f.file.size, 0);
 

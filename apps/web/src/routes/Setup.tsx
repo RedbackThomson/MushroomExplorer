@@ -20,12 +20,13 @@ export default function Setup() {
   const [stepId, setStepId] = useState<(typeof STEPS)[number]['id']>('version');
   const [version, setVersion] = useState<WzMapleVersionName>('GMS');
   const [files, setFiles] = useState<WizardFile[]>([]);
+  const [forceAll, setForceAll] = useState(false);
 
   const filesReady = files.length > 0 && files.every((f) => f.hashPhase === 'done');
   const someIncluded = files.some((f) => f.include);
   const canProceedFromFiles = filesReady && someIncluded;
 
-  const plan = useMemo(() => buildPlan(files), [files]);
+  const plan = useMemo(() => buildPlan(files, { forceAll }), [files, forceAll]);
   const planIsRunnable = plan.willRun.length > 0 && plan.missingDeps.length === 0;
 
   function goPrev() {
@@ -39,9 +40,18 @@ export default function Setup() {
 
   let body: React.ReactNode;
   if (stepId === 'version') body = <StepVersion value={version} onChange={setVersion} />;
-  else if (stepId === 'files') body = <StepFiles files={files} onChange={setFiles} />;
-  else if (stepId === 'review') body = <StepReview version={version} files={files} />;
-  else body = <StepRun version={version} files={files} onComplete={() => {}} />;
+  else if (stepId === 'files')
+    body = (
+      <StepFiles
+        files={files}
+        onChange={setFiles}
+        forceAll={forceAll}
+        onForceAllChange={setForceAll}
+      />
+    );
+  else if (stepId === 'review')
+    body = <StepReview version={version} files={files} forceAll={forceAll} />;
+  else body = <StepRun version={version} files={files} forceAll={forceAll} onComplete={() => {}} />;
 
   const footer =
     stepId === 'run' ? (
