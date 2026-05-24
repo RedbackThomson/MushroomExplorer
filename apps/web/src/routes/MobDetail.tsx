@@ -180,21 +180,15 @@ export default function MobDetail() {
                   {mapsQ.data.map((mp) => (
                     <li
                       key={mp.id}
-                      className="hover:bg-accent group flex items-center gap-1 px-1"
+                      className="hover:bg-accent group flex items-center gap-2 px-3 py-1.5 text-sm"
                     >
-                      <MapLink
-                        id={mp.id}
-                        className="flex flex-1 items-center gap-2 px-2 py-2 text-sm"
-                      >
+                      <MapLink id={mp.id} className="flex items-center gap-2">
                         <MapIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">
+                        <span className="truncate">
                           {mp.name ?? `Map ${mp.id}`}
                           {mp.streetName && (
                             <span className="text-muted-foreground"> · {mp.streetName}</span>
                           )}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                          {mp.id}
                         </span>
                       </MapLink>
                       {mp.minimapPath && (
@@ -207,6 +201,9 @@ export default function MobDetail() {
                           <MapPin className="h-4 w-4" />
                         </Link>
                       )}
+                      <span className="text-muted-foreground ml-auto shrink-0 font-mono text-xs">
+                        {mp.id}
+                      </span>
                     </li>
                   ))}
                 </ul>

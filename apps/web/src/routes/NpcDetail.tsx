@@ -141,20 +141,17 @@ export default function NpcDetail() {
               {mapsQ.data && mapsQ.data.length > 0 && (
                 <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
                   {mapsQ.data.map((m) => (
-                    <li key={m.id} className="hover:bg-accent group flex items-center gap-1 px-1">
-                      <MapLink
-                        id={m.id}
-                        className="flex flex-1 items-center gap-2 px-2 py-2 text-sm"
-                      >
+                    <li
+                      key={m.id}
+                      className="hover:bg-accent group flex items-center gap-2 px-3 py-1.5 text-sm"
+                    >
+                      <MapLink id={m.id} className="flex items-center gap-2">
                         <MapIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">
+                        <span className="truncate">
                           {m.name ?? `Map ${m.id}`}
                           {m.streetName && (
                             <span className="text-muted-foreground"> · {m.streetName}</span>
                           )}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                          {m.id}
                         </span>
                       </MapLink>
                       {m.minimapPath && (
@@ -167,6 +164,9 @@ export default function NpcDetail() {
                           <MapPin className="h-4 w-4" />
                         </Link>
                       )}
+                      <span className="text-muted-foreground ml-auto shrink-0 font-mono text-xs">
+                        {m.id}
+                      </span>
                     </li>
                   ))}
                 </ul>

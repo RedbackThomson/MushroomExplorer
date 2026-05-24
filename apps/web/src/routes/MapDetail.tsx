@@ -170,11 +170,11 @@ export default function MapDetail() {
                   {npcsQ.data.map((n) => (
                     <li
                       key={`${n.npcId}-${n.x}-${n.y}`}
-                      className="hover:bg-accent group flex items-center gap-1 px-1"
+                      className="hover:bg-accent group flex items-center gap-2 px-3 py-1.5 text-sm"
                     >
                       <NpcLink
                         id={n.npcId}
-                        className="flex flex-1 items-center gap-3 px-2 py-1.5 text-sm"
+                        className="flex items-center gap-3"
                       >
                         <EntityIcon
                           entity="npc"
@@ -183,17 +183,7 @@ export default function MapDetail() {
                           placeholder={Users}
                           alt={n.name ?? `NPC ${n.npcId}`}
                         />
-                        <span className="min-w-0 flex-1 truncate">
-                          {n.name ?? `NPC ${n.npcId}`}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                          {n.npcId}
-                        </span>
-                        {(n.x !== null || n.y !== null) && (
-                          <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                            ({n.x ?? '?'}, {n.y ?? '?'})
-                          </span>
-                        )}
+                        <span className="truncate">{n.name ?? `NPC ${n.npcId}`}</span>
                       </NpcLink>
                       {m.minimapPath && (
                         <button
@@ -209,6 +199,16 @@ export default function MapDetail() {
                           <MapPin className="h-4 w-4" />
                         </button>
                       )}
+                      <div className="ml-auto flex shrink-0 items-center gap-3">
+                        {(n.x !== null || n.y !== null) && (
+                          <span className="text-muted-foreground font-mono text-xs">
+                            ({n.x ?? '?'}, {n.y ?? '?'})
+                          </span>
+                        )}
+                        <span className="text-muted-foreground font-mono text-xs">
+                          {n.npcId}
+                        </span>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -234,11 +234,11 @@ export default function MapDetail() {
                   {mobsQ.data.map((mob) => (
                     <li
                       key={mob.mobId}
-                      className="hover:bg-accent group flex items-center gap-1 px-1"
+                      className="hover:bg-accent group flex items-center gap-2 px-3 py-1.5 text-sm"
                     >
                       <MobLink
                         id={mob.mobId}
-                        className="flex flex-1 items-center gap-3 px-2 py-1.5 text-sm"
+                        className="flex items-center gap-3"
                       >
                         <EntityIcon
                           entity="mob"
@@ -247,22 +247,7 @@ export default function MapDetail() {
                           placeholder={Skull}
                           alt={mob.name ?? `Mob ${mob.mobId}`}
                         />
-                        <span className="min-w-0 flex-1 truncate">
-                          {mob.name ?? `Mob ${mob.mobId}`}
-                        </span>
-                        {mob.level !== null && (
-                          <span className="text-muted-foreground shrink-0 text-xs">
-                            Lv {mob.level}
-                          </span>
-                        )}
-                        {mob.count !== null && mob.count > 1 && (
-                          <span className="text-muted-foreground shrink-0 text-xs">
-                            ×{mob.count}
-                          </span>
-                        )}
-                        <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                          {mob.mobId}
-                        </span>
+                        <span className="truncate">{mob.name ?? `Mob ${mob.mobId}`}</span>
                       </MobLink>
                       {m.minimapPath && (
                         <button
@@ -278,6 +263,17 @@ export default function MapDetail() {
                           <MapPin className="h-4 w-4" />
                         </button>
                       )}
+                      <div className="ml-auto flex shrink-0 items-center gap-3">
+                        {mob.level !== null && (
+                          <span className="text-muted-foreground text-xs">Lv {mob.level}</span>
+                        )}
+                        {mob.count !== null && mob.count > 1 && (
+                          <span className="text-muted-foreground text-xs">×{mob.count}</span>
+                        )}
+                        <span className="text-muted-foreground font-mono text-xs">
+                          {mob.mobId}
+                        </span>
+                      </div>
                     </li>
                   ))}
                 </ul>
