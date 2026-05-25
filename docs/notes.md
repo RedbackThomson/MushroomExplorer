@@ -1,6 +1,6 @@
 ## QoL Changes
 
-- [ ] Use `/` as the global hotkey for command palette
+- [x] Use `/` as the global hotkey for command palette
 - [ ] Allow setting the background color for all icons (black, white, grid-like
       pattern, green)
 - [x] Add the database connection status in the sidebar

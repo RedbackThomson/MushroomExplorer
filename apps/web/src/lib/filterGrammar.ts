@@ -217,6 +217,29 @@ export function parseFilterQuery(raw: string): ParsedFilterQuery {
   };
 }
 
+export interface FilterKeyHint {
+  /** Keys that all map to the same column (e.g. `class` + `job`). */
+  aliases: string[];
+  kind: FilterSpec['kind'];
+}
+
+/**
+ * Surfaceable filter keys for `entity`, deduped by underlying param so a
+ * column with synonyms (e.g. equips `class` / `job` → `requiredJob`) becomes
+ * one hint entry with both aliases listed. Used by the palette to render
+ * the "available filters" chip row above the result list.
+ */
+export function filterKeyHintsFor(entity: EntityScope): FilterKeyHint[] {
+  const map = FILTER_KEYS[entity];
+  const byParam = new Map<string, FilterKeyHint>();
+  for (const [key, spec] of Object.entries(map)) {
+    const existing = byParam.get(spec.param);
+    if (existing) existing.aliases.push(key);
+    else byParam.set(spec.param, { aliases: [key], kind: spec.kind });
+  }
+  return Array.from(byParam.values());
+}
+
 export function buildFilterUrl(entity: EntityScope, params: Record<string, string>): string {
   const base = {
     mob: '/mobs',

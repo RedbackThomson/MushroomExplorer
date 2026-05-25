@@ -13,6 +13,7 @@ import {
 } from './providers/collections';
 import { ContextProvider } from './providers/context';
 import { DataProvider } from './providers/data';
+import { FilterKeysHintProvider } from './providers/filterKeys';
 import { FilterProvider } from './providers/filters';
 import { FunProvider } from './providers/fun';
 import { GlobalSearchProvider } from './providers/globalSearch';
@@ -49,6 +50,7 @@ export function Palette() {
       />
       <CommandList>
         <HelpProvider />
+        <FilterKeysHintProvider />
         <CommandEmpty>No results.</CommandEmpty>
         {/* Page-bound context commands rank above everything else. */}
         <ContextProvider />
