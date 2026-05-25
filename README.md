@@ -1,75 +1,49 @@
-# Mushroom Game Explorer
+# 🍄 Mushroom Game Explorer
 
-A self-hostable, local-first wiki for Mushroom Game data.
+A wiki-style explorer for old-school Mushroom Game data — items, equips, mobs, NPCs, maps, and quests — that runs entirely in your browser.
 
-The app parses **your own local game files** in your browser and renders pages for items, equips, mobs, NPCs, maps, and quests. Nothing is uploaded; nothing leaves your machine.
+👉 **Try it now:** [mushroomexplorer.redback.dev](https://mushroomexplorer.redback.dev)
 
-> **Ship code only.** This repository contains no proprietary game data — no `.wz` archives, no extracted `.img` files, no sprites, no pre-built databases. You provide your own files at runtime.
+## ✨ What it does
 
-## Status
+Point the app at your own local game files and it builds a searchable wiki out of them: detail pages for every item and mob, infoboxes with stats and drops, a global search bar, and a Cmd/Ctrl+K command palette to jump anywhere.
 
-Pre-alpha. Phase 0 (scaffold). See [`docs/technical_requirements.md`](docs/technical_requirements.md) for the phase plan.
+🔒 Everything happens on your machine. Your files are read in the browser, parsed in a background worker, and indexed locally. Nothing is uploaded, no analytics are collected, and the app makes no network calls beyond loading its own static assets.
 
-## Legal notice
+## 🚀 How to use it
 
-This project is not affiliated with, endorsed by, or sponsored by any game operator or rights holder. All trademarks, trade names, and copyrighted material belong to their respective owners. This repository ships code only — it does not include, distribute, or host any game data, assets, or branding.
+1. Open [mushroomexplorer.redback.dev](https://mushroomexplorer.redback.dev) (or run it locally — see below).
+2. On the setup screen, select your local `.wz` files: `String.wz`, `Item.wz`, `Map.wz`, `Mob.wz`, `Npc.wz`, `Quest.wz`, `Skill.wz`, and related files.
+3. Wait for parsing to finish. The app builds an index and caches it locally so reopening the app is fast.
+4. Search, browse, and explore.
 
-You are responsible for ensuring that any files you load are files you are legally permitted to use. The maintainers do not distribute, host, or store such files.
+You can also export and re-import a local backup of the parsed index from the setup screen, which skips the parsing step on other devices.
 
-## Quickstart
+## 🛠️ Running it yourself
 
-Requirements: Node 20+, [pnpm](https://pnpm.io/) 9+.
+The hosted version is the easiest way to use the app, but the whole thing is just static files — you can also clone the repo and run it on your own machine.
 
-```bash
-pnpm install
-pnpm dev
-```
-
-Then open the printed URL.
-
-### Nix users
-
-A flake is provided. With Nix + flakes enabled:
+You'll need [Node.js](https://nodejs.org/) 20 or newer and [pnpm](https://pnpm.io/) 9 or newer.
 
 ```bash
-nix develop
+git clone https://github.com/RedbackThomson/MushroomExplorer.git
+cd MushroomExplorer
 pnpm install
-pnpm dev
+pnpm build
+pnpm preview
 ```
 
-Or, with [direnv](https://direnv.net/) installed, `direnv allow` will load the dev shell automatically.
+The `preview` command starts a local server and prints the URL. The contents of `apps/web/dist/` after `pnpm build` are plain static files — you can also serve them with any static file server (e.g. `npx serve apps/web/dist`) or host them anywhere that serves static content.
 
-## Reporting parser issues
+## ⚖️ Your files, your machine
 
-If something goes wrong loading WZ files, open the **Parser debug** page in the
-sidebar and click **Copy log**. That captures the parser's log buffer (main
-thread + worker), the AES smoke-test result, and minimal environment info.
-Paste that into your GitHub issue along with what you tried.
+This repository contains **only code**. It does not ship any game data — no `.wz` archives, no extracted assets, no sprites, no pre-built databases. You bring your own files at runtime, and those files never leave your browser.
 
-For extra verbosity, set `localStorage.setItem('mge.debug', '1')` in the
-browser console before reproducing — that enables debug-level entries that are
-otherwise filtered out of the console (they're always captured in the buffer).
+You are responsible for ensuring that any files you load are files you are legally permitted to use. This project is not affiliated with, endorsed by, or sponsored by any game operator or rights holder. All trademarks and copyrighted material belong to their respective owners.
 
-## Scripts
+## Contributing
 
-| Script           | What it does                               |
-| ---------------- | ------------------------------------------ |
-| `pnpm dev`       | Start the Vite dev server for the web app. |
-| `pnpm build`     | Production build.                          |
-| `pnpm preview`   | Preview the production build locally.      |
-| `pnpm typecheck` | Run TypeScript in all packages.            |
-| `pnpm lint`      | Run ESLint in all packages.                |
-| `pnpm test`      | Run Vitest in all packages.                |
-| `pnpm format`    | Format the repo with Prettier.             |
-
-## Layout
-
-```
-apps/web/        Vite + React + TS app (the wiki UI)
-docs/            Product and technical requirements
-```
-
-See [`CLAUDE.md`](CLAUDE.md) for the rules every change in this repo follows.
+Development setup, project layout, scripts, and debugging guidance live in [DEVELOPMENT.md](DEVELOPMENT.md). Repository-wide rules for contributors and AI assistants are in [CLAUDE.md](CLAUDE.md).
 
 ## License
 
