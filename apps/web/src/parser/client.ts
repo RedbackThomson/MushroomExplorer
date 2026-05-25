@@ -38,7 +38,7 @@ export function getParserClient(): Remote<ParserWorkerApi> {
   if (!cached) {
     const worker = new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
       type: 'module',
-      name: 'mge-parser',
+      name: 'mushex-parser',
     });
     cached = { worker, proxy: wrap<ParserWorkerApi>(worker) };
   }

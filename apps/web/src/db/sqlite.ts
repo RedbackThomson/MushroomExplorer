@@ -18,8 +18,8 @@ const log = createLogger('db-sqlite');
 export type Row = Record<string, SqlValue>;
 export type Backend = 'opfs' | 'memory';
 
-const DEFAULT_OPFS_FILENAME = '/mge.sqlite3';
-const DEFAULT_POOL_NAME = 'mge-db-pool';
+const DEFAULT_OPFS_FILENAME = '/mushex.sqlite3';
+const DEFAULT_POOL_NAME = 'mushex-db-pool';
 
 export interface OpenResult {
   backend: Backend;
@@ -179,7 +179,7 @@ export class Sqlite {
   exportBytes(): Uint8Array {
     const sqlite3 = this.sqlite3;
     const db = this.require();
-    if (!sqlite3) throw new Error('[mge] sqlite3 not initialized');
+    if (!sqlite3) throw new Error('[mushex] sqlite3 not initialized');
     return sqlite3.capi.sqlite3_js_db_export(db);
   }
 
@@ -198,7 +198,7 @@ export class Sqlite {
    */
   async importBytes(bytes: Uint8Array): Promise<OpenResult> {
     const sqlite3 = this.sqlite3;
-    if (!sqlite3) throw new Error('[mge] sqlite3 not initialized — call open() first');
+    if (!sqlite3) throw new Error('[mushex] sqlite3 not initialized — call open() first');
     if (!looksLikeSqlite(bytes)) {
       throw new Error('Input does not look like a SQLite database (header magic missing)');
     }
@@ -303,7 +303,7 @@ export class Sqlite {
   }
 
   private require(): Database {
-    if (!this.db) throw new Error('[mge] sqlite database not open');
+    if (!this.db) throw new Error('[mushex] sqlite database not open');
     return this.db;
   }
 }

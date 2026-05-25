@@ -17,10 +17,10 @@ const VALID_VERSIONS: ReadonlySet<WzVersion> = new Set([
 ]);
 
 export function wzVersionFromEnv(): WzVersion {
-  const raw = process.env.MGE_WZ_VERSION?.toUpperCase() as WzVersion | undefined;
+  const raw = process.env.MUSHEX_WZ_VERSION?.toUpperCase() as WzVersion | undefined;
   // MapleRoyals (v83-era client) uses the "old GMS" WZ encryption.
   if (!raw) return 'GMS';
-  if (!VALID_VERSIONS.has(raw)) throw new Error(`Unknown MGE_WZ_VERSION=${raw}`);
+  if (!VALID_VERSIONS.has(raw)) throw new Error(`Unknown MUSHEX_WZ_VERSION=${raw}`);
   return raw;
 }
 

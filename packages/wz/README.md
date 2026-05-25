@@ -1,6 +1,6 @@
-# @mge/wz
+# @mushex/wz
 
-A self-contained TypeScript WZ-file parser used by Mushroom Game Explorer.
+A self-contained TypeScript WZ-file parser used by Mushroom Explorer.
 
 Why this exists instead of `@tybys/wz`:
 

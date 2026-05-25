@@ -71,10 +71,10 @@ describe.skipIf(!allRequiredPresent)('WzDataSource — real MapleRoyals files', 
     expect(node).toBeNull();
   });
 
-  const knownId = process.env.MGE_KNOWN_ITEM_ID;
-  const knownName = process.env.MGE_KNOWN_ITEM_NAME;
+  const knownId = process.env.MUSHEX_KNOWN_ITEM_ID;
+  const knownName = process.env.MUSHEX_KNOWN_ITEM_NAME;
   it.skipIf(!knownId || !knownName)(
-    'resolves a known item to its localized name (MGE_KNOWN_ITEM_ID/NAME)',
+    'resolves a known item to its localized name (MUSHEX_KNOWN_ITEM_ID/NAME)',
     async () => {
       // The "name" property of an item lives under several String.wz paths
       // depending on the entity type. Try the common ones until one resolves.

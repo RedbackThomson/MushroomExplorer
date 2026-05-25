@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <title>Mushroom Game Explorer</title>
+    <title>Mushroom Explorer</title>
     <script>
       // Apply persisted theme before paint to avoid flash.
       (function () {
         try {
-          var stored = localStorage.getItem('mge.theme');
+          var stored = localStorage.getItem('mushex.theme');
           var dark =
             stored === 'dark' ||
             (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);

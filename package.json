@@ -1,5 +1,5 @@
 {
-  "name": "mushroom-game-explorer",
+  "name": "mushroom-explorer",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
   },
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "pnpm --filter @mge/web dev",
-    "build": "pnpm --filter @mge/web build",
-    "preview": "pnpm --filter @mge/web preview",
+    "dev": "pnpm --filter @mushex/web dev",
+    "build": "pnpm --filter @mushex/web build",
+    "preview": "pnpm --filter @mushex/web preview",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "format": "prettier --write .",

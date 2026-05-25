@@ -1,6 +1,6 @@
 # Development
 
-Guidance for working on Mushroom Game Explorer itself. For a user-facing overview, see [README.md](README.md). For the rules every change must follow, see [CLAUDE.md](CLAUDE.md).
+Guidance for working on Mushroom Explorer itself. For a user-facing overview, see [README.md](README.md). For the rules every change must follow, see [CLAUDE.md](CLAUDE.md).
 
 ## Requirements
 
@@ -56,7 +56,7 @@ The source of truth for product scope is [`docs/mapleroyals_wiki_clone_requireme
 
 If something goes wrong loading WZ files, open the **Parser debug** page in the sidebar and click **Copy log**. That captures the parser's log buffer (main thread + worker), the AES smoke-test result, and minimal environment info. Paste that into your GitHub issue along with what you tried.
 
-For extra verbosity, set `localStorage.setItem('mge.debug', '1')` in the browser console before reproducing — that enables debug-level entries that are otherwise filtered out of the console (they're always captured in the buffer).
+For extra verbosity, set `localStorage.setItem('mushex.debug', '1')` in the browser console before reproducing — that enables debug-level entries that are otherwise filtered out of the console (they're always captured in the buffer).
 
 ## Status
 

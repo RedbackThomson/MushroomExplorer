@@ -138,7 +138,7 @@ That's the whole loop. There should be no entity-specific URL params like `?boss
 ## State and persistence
 
 - **`lib/useCommandPalette.ts`** — Zustand store: `open`, `query`, `pageContext`, `contextItems`, optional `selection`. The single source of truth for palette state.
-- **`lib/recents.ts`** — `useRecentEntities` and `useRecentQueries`, backed by `idb-keyval` keys `mge.recents.entities` / `mge.recents.queries`. Capped LRU (30 entities / 15 queries). Transient — fine to clear, never exported.
+- **`lib/recents.ts`** — `useRecentEntities` and `useRecentQueries`, backed by `idb-keyval` keys `mushex.recents.entities` / `mushex.recents.queries`. Capped LRU (30 entities / 15 queries). Transient — fine to clear, never exported.
 - **`lib/usePinnedSearches.ts`** — TanStack Query hooks over the user SQLite DB's `pinned_searches` table. Durable. Travels with the user-DB JSON export (`db/user/collectionsJson.ts`); old export files without the `pinnedSearches` field still import cleanly.
 
 The split is the rule: anything the user explicitly named and saved goes in the user DB. Anything we accumulate on their behalf goes in idb-keyval.

@@ -18,7 +18,7 @@ export default function Home() {
   if (!features.ready) {
     return (
       <div className="max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight">Mushroom Game Explorer</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Mushroom Explorer</h1>
         <p className="text-muted-foreground mt-2 text-sm">Loading…</p>
       </div>
     );
@@ -103,7 +103,7 @@ function Dashboard({ features }: { features: ReturnType<typeof useFeatures> }) {
   return (
     <div className="max-w-4xl space-y-6">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Mushroom Game Explorer</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Mushroom Explorer</h1>
         <p className="text-muted-foreground mt-2 text-sm">
           Browse the data you've loaded. Search anything in the top bar, or pick a category below.
         </p>

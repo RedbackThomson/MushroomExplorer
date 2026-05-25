@@ -1,5 +1,5 @@
 {
-  description = "Mushroom Game Explorer — dev shell";
+  description = "Mushroom Explorer — dev shell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,7 +14,7 @@
         nodejs = pkgs.nodejs_22;
       in {
         devShells.default = pkgs.mkShell {
-          name = "mge-dev";
+          name = "mushex-dev";
 
           packages = [
             nodejs
@@ -28,7 +28,7 @@
             # Activate the pnpm version pinned in package.json's packageManager field.
             corepack prepare --activate >/dev/null 2>&1 || true
 
-            echo "mge dev shell"
+            echo "mushex dev shell"
             echo "  node:   $(node --version)"
             echo "  pnpm:   $(pnpm --version 2>/dev/null || echo 'run: corepack prepare')"
             echo

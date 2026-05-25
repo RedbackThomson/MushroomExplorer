@@ -13,7 +13,7 @@ export function getUserDbClient(): Remote<UserDatabase> {
   if (!cached) {
     const worker = new Worker(new URL('@/workers/userDbWorker.ts', import.meta.url), {
       type: 'module',
-      name: 'mge-user-db',
+      name: 'mushex-user-db',
     });
     cached = { worker, proxy: wrap<UserDatabase>(worker) };
   }

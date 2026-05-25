@@ -33,7 +33,7 @@ export function WelcomePanel() {
       <div>
         <h2 className="text-lg font-semibold">Your private Mushroom Game wiki</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Mushroom Game Explorer turns your local game files into a fast, searchable reference —
+          Mushroom Explorer turns your local game files into a fast, searchable reference —
           items, equips, mobs, NPCs, maps, and quests, all cross-linked.
         </p>
       </div>

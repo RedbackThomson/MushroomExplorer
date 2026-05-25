@@ -1,5 +1,5 @@
-import { getKeystream } from '@mge/wz';
-import type { WzVersion } from '@mge/wz';
+import { getKeystream } from '@mushex/wz';
+import type { WzVersion } from '@mushex/wz';
 import { createLogger, describeError } from '@/lib/logger';
 import type { WzMapleVersionName } from './types';
 
@@ -12,7 +12,7 @@ let aesSmokeOk: { ok: true } | { ok: false; error: string } | null = null;
  * Precompute the AES keystream for the requested WZ-version and run a small
  * smoke test. Replaces the old `@tybys/wz` Emscripten/WASM init dance.
  *
- * `@mge/wz` builds the keystream via WebCrypto's `AES-CBC` primitive (same
+ * `@mushex/wz` builds the keystream via WebCrypto's `AES-CBC` primitive (same
  * algorithm as MapleLib; the chained-block construction is equivalent to
  * CBC-with-IV*4 + all-zero plaintext). The smoke test asserts the first
  * 16 bytes against a published vector.

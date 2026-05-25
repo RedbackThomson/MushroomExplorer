@@ -1,8 +1,8 @@
-# Mushroom Game Explorer — Requirements Draft
+# Mushroom Explorer — Requirements Draft
 
 ## 1. Goal
 
-Build a self-hostable wiki-style web application, working title **Mushroom Game Explorer**, for old MapleStory / MapleRoyals-style game data where the application does not distribute proprietary game assets or extracted data.
+Build a self-hostable wiki-style web application, working title **Mushroom Explorer**, for old MapleStory / MapleRoyals-style game data where the application does not distribute proprietary game assets or extracted data.
 
 Users provide their own local game files at runtime. The application parses those files in the browser or local server process, builds an in-memory/searchable data model, and renders pages for maps, NPCs, mobs, items, equips, and quests.
 

@@ -22,7 +22,7 @@ const buffer: LogEntry[] = [];
 
 function debugEnabled(): boolean {
   try {
-    return (globalThis as { localStorage?: Storage }).localStorage?.getItem('mge.debug') === '1';
+    return (globalThis as { localStorage?: Storage }).localStorage?.getItem('mushex.debug') === '1';
   } catch {
     return false;
   }
@@ -32,7 +32,7 @@ function record(scope: string, level: LogLevel, msg: string, data?: unknown): vo
   // Debug entries are firehose-y (e.g. one per getNode call inside the parser
   // worker). Without gating them, a single extraction run can evict 500
   // useful INFO/WARN entries before the user even opens the diagnostics
-  // panel. Keep debug in the ring buffer only when mge.debug=1 is set, but
+  // panel. Keep debug in the ring buffer only when mushex.debug=1 is set, but
   // still mirror to the console so live debugging in DevTools works.
   if (level !== 'debug' || debugEnabled()) {
     const entry: LogEntry = { t: Date.now(), scope, level, msg };
@@ -43,7 +43,7 @@ function record(scope: string, level: LogLevel, msg: string, data?: unknown): vo
 
   if (level === 'debug' && !debugEnabled()) return;
   const fn = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
-  console[fn](`[mge:${scope}] ${msg}`, data ?? '');
+  console[fn](`[mushex:${scope}] ${msg}`, data ?? '');
 }
 
 export interface Logger {

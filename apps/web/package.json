@@ -1,5 +1,5 @@
 {
-  "name": "@mge/web",
+  "name": "@mushex/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@mge/wz": "workspace:*",
+    "@mushex/wz": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
     "@tanstack/react-hotkeys": "^0.10.0",

@@ -47,7 +47,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@mge/wz':
+      '@mushex/wz':
         specifier: workspace:*
         version: link:../../packages/wz
       '@radix-ui/react-dialog':

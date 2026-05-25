@@ -5,7 +5,7 @@ interface SidebarStore {
   toggle: (key: string) => void;
 }
 
-const STORAGE_KEY = 'mge.sidebar.expanded';
+const STORAGE_KEY = 'mushex.sidebar.expanded';
 
 function readInitial(): Record<string, boolean> {
   if (typeof window === 'undefined') return {};

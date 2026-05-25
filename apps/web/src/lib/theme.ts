@@ -17,7 +17,7 @@ interface ThemeStore {
   toggle: () => void;
 }
 
-const STORAGE_KEY = 'mge.theme';
+const STORAGE_KEY = 'mushex.theme';
 
 function readInitial(): ThemeMode {
   if (typeof window === 'undefined') return 'system';

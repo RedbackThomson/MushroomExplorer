@@ -94,27 +94,27 @@ function spawnPoolWorker(name: PoolWorkerName): Worker {
     case 'items':
       return new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
         type: 'module',
-        name: 'mge-parser-items',
+        name: 'mushex-parser-items',
       });
     case 'mobs':
       return new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
         type: 'module',
-        name: 'mge-parser-mobs',
+        name: 'mushex-parser-mobs',
       });
     case 'npcs':
       return new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
         type: 'module',
-        name: 'mge-parser-npcs',
+        name: 'mushex-parser-npcs',
       });
     case 'maps':
       return new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
         type: 'module',
-        name: 'mge-parser-maps',
+        name: 'mushex-parser-maps',
       });
     case 'quests':
       return new Worker(new URL('@/workers/parseWorker.ts', import.meta.url), {
         type: 'module',
-        name: 'mge-parser-quests',
+        name: 'mushex-parser-quests',
       });
   }
 }

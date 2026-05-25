@@ -1,4 +1,4 @@
-# Mushroom Game Explorer — Technical Requirements
+# Mushroom Explorer — Technical Requirements
 
 Companion document to `mapleroyals_wiki_clone_requirements.md`. This document commits to a concrete tech stack, design language, and phased implementation order. Where the MVP doc describes _what_ to build and _why_, this doc describes _how_.
 

@@ -1,4 +1,4 @@
-# 🍄 Mushroom Game Explorer
+# 🍄 Mushroom Explorer
 
 A wiki-style explorer for old-school Mushroom Game data — items, equips, mobs, NPCs, maps, and quests — that runs entirely in your browser.
 
