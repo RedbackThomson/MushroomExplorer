@@ -12,10 +12,10 @@ import {
   ScrollText,
   Skull,
 } from 'lucide-react';
+import { DetailListSection } from '@/components/DetailListSection';
 import { EntityAvatar } from '@/components/EntityAvatar';
 import { EntityIcon } from '@/components/EntityIcon';
 import { EntityRow } from '@/components/EntityRow';
-import { ListSectionHeader } from '@/components/ListSectionHeader';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
@@ -147,133 +147,112 @@ export default function MobDetail() {
 
           <CollectionBadgeStrip entityType="mob" entityId={m.id} />
 
-          <section>
-            <ListSectionHeader
-              icon={Package}
-              title="Drops"
-              count={dropsQ.data?.length}
+          <DetailListSection
+            icon={Package}
+            title="Drops"
+            count={dropsQ.data?.length}
+            isLoading={dropsQ.isLoading}
+            isEmpty={dropsQ.data?.length === 0}
+            action={
+              dropsQ.data && dropsQ.data.length > 0 ? (
+                <ListSortControl
+                  fields={dropSort.fieldOptions}
+                  value={dropSort.sort}
+                  onChange={dropSort.setSort}
+                />
+              ) : null
+            }
+          >
+            {dropSort.sorted.map((d) =>
+              d.entity === null ? (
+                <li key={d.itemId} className="flex items-center gap-3 px-3 py-1.5 text-sm">
+                  <EntityAvatar entity="item" id={d.itemId} alt={d.itemName ?? undefined} />
+                  <span className="text-muted-foreground min-w-0 flex-1 truncate italic">
+                    {d.itemName ?? `Item #${d.itemId}`}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                    {d.itemId}
+                  </span>
+                </li>
+              ) : (
+                <EntityRow key={d.itemId} entity={d.entity} id={d.itemId} name={d.itemName} />
+              ),
+            )}
+          </DetailListSection>
+
+          {features.hasMaps && (
+            <DetailListSection
+              icon={MapIcon}
+              title="Appears on"
+              count={mapsQ.data?.length}
+              isLoading={mapsQ.isLoading}
+              isEmpty={mapsQ.data?.length === 0}
+              loadingLabel="Loading maps…"
               action={
-                dropsQ.data && dropsQ.data.length > 0 ? (
+                mapsQ.data && mapsQ.data.length > 0 ? (
                   <ListSortControl
-                    fields={dropSort.fieldOptions}
-                    value={dropSort.sort}
-                    onChange={dropSort.setSort}
+                    fields={mapsSort.fieldOptions}
+                    value={mapsSort.sort}
+                    onChange={mapsSort.setSort}
                   />
                 ) : null
               }
-            />
-            {dropsQ.isLoading && <p className="text-muted-foreground text-xs">Loading drops…</p>}
-            {dropsQ.data && dropsQ.data.length === 0 && (
-              <p className="text-muted-foreground text-xs italic">None.</p>
-            )}
-            {dropsQ.data && dropsQ.data.length > 0 && (
-              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                {dropSort.sorted.map((d) =>
-                  d.entity === null ? (
-                    <li key={d.itemId} className="flex items-center gap-3 px-3 py-1.5 text-sm">
-                      <EntityAvatar entity="item" id={d.itemId} alt={d.itemName ?? undefined} />
-                      <span className="text-muted-foreground min-w-0 flex-1 truncate italic">
-                        {d.itemName ?? `Item #${d.itemId}`}
-                      </span>
-                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                        {d.itemId}
-                      </span>
-                    </li>
-                  ) : (
-                    <EntityRow key={d.itemId} entity={d.entity} id={d.itemId} name={d.itemName} />
-                  ),
-                )}
-              </ul>
-            )}
-          </section>
-
-          {features.hasMaps && (
-            <section>
-              <ListSectionHeader
-                icon={MapIcon}
-                title="Appears on"
-                count={mapsQ.data?.length}
-                action={
-                  mapsQ.data && mapsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={mapsSort.fieldOptions}
-                      value={mapsSort.sort}
-                      onChange={mapsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {mapsQ.isLoading && <p className="text-muted-foreground text-xs">Loading maps…</p>}
-              {mapsQ.data && mapsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {mapsQ.data && mapsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {mapsSort.sorted.map((mp) => (
-                    <EntityRow
-                      key={mp.id}
-                      entity="map"
-                      id={mp.id}
-                      name={mp.name}
-                      subtitle={mp.streetName}
-                      meta={
-                        mp.spawnCount !== null && mp.spawnCount > 0 ? `×${mp.spawnCount}` : undefined
-                      }
-                      trailing={
-                        mp.minimapPath && (
-                          <Link
-                            to={`/maps/${mp.id}?viewer=mob:${m.id}`}
-                            aria-label={`Show ${m.name} on ${mp.name ?? `Map ${mp.id}`}`}
-                            title="Show on map"
-                            className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </Link>
-                        )
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            >
+              {mapsSort.sorted.map((mp) => (
+                <EntityRow
+                  key={mp.id}
+                  entity="map"
+                  id={mp.id}
+                  name={mp.name}
+                  subtitle={mp.streetName}
+                  meta={
+                    mp.spawnCount !== null && mp.spawnCount > 0 ? `×${mp.spawnCount}` : undefined
+                  }
+                  trailing={
+                    mp.minimapPath && (
+                      <Link
+                        to={`/maps/${mp.id}?viewer=mob:${m.id}`}
+                        aria-label={`Show ${m.name} on ${mp.name ?? `Map ${mp.id}`}`}
+                        title="Show on map"
+                        className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Link>
+                    )
+                  }
+                />
+              ))}
+            </DetailListSection>
           )}
 
           {features.hasQuests && (
-            <section>
-              <ListSectionHeader
-                icon={ScrollText}
-                title="Required by quests"
-                count={questsQ.data?.length}
-                action={
-                  questsQ.data && questsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={questsSort.fieldOptions}
-                      value={questsSort.sort}
-                      onChange={questsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {questsQ.isLoading && (
-                <p className="text-muted-foreground text-xs">Loading quests…</p>
-              )}
-              {questsQ.data && questsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {questsQ.data && questsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {questsSort.sorted.map((q) => (
-                    <EntityRow
-                      key={q.id}
-                      entity="quest"
-                      id={q.id}
-                      name={q.name}
-                      subtitle={q.parent}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            <DetailListSection
+              icon={ScrollText}
+              title="Required by quests"
+              count={questsQ.data?.length}
+              isLoading={questsQ.isLoading}
+              isEmpty={questsQ.data?.length === 0}
+              loadingLabel="Loading quests…"
+              action={
+                questsQ.data && questsQ.data.length > 0 ? (
+                  <ListSortControl
+                    fields={questsSort.fieldOptions}
+                    value={questsSort.sort}
+                    onChange={questsSort.setSort}
+                  />
+                ) : null
+              }
+            >
+              {questsSort.sorted.map((q) => (
+                <EntityRow
+                  key={q.id}
+                  entity="quest"
+                  id={q.id}
+                  name={q.name}
+                  subtitle={q.parent}
+                />
+              ))}
+            </DetailListSection>
           )}
         </article>
 

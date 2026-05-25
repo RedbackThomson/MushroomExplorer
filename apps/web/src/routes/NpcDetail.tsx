@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy, Loader2, Map as MapIcon, MapPin, ScrollText, Users } from 'lucide-react';
+import { DetailListSection } from '@/components/DetailListSection';
 import { EntityIcon } from '@/components/EntityIcon';
 import { EntityRow } from '@/components/EntityRow';
-import { ListSectionHeader } from '@/components/ListSectionHeader';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
@@ -116,86 +116,73 @@ export default function NpcDetail() {
           )}
 
           {features.hasQuests && (
-            <section>
-              <ListSectionHeader
-                icon={ScrollText}
-                title="Quests"
-                count={questsQ.data?.length}
-                action={
-                  questsQ.data && questsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={questsSort.fieldOptions}
-                      value={questsSort.sort}
-                      onChange={questsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {questsQ.data && questsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {questsQ.data && questsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {questsSort.sorted.map((q) => (
-                    <EntityRow
-                      key={q.id}
-                      entity="quest"
-                      id={q.id}
-                      name={q.name}
-                      subtitle={q.parent}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            <DetailListSection
+              icon={ScrollText}
+              title="Quests"
+              count={questsQ.data?.length}
+              isEmpty={questsQ.data?.length === 0}
+              action={
+                questsQ.data && questsQ.data.length > 0 ? (
+                  <ListSortControl
+                    fields={questsSort.fieldOptions}
+                    value={questsSort.sort}
+                    onChange={questsSort.setSort}
+                  />
+                ) : null
+              }
+            >
+              {questsSort.sorted.map((q) => (
+                <EntityRow
+                  key={q.id}
+                  entity="quest"
+                  id={q.id}
+                  name={q.name}
+                  subtitle={q.parent}
+                />
+              ))}
+            </DetailListSection>
           )}
 
           {features.hasMaps && (
-            <section>
-              <ListSectionHeader
-                icon={MapIcon}
-                title="Appears on"
-                count={mapsQ.data?.length}
-                action={
-                  mapsQ.data && mapsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={mapsSort.fieldOptions}
-                      value={mapsSort.sort}
-                      onChange={mapsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {mapsQ.isLoading && <p className="text-muted-foreground text-xs">Loading maps…</p>}
-              {mapsQ.data && mapsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {mapsQ.data && mapsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {mapsSort.sorted.map((m) => (
-                    <EntityRow
-                      key={m.id}
-                      entity="map"
-                      id={m.id}
-                      name={m.name}
-                      subtitle={m.streetName}
-                      trailing={
-                        m.minimapPath && (
-                          <Link
-                            to={`/maps/${m.id}?viewer=npc:${n.id}`}
-                            aria-label={`Show ${n.name} on ${m.name ?? `Map ${m.id}`}`}
-                            title="Show on map"
-                            className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </Link>
-                        )
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            <DetailListSection
+              icon={MapIcon}
+              title="Appears on"
+              count={mapsQ.data?.length}
+              isLoading={mapsQ.isLoading}
+              isEmpty={mapsQ.data?.length === 0}
+              loadingLabel="Loading maps…"
+              action={
+                mapsQ.data && mapsQ.data.length > 0 ? (
+                  <ListSortControl
+                    fields={mapsSort.fieldOptions}
+                    value={mapsSort.sort}
+                    onChange={mapsSort.setSort}
+                  />
+                ) : null
+              }
+            >
+              {mapsSort.sorted.map((m) => (
+                <EntityRow
+                  key={m.id}
+                  entity="map"
+                  id={m.id}
+                  name={m.name}
+                  subtitle={m.streetName}
+                  trailing={
+                    m.minimapPath && (
+                      <Link
+                        to={`/maps/${m.id}?viewer=npc:${n.id}`}
+                        aria-label={`Show ${n.name} on ${m.name ?? `Map ${m.id}`}`}
+                        title="Show on map"
+                        className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Link>
+                    )
+                  }
+                />
+              ))}
+            </DetailListSection>
           )}
         </article>
 

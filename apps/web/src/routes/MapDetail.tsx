@@ -12,9 +12,9 @@ import {
   Skull,
   Users,
 } from 'lucide-react';
+import { DetailListSection } from '@/components/DetailListSection';
 import { EntityIcon } from '@/components/EntityIcon';
 import { EntityRow } from '@/components/EntityRow';
-import { ListSectionHeader } from '@/components/ListSectionHeader';
 import { ListSortControl } from '@/components/ListSortControl';
 import { MapLink } from '@/components/entity-links';
 import { CollectionBadgeStrip } from '@/components/collections';
@@ -236,164 +236,143 @@ export default function MapDetail() {
           )}
 
           {features.hasNpcs && (
-            <section>
-              <ListSectionHeader
-                icon={Users}
-                title="NPCs"
-                count={npcsQ.data?.length}
-                action={
-                  npcsQ.data && npcsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={npcsSort.fieldOptions}
-                      value={npcsSort.sort}
-                      onChange={npcsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {npcsQ.data && npcsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {npcsQ.data && npcsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {npcsSort.sorted.map((n) => (
-                    <EntityRow
-                      key={`${n.npcId}-${n.x}-${n.y}`}
-                      entity="npc"
-                      id={n.npcId}
-                      name={n.name}
-                      meta={
-                        n.x !== null || n.y !== null ? (
-                          <span className="font-mono">
-                            ({n.x ?? '?'}, {n.y ?? '?'})
-                          </span>
-                        ) : undefined
-                      }
-                      trailing={
-                        m.minimapPath && (
-                          <button
-                            type="button"
-                            onClick={() => openViewer({ kind: 'npc', key: String(n.npcId) })}
-                            aria-label={`Show ${n.name ?? `NPC ${n.npcId}`} on map`}
-                            title="Show on map"
-                            className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </button>
-                        )
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {features.hasMobs && (
-            <section>
-              <ListSectionHeader
-                icon={Skull}
-                title="Mobs"
-                count={mobsQ.data?.length}
-                action={
-                  mobsQ.data && mobsQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={mobsSort.fieldOptions}
-                      value={mobsSort.sort}
-                      onChange={mobsSort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {mobsQ.data && mobsQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {mobsQ.data && mobsQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {mobsSort.sorted.map((mob) => (
-                    <EntityRow
-                      key={mob.mobId}
-                      entity="mob"
-                      id={mob.mobId}
-                      name={mob.name}
-                      meta={
-                        (mob.level !== null || (mob.count !== null && mob.count > 1)) && (
-                          <span className="flex items-center gap-3">
-                            {mob.level !== null && <span>Lv {mob.level}</span>}
-                            {mob.count !== null && mob.count > 1 && <span>×{mob.count}</span>}
-                          </span>
-                        )
-                      }
-                      trailing={
-                        m.minimapPath && (
-                          <button
-                            type="button"
-                            onClick={() => openViewer({ kind: 'mob', key: String(mob.mobId) })}
-                            aria-label={`Show ${mob.name ?? `Mob ${mob.mobId}`} on map`}
-                            title="Show on map"
-                            className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </button>
-                        )
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          <section>
-            <ListSectionHeader
-              icon={DoorOpen}
-              title="Portals"
-              count={portalsQ.data?.length}
+            <DetailListSection
+              icon={Users}
+              title="NPCs"
+              count={npcsQ.data?.length}
+              isEmpty={npcsQ.data?.length === 0}
               action={
-                portalsQ.data && portalsQ.data.length > 0 ? (
+                npcsQ.data && npcsQ.data.length > 0 ? (
                   <ListSortControl
-                    fields={portalsSort.fieldOptions}
-                    value={portalsSort.sort}
-                    onChange={portalsSort.setSort}
+                    fields={npcsSort.fieldOptions}
+                    value={npcsSort.sort}
+                    onChange={npcsSort.setSort}
                   />
                 ) : null
               }
-            />
-            {portalsQ.data && portalsQ.data.length === 0 && (
-              <p className="text-muted-foreground text-xs italic">None.</p>
-            )}
-            {portalsQ.data && portalsQ.data.length > 0 && (
-              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                {portalsSort.sorted.map((p) => (
-                  <li
-                    key={`${p.portalName}-${p.x ?? 0}-${p.y ?? 0}`}
-                    className="flex items-center gap-3 px-3 py-1.5 text-sm"
-                  >
-                    <span className="font-mono text-xs">{p.portalName}</span>
-                    <span className="text-muted-foreground">→</span>
-                    {p.targetMapId && p.targetMapId !== NO_TARGET ? (
-                      <MapLink
-                        id={p.targetMapId}
-                        className="text-primary min-w-0 flex-1 truncate hover:underline"
-                      >
-                        {p.targetMapName ?? `Map ${p.targetMapId}`}
-                        {p.targetPortal && (
-                          <span className="text-muted-foreground"> · {p.targetPortal}</span>
-                        )}
-                      </MapLink>
-                    ) : (
-                      <span className="text-muted-foreground italic">no target</span>
-                    )}
-                    {(p.x !== null || p.y !== null) && (
-                      <span className="text-muted-foreground ml-auto shrink-0 font-mono text-xs">
-                        ({p.x ?? '?'}, {p.y ?? '?'})
+            >
+              {npcsSort.sorted.map((n) => (
+                <EntityRow
+                  key={`${n.npcId}-${n.x}-${n.y}`}
+                  entity="npc"
+                  id={n.npcId}
+                  name={n.name}
+                  meta={
+                    n.x !== null || n.y !== null ? (
+                      <span className="font-mono">
+                        ({n.x ?? '?'}, {n.y ?? '?'})
                       </span>
+                    ) : undefined
+                  }
+                  trailing={
+                    m.minimapPath && (
+                      <button
+                        type="button"
+                        onClick={() => openViewer({ kind: 'npc', key: String(n.npcId) })}
+                        aria-label={`Show ${n.name ?? `NPC ${n.npcId}`} on map`}
+                        title="Show on map"
+                        className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </button>
+                    )
+                  }
+                />
+              ))}
+            </DetailListSection>
+          )}
+
+          {features.hasMobs && (
+            <DetailListSection
+              icon={Skull}
+              title="Mobs"
+              count={mobsQ.data?.length}
+              isEmpty={mobsQ.data?.length === 0}
+              action={
+                mobsQ.data && mobsQ.data.length > 0 ? (
+                  <ListSortControl
+                    fields={mobsSort.fieldOptions}
+                    value={mobsSort.sort}
+                    onChange={mobsSort.setSort}
+                  />
+                ) : null
+              }
+            >
+              {mobsSort.sorted.map((mob) => (
+                <EntityRow
+                  key={mob.mobId}
+                  entity="mob"
+                  id={mob.mobId}
+                  name={mob.name}
+                  meta={
+                    (mob.level !== null || (mob.count !== null && mob.count > 1)) && (
+                      <span className="flex items-center gap-3">
+                        {mob.level !== null && <span>Lv {mob.level}</span>}
+                        {mob.count !== null && mob.count > 1 && <span>×{mob.count}</span>}
+                      </span>
+                    )
+                  }
+                  trailing={
+                    m.minimapPath && (
+                      <button
+                        type="button"
+                        onClick={() => openViewer({ kind: 'mob', key: String(mob.mobId) })}
+                        aria-label={`Show ${mob.name ?? `Mob ${mob.mobId}`} on map`}
+                        title="Show on map"
+                        className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </button>
+                    )
+                  }
+                />
+              ))}
+            </DetailListSection>
+          )}
+
+          <DetailListSection
+            icon={DoorOpen}
+            title="Portals"
+            count={portalsQ.data?.length}
+            isEmpty={portalsQ.data?.length === 0}
+            action={
+              portalsQ.data && portalsQ.data.length > 0 ? (
+                <ListSortControl
+                  fields={portalsSort.fieldOptions}
+                  value={portalsSort.sort}
+                  onChange={portalsSort.setSort}
+                />
+              ) : null
+            }
+          >
+            {portalsSort.sorted.map((p) => (
+              <li
+                key={`${p.portalName}-${p.x ?? 0}-${p.y ?? 0}`}
+                className="flex items-center gap-3 px-3 py-1.5 text-sm"
+              >
+                <span className="font-mono text-xs">{p.portalName}</span>
+                <span className="text-muted-foreground">→</span>
+                {p.targetMapId && p.targetMapId !== NO_TARGET ? (
+                  <MapLink
+                    id={p.targetMapId}
+                    className="text-primary min-w-0 flex-1 truncate hover:underline"
+                  >
+                    {p.targetMapName ?? `Map ${p.targetMapId}`}
+                    {p.targetPortal && (
+                      <span className="text-muted-foreground"> · {p.targetPortal}</span>
                     )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  </MapLink>
+                ) : (
+                  <span className="text-muted-foreground italic">no target</span>
+                )}
+                {(p.x !== null || p.y !== null) && (
+                  <span className="text-muted-foreground ml-auto shrink-0 font-mono text-xs">
+                    ({p.x ?? '?'}, {p.y ?? '?'})
+                  </span>
+                )}
+              </li>
+            ))}
+          </DetailListSection>
         </article>
 
         <MapViewerModal

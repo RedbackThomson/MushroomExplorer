@@ -13,6 +13,7 @@ import {
   Target,
   Users,
 } from 'lucide-react';
+import { DetailListSection } from '@/components/DetailListSection';
 import { EntityAvatar } from '@/components/EntityAvatar';
 import { EntityRow } from '@/components/EntityRow';
 import { getDbClient } from '@/db';
@@ -139,104 +140,81 @@ export default function QuestDetail() {
           )}
 
           {(q.startNpcId !== null || q.endNpcId !== null) && (
-            <section>
-              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
-                <Users className="h-4 w-4" /> NPCs
-              </h2>
-              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                {q.startNpcId !== null && (
-                  <NpcRow
-                    label="Start"
-                    id={q.startNpcId}
-                    name={startNpcQ.data?.name ?? null}
-                    linkable={features.hasNpcs}
-                  />
-                )}
-                {q.endNpcId !== null && q.endNpcId !== q.startNpcId && (
-                  <NpcRow
-                    label="End"
-                    id={q.endNpcId}
-                    name={endNpcQ.data?.name ?? null}
-                    linkable={features.hasNpcs}
-                  />
-                )}
-              </ul>
-            </section>
+            <DetailListSection icon={Users} title="NPCs">
+              {q.startNpcId !== null && (
+                <NpcRow
+                  label="Start"
+                  id={q.startNpcId}
+                  name={startNpcQ.data?.name ?? null}
+                  linkable={features.hasNpcs}
+                />
+              )}
+              {q.endNpcId !== null && q.endNpcId !== q.startNpcId && (
+                <NpcRow
+                  label="End"
+                  id={q.endNpcId}
+                  name={endNpcQ.data?.name ?? null}
+                  linkable={features.hasNpcs}
+                />
+              )}
+            </DetailListSection>
           )}
 
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
-              <Target className="h-4 w-4" /> Requirements
-              {requirements.length > 0 && (
-                <span className="text-muted-foreground text-xs normal-case">
-                  ({requirements.length})
-                </span>
-              )}
-            </h2>
-            {requirements.length === 0 ? (
-              <p className="text-muted-foreground text-xs italic">None.</p>
-            ) : (
-              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                {itemReqs.map((r) => (
-                  <RequirementRow
-                    key={`item-${r.targetId}`}
-                    r={r}
-                    entity="item"
-                    linkable={features.hasItems}
-                  />
-                ))}
-                {mobReqs.map((r) => (
-                  <RequirementRow
-                    key={`mob-${r.targetId}`}
-                    r={r}
-                    entity="mob"
-                    linkable={features.hasMobs}
-                  />
-                ))}
-                {questPreReqs.map((r) => (
-                  <RequirementRow key={`questPre-${r.targetId}`} r={r} entity="quest" linkable />
-                ))}
-              </ul>
-            )}
-          </section>
+          <DetailListSection
+            icon={Target}
+            title="Requirements"
+            count={requirements.length > 0 ? requirements.length : undefined}
+            isEmpty={requirements.length === 0}
+          >
+            {itemReqs.map((r) => (
+              <RequirementRow
+                key={`item-${r.targetId}`}
+                r={r}
+                entity="item"
+                linkable={features.hasItems}
+              />
+            ))}
+            {mobReqs.map((r) => (
+              <RequirementRow
+                key={`mob-${r.targetId}`}
+                r={r}
+                entity="mob"
+                linkable={features.hasMobs}
+              />
+            ))}
+            {questPreReqs.map((r) => (
+              <RequirementRow key={`questPre-${r.targetId}`} r={r} entity="quest" linkable />
+            ))}
+          </DetailListSection>
 
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
-              <Award className="h-4 w-4" /> Rewards
-              {rewards.length > 0 && (
-                <span className="text-muted-foreground text-xs normal-case">
-                  ({rewards.length})
+          <DetailListSection
+            icon={Award}
+            title="Rewards"
+            count={rewards.length > 0 ? rewards.length : undefined}
+            isEmpty={rewards.length === 0}
+          >
+            {expReward && (
+              <li className="flex items-center gap-3 px-3 py-2 text-sm">
+                <Sparkles className="text-muted-foreground h-6 w-6 shrink-0" />
+                <span className="flex-1">Experience</span>
+                <span className="font-mono text-xs">
+                  {(expReward.amount ?? 0).toLocaleString()}
                 </span>
-              )}
-            </h2>
-            {rewards.length === 0 ? (
-              <p className="text-muted-foreground text-xs italic">None.</p>
-            ) : (
-              <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                {expReward && (
-                  <li className="flex items-center gap-3 px-3 py-2 text-sm">
-                    <Sparkles className="text-muted-foreground h-6 w-6 shrink-0" />
-                    <span className="flex-1">Experience</span>
-                    <span className="font-mono text-xs">
-                      {(expReward.amount ?? 0).toLocaleString()}
-                    </span>
-                  </li>
-                )}
-                {mesoReward && (
-                  <li className="flex items-center gap-3 px-3 py-2 text-sm">
-                    <Coins className="text-muted-foreground h-6 w-6 shrink-0" />
-                    <span className="flex-1">Mesos</span>
-                    <span className="font-mono text-xs">
-                      {(mesoReward.amount ?? 0).toLocaleString()}
-                    </span>
-                  </li>
-                )}
-                {itemRewards.map((r) => (
-                  <RewardRow key={`item-${r.targetId}`} r={r} linkable={features.hasItems} />
-                ))}
-              </ul>
+              </li>
             )}
-          </section>
+            {mesoReward && (
+              <li className="flex items-center gap-3 px-3 py-2 text-sm">
+                <Coins className="text-muted-foreground h-6 w-6 shrink-0" />
+                <span className="flex-1">Mesos</span>
+                <span className="font-mono text-xs">
+                  {(mesoReward.amount ?? 0).toLocaleString()}
+                </span>
+              </li>
+            )}
+            {itemRewards.map((r) => (
+              <RewardRow key={`item-${r.targetId}`} r={r} linkable={features.hasItems} />
+            ))}
+          </DetailListSection>
         </article>
 
         <aside className="border-border bg-card text-card-foreground space-y-4 self-start rounded-md border p-4 text-sm">

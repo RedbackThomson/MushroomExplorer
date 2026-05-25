@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy, Loader2, Skull } from 'lucide-react';
+import { DetailListSection } from '@/components/DetailListSection';
 import { EntityRow } from '@/components/EntityRow';
 import { ItemIcon } from '@/components/ItemIcon';
-import { ListSectionHeader } from '@/components/ListSectionHeader';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
@@ -148,41 +148,33 @@ export default function EquipDetail() {
           )}
 
           {features.hasMobs && (
-            <section>
-              <ListSectionHeader
-                icon={Skull}
-                title="Dropped by"
-                count={droppedByQ.data?.length}
-                action={
-                  droppedByQ.data && droppedByQ.data.length > 0 ? (
-                    <ListSortControl
-                      fields={droppedBySort.fieldOptions}
-                      value={droppedBySort.sort}
-                      onChange={droppedBySort.setSort}
-                    />
-                  ) : null
-                }
-              />
-              {droppedByQ.isLoading && (
-                <p className="text-muted-foreground text-xs">Loading mobs…</p>
-              )}
-              {droppedByQ.data && droppedByQ.data.length === 0 && (
-                <p className="text-muted-foreground text-xs italic">None.</p>
-              )}
-              {droppedByQ.data && droppedByQ.data.length > 0 && (
-                <ul className="border-border bg-card text-card-foreground divide-border divide-y rounded-md border">
-                  {droppedBySort.sorted.map((m) => (
-                    <EntityRow
-                      key={m.mobId}
-                      entity="mob"
-                      id={m.mobId}
-                      name={m.name}
-                      meta={m.level !== null ? `Lv ${m.level}` : undefined}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            <DetailListSection
+              icon={Skull}
+              title="Dropped by"
+              count={droppedByQ.data?.length}
+              isLoading={droppedByQ.isLoading}
+              isEmpty={droppedByQ.data?.length === 0}
+              loadingLabel="Loading mobs…"
+              action={
+                droppedByQ.data && droppedByQ.data.length > 0 ? (
+                  <ListSortControl
+                    fields={droppedBySort.fieldOptions}
+                    value={droppedBySort.sort}
+                    onChange={droppedBySort.setSort}
+                  />
+                ) : null
+              }
+            >
+              {droppedBySort.sorted.map((m) => (
+                <EntityRow
+                  key={m.mobId}
+                  entity="mob"
+                  id={m.mobId}
+                  name={m.name}
+                  meta={m.level !== null ? `Lv ${m.level}` : undefined}
+                />
+              ))}
+            </DetailListSection>
           )}
         </article>
 
