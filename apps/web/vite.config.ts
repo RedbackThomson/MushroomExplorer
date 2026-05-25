@@ -3,7 +3,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
+// Deploying to a GitHub Pages project site (`<user>.github.io/<repo>/`) means
+// every asset URL must be prefixed with the repo path. `BASE_PATH` is set by
+// the deploy workflow; local dev/builds default to `/`.
+const basePath = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base: basePath,
   plugins: [react()],
   resolve: {
     alias: {

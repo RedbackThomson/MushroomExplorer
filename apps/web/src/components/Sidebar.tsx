@@ -25,10 +25,7 @@ import { useFeatures } from '@/lib/useFeatures';
 import { useSidebarSections } from '@/lib/sidebarState';
 import { getDbClient } from '@/db';
 import { getUserDbClient } from '@/db/user';
-import {
-  resolveCollectionColor,
-  resolveCollectionIcon,
-} from '@/components/collections';
+import { resolveCollectionColor, resolveCollectionIcon } from '@/components/collections';
 import { cn } from '@/lib/utils';
 
 interface SidebarChild {
@@ -244,10 +241,15 @@ export function Sidebar() {
         </div>
       </nav>
       <DbStatusIndicator />
-      <div className="text-sidebar-muted px-3 pb-3 text-[10px]">Pre-alpha</div>
+      <div className="text-sidebar-muted px-3 pb-3 text-[10px]">{APP_VERSION_LABEL}</div>
     </aside>
   );
 }
+
+// `VITE_APP_VERSION` is injected by the GitHub Pages deploy workflow on tag
+// pushes (`v1.2.3`). Untagged builds (local dev, main-branch deploys) fall
+// back to the pre-release marker.
+const APP_VERSION_LABEL = (import.meta.env.VITE_APP_VERSION as string | undefined) || 'Pre-alpha';
 
 type DbHealth = 'pending' | 'healthy' | 'warning' | 'error';
 
