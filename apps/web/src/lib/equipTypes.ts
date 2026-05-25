@@ -69,21 +69,30 @@ export function resolveEquipType(id: number): string | null {
 }
 
 /**
- * Slot keys are stored lowercased (e.g. "cap", "longcoat", "petequip"), but
- * the WZ file names disagree with what the game shows in-tab. Map the few
- * that differ; everything else falls back to title-casing the key.
+ * WZ slot names disagree with what MapleStory shows in-tab — e.g. the file
+ * tree calls it "Longcoat" but the game UI says "Overall". We rewrite the
+ * raw WZ slug to the player-facing one at extraction time so that the value
+ * stored on `equips.slot` matches what users will type into filters and
+ * see in URLs. Anything not listed passes through unchanged (lowercased).
+ *
+ * Adding a new entry? Also add a `UPDATE equips SET ...` branch to the
+ * latest schema migration so DBs imported before the rename get normalized
+ * in place rather than waiting for a re-extraction.
  */
-const SLOT_DISPLAY_LABELS: Readonly<Record<string, string>> = {
-  cap: 'Hat',
-  coat: 'Top',
-  pants: 'Bottom',
-  longcoat: 'Overall',
-  petequip: 'Pet Equip',
+const EQUIP_SLOT_NORMALIZATION: Readonly<Record<string, string>> = {
+  cap: 'hat',
+  coat: 'top',
+  pants: 'bottom',
+  longcoat: 'overall',
+  petequip: 'pet-equip',
 };
 
+export function normalizeEquipSlot(raw: string): string {
+  const lower = raw.toLowerCase();
+  return EQUIP_SLOT_NORMALIZATION[lower] ?? lower;
+}
+
 export function labelForEquipSlot(slot: string): string {
-  const override = SLOT_DISPLAY_LABELS[slot];
-  if (override) return override;
-  const spaced = slot.replace(/([a-z])([A-Z])/g, '$1 $2');
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  const spaced = slot.replace(/-/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
 }

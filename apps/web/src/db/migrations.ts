@@ -406,4 +406,24 @@ export const MIGRATIONS: readonly Migration[] = [
         WHERE equip_type IS NULL AND id / 10000 = 170;
     `,
   },
+  {
+    version: 12,
+    name: 'normalize equip slot names to player-facing slugs',
+    sql: `
+      -- WZ stores slot keys like "longcoat" / "cap" / "petequip", but the
+      -- game UI (and now our filter URLs, sidebar links, palette queries)
+      -- use the in-tab names: "overall", "hat", "pet-equip". The extractor
+      -- normalizes new rows via lib/equipTypes#normalizeEquipSlot; this
+      -- migration rewrites rows imported under the old convention so
+      -- existing DBs don't have to be re-extracted to match.
+      --
+      -- slot and category are written from the same value at extraction
+      -- time, so they're rewritten in lockstep here.
+      UPDATE equips SET slot = 'hat',       category = 'hat'       WHERE slot = 'cap';
+      UPDATE equips SET slot = 'top',       category = 'top'       WHERE slot = 'coat';
+      UPDATE equips SET slot = 'bottom',    category = 'bottom'    WHERE slot = 'pants';
+      UPDATE equips SET slot = 'overall',   category = 'overall'   WHERE slot = 'longcoat';
+      UPDATE equips SET slot = 'pet-equip', category = 'pet-equip' WHERE slot = 'petequip';
+    `,
+  },
 ];

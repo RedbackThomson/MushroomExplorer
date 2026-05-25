@@ -3,7 +3,7 @@ import type { EquipRecord } from '@/db';
 import { createLogger } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
 import { unescapeWzString } from './wzText';
-import { resolveEquipType } from '@/lib/equipTypes';
+import { normalizeEquipSlot, resolveEquipType } from '@/lib/equipTypes';
 
 const log = createLogger('extract-equips');
 
@@ -128,7 +128,7 @@ export async function extractEquips(
       ),
     );
     const info = await readInfo(source, w.imagePath);
-    const slotKey = w.stringSlot.toLowerCase();
+    const slotKey = normalizeEquipSlot(w.stringSlot);
     const iconPath = info.hasIcon ? `${w.imagePath}/info/icon` : null;
     const iconData = iconPath ? await source.getIconPng(iconPath) : null;
 
