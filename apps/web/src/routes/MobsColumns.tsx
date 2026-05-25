@@ -3,6 +3,38 @@ import { Crown, Skull } from 'lucide-react';
 import { EntityIcon } from '@/components/EntityIcon';
 import { MobLink } from '@/components/entity-links';
 import type { MobRecord } from '@/db';
+import {
+  ELEMENT_GROUP_LABELS,
+  ELEMENT_ORDER,
+  ELEMENT_STATUS_CLASSES,
+  elementsByStatus,
+  type ElementStatus,
+} from '@/lib/mobElements';
+
+export const ELEMENT_ENUM_OPTIONS: readonly string[] = ELEMENT_ORDER;
+
+/** Statuses that get their own column in the listing. Maps each to the
+ *  public column id used in URL state and filter keys. */
+const COLUMN_STATUSES: readonly { id: string; status: ElementStatus }[] = [
+  { id: 'weakAgainst', status: 'weak' },
+  { id: 'strongAgainst', status: 'resistant' },
+  { id: 'immuneTo', status: 'immune' },
+];
+
+function ElementCell({ values, status }: { values: string[]; status: ElementStatus }) {
+  if (values.length === 0) return <span className="text-muted-foreground">—</span>;
+  return <span className={ELEMENT_STATUS_CLASSES[status]}>{values.join(', ')}</span>;
+}
+
+const elementColumns: ColumnDef<MobRecord>[] = COLUMN_STATUSES.map(({ id, status }) => ({
+  id,
+  header: ELEMENT_GROUP_LABELS[status],
+  enableSorting: false,
+  meta: { filter: 'enum' },
+  cell: ({ row }) => (
+    <ElementCell values={elementsByStatus(row.original.elementAttack, status)} status={status} />
+  ),
+}));
 
 export const columns: ColumnDef<MobRecord>[] = [
   {
@@ -65,13 +97,7 @@ export const columns: ColumnDef<MobRecord>[] = [
     meta: { filter: 'number' },
     cell: ({ row }) => row.original.exp?.toLocaleString() ?? '—',
   },
-  {
-    id: 'element',
-    accessorFn: (m) => m.elementAttack,
-    header: 'Element',
-    meta: { filter: 'string' },
-    cell: ({ row }) => row.original.elementAttack ?? '—',
-  },
+  ...elementColumns,
   {
     id: 'boss',
     accessorFn: (m) => m.isBoss,

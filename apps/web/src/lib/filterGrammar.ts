@@ -18,6 +18,7 @@
 // Unknown keys fall back to free-text terms.
 
 import type { EntityKind } from '@/db';
+import { ELEMENT_ORDER } from './mobElements';
 
 type EntityScope = EntityKind;
 
@@ -28,6 +29,8 @@ type FilterSpec =
   | { kind: 'boolean'; param: string };
 
 type FilterMap = Record<string, FilterSpec>;
+
+const MOB_ELEMENT_VALUES: readonly string[] = ELEMENT_ORDER.map((n) => n.toLowerCase());
 
 const ENTITY_ALIAS: Record<string, EntityScope> = {
   mobs: 'mob',
@@ -50,7 +53,9 @@ const FILTER_KEYS: Record<EntityScope, FilterMap> = {
     hp: { kind: 'number', param: 'hp' },
     mp: { kind: 'number', param: 'mp' },
     exp: { kind: 'number', param: 'exp' },
-    element: { kind: 'string', param: 'element' },
+    weak: { kind: 'enum', param: 'weakAgainst', values: MOB_ELEMENT_VALUES },
+    strong: { kind: 'enum', param: 'strongAgainst', values: MOB_ELEMENT_VALUES },
+    immune: { kind: 'enum', param: 'immuneTo', values: MOB_ELEMENT_VALUES },
     boss: { kind: 'boolean', param: 'boss' },
   },
   item: {

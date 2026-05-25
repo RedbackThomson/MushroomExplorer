@@ -1,5 +1,11 @@
 // Domain query helpers built on top of the thin `Sqlite` wrapper.
 
+import { EQUIP_CLASS_BIT, type EquipClass } from '@/lib/equipJobs';
+import {
+  ELEMENT_CODE_BY_NAME,
+  LEVEL_BY_STATUS,
+  type ElementStatus,
+} from '@/lib/mobElements';
 import type { Sqlite, Row } from './sqlite';
 import type {
   ColumnFilter,
@@ -86,13 +92,12 @@ const EQUIP_ORDER: Record<string, OrderSpec> = {
 const EQUIP_ORDER_DEFAULT = 'name';
 
 const MOB_ORDER: Record<string, OrderSpec> = {
-  name:    { col: 'name',           defaultDir: 'asc'  },
-  level:   { col: 'level',          defaultDir: 'asc'  },
-  hp:      { col: 'hp',             defaultDir: 'asc'  },
-  mp:      { col: 'mp',             defaultDir: 'asc'  },
-  exp:     { col: 'exp',            defaultDir: 'desc' },
-  element: { col: 'element_attack', defaultDir: 'asc'  },
-  id:      { col: 'id',             defaultDir: 'asc'  },
+  name:  { col: 'name',  defaultDir: 'asc'  },
+  level: { col: 'level', defaultDir: 'asc'  },
+  hp:    { col: 'hp',    defaultDir: 'asc'  },
+  mp:    { col: 'mp',    defaultDir: 'asc'  },
+  exp:   { col: 'exp',   defaultDir: 'desc' },
+  id:    { col: 'id',    defaultDir: 'asc'  },
 };
 const MOB_ORDER_DEFAULT = 'level';
 
@@ -145,29 +150,18 @@ function clampOffset(offset: number | undefined): number {
  */
 interface FilterSpec {
   col: string;
-  type: 'string' | 'number' | 'classMask';
+  type: 'string' | 'number' | 'classMask' | 'elementStatus';
   /**
-   * For `classMask` columns: maps the enum option value (e.g. "Warrior")
-   * to the WZ class bit (1, 2, 4, 8, 16). `0` is the sentinel for classes
-   * that have no bit of their own (Beginner) and only match equips with
-   * no class restriction.
+   * For `elementStatus` columns: which status against the chosen element
+   * the filter should match (`weak` / `resistant` / `immune`). The DB
+   * stores the elemAttr string as a flat sequence of `<code><level>`
+   * pairs (e.g. `F3I2`), so a "weak to Fire" filter resolves the element
+   * to code "F" and the status to level "3", then matches the substring
+   * `F3` anywhere in element_attack. Element-code lookup and the
+   * status→level mapping both come from `@/lib/mobElements`.
    */
-  classBits?: Readonly<Record<string, number>>;
+  elementStatus?: Exclude<ElementStatus, 'neutral'>;
 }
-
-/**
- * MapleStory class → WZ `reqJob` bit. Mirrors the same mapping the UI
- * uses in `@/lib/equipJobs`; duplicated here to keep `db/` free of UI
- * imports per the layer rule.
- */
-const EQUIP_CLASS_BITS: Readonly<Record<string, number>> = {
-  Beginner: 0,
-  Warrior: 1,
-  Magician: 2,
-  Bowman: 4,
-  Thief: 8,
-  Pirate: 16,
-};
 
 const ITEM_FILTER: Record<string, FilterSpec> = {
   name:          { col: 'name',           type: 'string' },
@@ -194,21 +188,23 @@ const EQUIP_FILTER: Record<string, FilterSpec> = {
   accuracy:      { col: 'accuracy',       type: 'number' },
   avoidability:  { col: 'avoidability',   type: 'number' },
   upgradeSlots:  { col: 'upgrade_slots',  type: 'number' },
-  requiredJob:   { col: 'required_job',   type: 'classMask', classBits: EQUIP_CLASS_BITS },
+  requiredJob:   { col: 'required_job',   type: 'classMask' },
   id:            { col: 'id',             type: 'number' },
 };
 
 const MOB_FILTER: Record<string, FilterSpec> = {
-  name:    { col: 'name',           type: 'string' },
-  level:   { col: 'level',          type: 'number' },
-  hp:      { col: 'hp',             type: 'number' },
-  mp:      { col: 'mp',             type: 'number' },
-  exp:     { col: 'exp',            type: 'number' },
-  element: { col: 'element_attack', type: 'string' },
+  name:           { col: 'name',  type: 'string' },
+  level:          { col: 'level', type: 'number' },
+  hp:             { col: 'hp',    type: 'number' },
+  mp:             { col: 'mp',    type: 'number' },
+  exp:            { col: 'exp',   type: 'number' },
+  weakAgainst:    { col: 'element_attack', type: 'elementStatus', elementStatus: 'weak' },
+  strongAgainst:  { col: 'element_attack', type: 'elementStatus', elementStatus: 'resistant' },
+  immuneTo:       { col: 'element_attack', type: 'elementStatus', elementStatus: 'immune' },
   // is_boss is INTEGER 0/1; same trick as equips.cash — a boolean column
   // filter ({min:1,max:1}) maps cleanly through the number filter path.
-  boss:    { col: 'is_boss',        type: 'number' },
-  id:      { col: 'id',             type: 'number' },
+  boss:           { col: 'is_boss', type: 'number' },
+  id:             { col: 'id',      type: 'number' },
 };
 
 const NPC_FILTER: Record<string, FilterSpec> = {
@@ -271,12 +267,26 @@ function applyFilters(
         params.push(filter.max);
       }
     } else if (
-      spec.type === 'classMask' &&
+      spec.type === 'elementStatus' &&
       filter.kind === 'string' &&
       filter.value &&
-      spec.classBits
+      spec.elementStatus
     ) {
-      const bit = spec.classBits[filter.value];
+      const code = ELEMENT_CODE_BY_NAME[filter.value.toLowerCase()];
+      if (!code) continue;
+      // Match the literal `<code><level>` pair anywhere in the elemAttr
+      // string. Escape LIKE metacharacters even though codes/levels are
+      // single safe chars — keeps the pattern shape consistent with the
+      // other string branches.
+      const esc = escapeLikeLiteral(`${code}${LEVEL_BY_STATUS[spec.elementStatus]}`);
+      where.push(`${spec.col} LIKE ? ESCAPE '\\'`);
+      params.push(`%${esc}%`);
+    } else if (
+      spec.type === 'classMask' &&
+      filter.kind === 'string' &&
+      filter.value
+    ) {
+      const bit = EQUIP_CLASS_BIT[filter.value as EquipClass];
       if (bit === undefined) continue;
       // Bit-0 classes (Beginner) have no dedicated reqJob bit; only equips
       // with no class restriction match them. Non-zero bits match either

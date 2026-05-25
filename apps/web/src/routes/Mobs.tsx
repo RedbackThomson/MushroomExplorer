@@ -4,7 +4,13 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { DataTable, useColumnFilters, useTableUrlState } from '@/components/data-table';
 import { CollectionsBulkAddMenu } from '@/components/collections';
 import { getDbClient } from '@/db';
-import { columns, defaultSort, defaultVisible, pinnedColumns } from './MobsColumns';
+import {
+  columns,
+  defaultSort,
+  defaultVisible,
+  ELEMENT_ENUM_OPTIONS,
+  pinnedColumns,
+} from './MobsColumns';
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -89,6 +95,11 @@ export default function Mobs() {
             onColumnFilterChange={(id, v) => {
               setFilter(id, v);
               setState({ page: 1 });
+            }}
+            enumOptions={{
+              weakAgainst: ELEMENT_ENUM_OPTIONS,
+              strongAgainst: ELEMENT_ENUM_OPTIONS,
+              immuneTo: ELEMENT_ENUM_OPTIONS,
             }}
             searchValue={state.q}
             onSearchChange={(v) => setState({ q: v, page: 1 })}

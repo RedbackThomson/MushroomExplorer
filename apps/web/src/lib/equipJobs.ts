@@ -23,16 +23,30 @@ export const ALL_EQUIP_CLASSES: readonly EquipClass[] = [
   'Pirate',
 ];
 
+/**
+ * MapleStory class → WZ `reqJob` bit. `0` is the sentinel for Beginner —
+ * Beginner has no dedicated bit and only matches equips with no class
+ * restriction. Imported by `db/queries.ts` so the class-mask filter and
+ * the display-side parser stay in lockstep.
+ */
+export const EQUIP_CLASS_BIT: Readonly<Record<EquipClass, number>> = {
+  Beginner: 0,
+  Warrior: 1,
+  Magician: 2,
+  Bowman: 4,
+  Thief: 8,
+  Pirate: 16,
+};
+
 export function parseReqJob(reqJob: number | null | undefined): EquipClass[] {
   if (!reqJob) {
     return [...ALL_EQUIP_CLASSES];
   }
   const classes: EquipClass[] = [];
-  if (reqJob & 1) classes.push('Warrior');
-  if (reqJob & 2) classes.push('Magician');
-  if (reqJob & 4) classes.push('Bowman');
-  if (reqJob & 8) classes.push('Thief');
-  if (reqJob & 16) classes.push('Pirate');
+  for (const cls of ALL_EQUIP_CLASSES) {
+    const bit = EQUIP_CLASS_BIT[cls];
+    if (bit !== 0 && (reqJob & bit) !== 0) classes.push(cls);
+  }
   return classes;
 }
 

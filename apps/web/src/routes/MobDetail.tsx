@@ -22,8 +22,9 @@ import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 import {
   ELEMENT_ORDER,
+  ELEMENT_STATUS_CLASSES,
+  ELEMENT_STATUS_LABELS,
   parseMobElements,
-  type ElementStatus,
 } from '@/lib/mobElements';
 import { cn } from '@/lib/utils';
 
@@ -287,20 +288,6 @@ export default function MobDetail() {
   );
 }
 
-const STATUS_LABEL: Record<ElementStatus, string> = {
-  neutral: 'Neutral',
-  immune: 'Immune',
-  resistant: 'Resistant',
-  weak: 'Weak',
-};
-
-const STATUS_CLASS: Record<ElementStatus, string> = {
-  neutral: 'text-muted-foreground',
-  immune: 'text-sky-700 dark:text-sky-300',
-  resistant: 'text-amber-700 dark:text-amber-300',
-  weak: 'text-rose-700 dark:text-rose-300',
-};
-
 function ElementsSection({ element }: { element: string | null }) {
   const statuses = parseMobElements(element);
   return (
@@ -312,7 +299,9 @@ function ElementsSection({ element }: { element: string | null }) {
           return (
             <div key={name} className="flex items-baseline justify-between gap-3 py-1.5">
               <dt className="text-muted-foreground text-xs uppercase tracking-wide">{name}</dt>
-              <dd className={cn('text-sm', STATUS_CLASS[status])}>{STATUS_LABEL[status]}</dd>
+              <dd className={cn('text-sm', ELEMENT_STATUS_CLASSES[status])}>
+                {ELEMENT_STATUS_LABELS[status]}
+              </dd>
             </div>
           );
         })}
