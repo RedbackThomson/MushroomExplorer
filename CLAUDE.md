@@ -4,6 +4,8 @@ Guidance that applies to every change in this repository. Source of truth for pr
 
 When you add an entity type, a route, or a user-facing feature, follow `docs/command_palette_extension_guide.md` so the command palette grows with the app. Palette wiring is part of the feature, not a follow-up. The palette's own spec is `docs/command_palette_requirements.md`.
 
+**Any time you write or touch user-visible copy** (UI strings, page descriptions, empty states, confirmations, error messages, button labels), follow `docs/writing_conventions.md`. That doc is the source of truth for tone, vocabulary, and — most importantly — the absolute prohibition on referencing trademarked or copyrighted properties (MapleStory, Nexon, MapleRoyals, MapleLegends, etc.) in shipped strings.
+
 ## Hard rules
 
 1. **Never commit proprietary game data.** No `.wz`, no extracted `.img`, no PNG sprites or icons, no JSON snapshots derived from MapleStory/MapleRoyals files, no pre-generated databases. This applies to test fixtures and CI too. Tests use synthetic raw-tree fixtures only.
