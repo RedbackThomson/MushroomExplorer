@@ -44,6 +44,7 @@ export class Sqlite {
   private sqlite3: Sqlite3Static | null = null;
   private db: Database | null = null;
   private _backend: Backend = 'memory';
+  private _fallbackReason: string | null = null;
   private pool: SAHPoolUtil | null = null;
   private readonly opfsFilename: string;
   private readonly poolName: string;
@@ -59,6 +60,11 @@ export class Sqlite {
 
   get backend(): Backend {
     return this._backend;
+  }
+
+  /** Reason the in-memory fallback was used. Null when OPFS opened cleanly. */
+  get fallbackReason(): string | null {
+    return this._fallbackReason;
   }
 
   async open(): Promise<OpenResult> {
@@ -78,6 +84,7 @@ export class Sqlite {
       this.db = new pool.OpfsSAHPoolDb(this.opfsFilename);
       this.pool = pool;
       this._backend = 'opfs';
+      this._fallbackReason = null;
       log.info('opened OPFS-backed database', {
         db: this.logTag,
         path: this.opfsFilename,
@@ -93,6 +100,7 @@ export class Sqlite {
       });
       this.db = new this.sqlite3.oo1.DB(':memory:', 'ct');
       this._backend = 'memory';
+      this._fallbackReason = summarizeFallbackReason(err, opfsCapabilities);
     }
 
     this.db.exec('PRAGMA foreign_keys = ON;');
@@ -361,6 +369,29 @@ function looksLikeSqlite(bytes: Uint8Array): boolean {
     if (bytes[i] !== MAGIC.charCodeAt(i)) return false;
   }
   return true;
+}
+
+/**
+ * Build a short, user-facing reason for the in-memory fallback. Capability
+ * probes win over the raw install error because they pinpoint *why* OPFS is
+ * off (insecure context, no `getDirectory`, no sync-access handle) rather
+ * than the SQLite-WASM message, which is usually a generic install failure.
+ */
+function summarizeFallbackReason(err: unknown, caps: OpfsCapabilities): string {
+  if (!caps.isSecureContext) {
+    return 'Page is not served over HTTPS — OPFS requires a secure context.';
+  }
+  if (!caps.hasNavigatorStorage || !caps.hasGetDirectory) {
+    return 'Browser does not expose `navigator.storage.getDirectory` (OPFS).';
+  }
+  if (!caps.hasFileSystemSyncAccessHandle) {
+    return 'Browser lacks FileSystemSyncAccessHandle — typically a private/incognito tab in Safari or Firefox.';
+  }
+  if (caps.rootDirectoryError) {
+    return `OPFS root directory unavailable: ${caps.rootDirectoryError}`;
+  }
+  const msg = (err as { message?: unknown } | null)?.message;
+  return typeof msg === 'string' && msg.length > 0 ? msg : 'OPFS install failed (unknown reason).';
 }
 
 async function probeOpfsCapabilities(): Promise<OpfsCapabilities> {

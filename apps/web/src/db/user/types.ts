@@ -126,6 +126,12 @@ export interface UpdatePinnedSearchPatch {
 export interface UserDbStatus {
   schemaVersion: number;
   backend: 'opfs' | 'memory';
+  /**
+   * Short, user-facing explanation of why the in-memory fallback was used.
+   * Null when `backend === 'opfs'` or when no fallback diagnosis is
+   * available.
+   */
+  fallbackReason: string | null;
   counts: {
     collections: number;
     members: number;

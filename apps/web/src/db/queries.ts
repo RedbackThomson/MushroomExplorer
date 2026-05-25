@@ -511,6 +511,7 @@ export class DbApi implements GameDatabase {
     return {
       schemaVersion,
       backend: this.sql.backend,
+      fallbackReason: this.sql.fallbackReason,
       counts: {
         items: this.countOf('items'),
         equips: this.countOf('equips'),

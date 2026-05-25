@@ -56,6 +56,7 @@ export class UserDbApi implements UserDatabase {
     return {
       schemaVersion,
       backend: this.db.backend,
+      fallbackReason: this.db.fallbackReason,
       counts: { collections, members, pinnedSearches },
     };
   }

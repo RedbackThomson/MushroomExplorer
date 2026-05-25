@@ -318,6 +318,12 @@ export interface DatasetRecord {
 export interface DbStatus {
   schemaVersion: number;
   backend: 'opfs' | 'memory';
+  /**
+   * Short, user-facing explanation of why the in-memory fallback was used.
+   * Null when `backend === 'opfs'` or when no fallback diagnosis is
+   * available. Surfaced in the sidebar tooltip and Settings page.
+   */
+  fallbackReason: string | null;
   counts: {
     items: number;
     equips: number;

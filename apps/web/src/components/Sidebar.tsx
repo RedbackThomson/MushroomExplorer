@@ -352,17 +352,16 @@ const APP_VERSION_LABEL = (import.meta.env.VITE_APP_VERSION as string | undefine
 
 type DbHealth = 'pending' | 'healthy' | 'warning' | 'error';
 
-const HEALTH_CONFIG: Record<
-  DbHealth,
-  {
-    icon: LucideIcon;
-    label: string;
-    title: string;
-    iconClass: string;
-    textClass?: string;
-    spin?: boolean;
-  }
-> = {
+interface HealthCfg {
+  icon: LucideIcon;
+  label: string;
+  title: string;
+  iconClass: string;
+  textClass?: string;
+  spin?: boolean;
+}
+
+const HEALTH_CONFIG: Record<DbHealth, HealthCfg> = {
   pending: {
     icon: Loader2,
     label: 'Checking database…',
@@ -373,13 +372,14 @@ const HEALTH_CONFIG: Record<
   healthy: {
     icon: CheckCircle2,
     label: 'Database OK',
-    title: 'Database is healthy',
+    title: 'Database is healthy and persisted to OPFS',
     iconClass: 'text-green-600 dark:text-green-400',
   },
   warning: {
     icon: AlertTriangle,
-    label: 'Re-import recommended',
-    title: 'Database has problems — a re-import may be needed',
+    label: 'In-memory only',
+    title:
+      'Persistent storage (OPFS) is unavailable, so the database lives only in memory. Reloading the page will wipe it and require re-importing.',
     iconClass: 'text-amber-600 dark:text-amber-400',
     textClass: 'text-amber-700 dark:text-amber-300',
   },
@@ -422,27 +422,43 @@ function OfflineIndicator({ collapsed }: { collapsed: boolean }) {
 
 function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
   const db = useMemo(() => getDbClient(), []);
-  const statusQ = useQuery({
-    queryKey: ['db', 'status'],
-    queryFn: () => db.status(),
-  });
+  const userDb = useMemo(() => getUserDbClient(), []);
+  // Both DBs share the same OPFS-or-bust definition of "healthy" — if either
+  // is on the in-memory fallback the user loses that DB's contents on
+  // reload, so we surface a warning regardless of which side it is.
+  const gameStatusQ = useQuery({ queryKey: ['db', 'status'], queryFn: () => db.status() });
+  const userStatusQ = useQuery({ queryKey: ['user', 'status'], queryFn: () => userDb.status() });
 
-  // `warning` (needs re-import) and the corruption branch of `error` have no
-  // detection wired up yet — for now we surface only the binary "status query
-  // succeeded vs threw". Both UI states are kept defined so the future signals
-  // have a place to land.
   let health: DbHealth;
-  if (statusQ.isPending) health = 'pending';
-  else if (statusQ.isError) health = 'error';
-  else health = 'healthy';
+  let reason: string | null = null;
+  if (gameStatusQ.isPending || userStatusQ.isPending) {
+    health = 'pending';
+  } else if (gameStatusQ.isError || userStatusQ.isError) {
+    health = 'error';
+  } else {
+    const inMemory: string[] = [];
+    if (gameStatusQ.data.backend !== 'opfs') {
+      inMemory.push(`Game DB: ${gameStatusQ.data.fallbackReason ?? 'OPFS unavailable.'}`);
+    }
+    if (userStatusQ.data.backend !== 'opfs') {
+      inMemory.push(`User DB: ${userStatusQ.data.fallbackReason ?? 'OPFS unavailable.'}`);
+    }
+    if (inMemory.length > 0) {
+      health = 'warning';
+      reason = inMemory.join('\n');
+    } else {
+      health = 'healthy';
+    }
+  }
 
   const cfg = HEALTH_CONFIG[health];
   const Icon = cfg.icon;
+  const title = reason ? `${cfg.title}\n\n${reason}` : cfg.title;
 
   return (
     <div
       className={cn(collapsed ? 'flex justify-center px-2 py-2' : 'px-3 pb-2 pt-3')}
-      title={cfg.title}
+      title={title}
       role="status"
       aria-live="polite"
     >
