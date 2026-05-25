@@ -196,7 +196,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
         willRun: [...willRun],
       });
 
-      // --- Phase 1: parallel load --------------------------------------
+      // --- Step 1: parallel load --------------------------------------
       const loadResults: Partial<Record<PoolWorkerName, WorkerLoadResult>> = {};
       await Promise.all(
         activeWorkers.map(async (name) => {
@@ -213,7 +213,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
             const result = await worker.load(files, onProgress);
             loadResults[name] = result;
             // Load done. Move each extractor on this worker to `waiting`.
-            // The extract phase below promotes them to `extracting` one at
+            // The extract step below promotes them to `extracting` one at
             // a time (so the items worker's `item` and `equip` rows show
             // sequential progress).
             patchWorkerExtractors(name, { phase: 'waiting', progress: null });
@@ -229,7 +229,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
         }),
       );
 
-      // --- Phase 2: parallel extract -----------------------------------
+      // --- Step 2: parallel extract -----------------------------------
       const perExtractor: ExtractorResultRecord[] = [];
       let skippedTotal = 0;
 
@@ -294,7 +294,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
 
       const ms = Math.round(performance.now() - started);
 
-      // --- Phase 3: record dataset -------------------------------------
+      // --- Step 3: record dataset -------------------------------------
       const errorByName = new Map<string, string>();
       for (const [, r] of Object.entries(loadResults)) {
         for (const e of r?.errors ?? []) errorByName.set(e.name, e.message);

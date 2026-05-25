@@ -9,7 +9,7 @@ import {
 } from '../helpers/localFixtures';
 
 /**
- * Phase 1 integration test against real MapleRoyals WZ files.
+ * Integration test against real MapleRoyals WZ files.
  *
  * These tests only run when files are present in `test/fixtures/local/`.
  * Drop your own files there; see that directory's README for details. CI runs

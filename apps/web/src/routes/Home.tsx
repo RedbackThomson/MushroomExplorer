@@ -37,8 +37,8 @@ function Welcome() {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Welcome</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Set up your wiki by loading your local WZ files. Everything stays in your browser — no
-          uploads, no remote services.
+          A personal wiki that adapts to your version of the Mushroom Game. Load your game files to
+          fill it in.
         </p>
       </header>
       <Link
@@ -104,9 +104,6 @@ function Dashboard({ features }: { features: ReturnType<typeof useFeatures> }) {
     <div className="max-w-4xl space-y-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Mushroom Explorer</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Browse the data you've loaded. Search anything in the top bar, or pick a category below.
-        </p>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -131,10 +128,9 @@ function Dashboard({ features }: { features: ReturnType<typeof useFeatures> }) {
         <div className="border-border bg-muted/40 rounded-md border p-4 text-sm">
           <p className="font-medium">Want more sections?</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Other entity types appear here once you load their{' '}
-            <code className="font-mono">.wz</code> files.{' '}
-            <Link to="/settings" className="text-primary hover:underline">
-              Manage WZ files in Settings →
+            More categories appear here once you load more game files.{' '}
+            <Link to="/setup" className="text-primary hover:underline">
+              Add files in Setup →
             </Link>
           </p>
         </div>

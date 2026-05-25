@@ -82,7 +82,7 @@ export async function extractItems(
   const items: ItemRecord[] = [];
   const skipped: { reason: string; path: string }[] = [];
 
-  // --- Phase 1: discovery -------------------------------------------------
+  // --- Step 1: discovery --------------------------------------------------
   const work: WorkUnit[] = [];
   let total = 0;
   for (const spec of CATEGORIES) {
@@ -111,7 +111,7 @@ export async function extractItems(
   }
   log.info('discovery complete', { totalItems: total, groups: work.length });
 
-  // --- Phase 2: extraction -----------------------------------------------
+  // --- Step 2: extraction -------------------------------------------------
   let processed = 0;
   for (const { spec, group, ids } of work) {
     for (const { id, node } of ids) {

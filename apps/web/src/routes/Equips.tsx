@@ -61,13 +61,11 @@ export default function Equips() {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Equips</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Non-weapon equipment stats and icons from{' '}
-          <code className="font-mono text-xs">Character.wz</code>, joined with localized names from{' '}
-          <code className="font-mono text-xs">String.wz/Eqp.img</code>. Weapons live under{' '}
+          Armor, accessories, and other wearable gear. Weapons are on the{' '}
           <Link to="/weapons" className="text-primary hover:underline">
             Weapons
-          </Link>
-          .
+          </Link>{' '}
+          page.
         </p>
       </header>
 
@@ -75,11 +73,11 @@ export default function Equips() {
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No equips yet. Load <code className="font-mono">Character.wz</code> via{' '}
+              No equips loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (

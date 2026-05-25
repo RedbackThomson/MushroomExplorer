@@ -34,8 +34,7 @@ export default function Collections() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Collections</h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            Saved lists of items, mobs, maps, and quests. Stored locally in a separate database
-            from your loaded game data — they survive WZ re-imports.
+            Bookmarked lists for tracking anything across the app.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +92,7 @@ export default function Collections() {
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
               No collections yet. Click "New collection" to create one, "Import" to restore from a
-              JSON file, or open any item, mob, or map page and click "Save".
+              previous export, or save items directly from any entity page.
             </p>
           </div>
         ) : (

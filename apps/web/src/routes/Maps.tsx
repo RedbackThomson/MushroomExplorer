@@ -42,21 +42,17 @@ export default function Maps() {
     <div className="max-w-6xl space-y-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Maps</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Map metadata, NPC/mob placements, and portals extracted from{' '}
-          <code className="font-mono text-xs">Map.wz</code>.
-        </p>
       </header>
 
       <section className="space-y-3">
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No maps yet. Load <code className="font-mono">Map.wz</code> via{' '}
+              No maps loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (

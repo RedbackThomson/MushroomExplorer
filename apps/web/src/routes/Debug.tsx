@@ -83,10 +83,10 @@ export default function Debug() {
   return (
     <div className="max-w-4xl space-y-8">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Parser debug</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Diagnostics</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Phase 1 spike. Load your own WZ files, inspect the parsed tree, and look up a node by
-          path. Files never leave your browser.
+          Inspect loaded files, look up entries by path, and capture a diagnostics report when
+          something looks wrong.
         </p>
       </header>
 
@@ -199,9 +199,9 @@ export default function Debug() {
 }
 
 /**
- * Phase 2 round-trip demo: take a String.wz item node, fetch its localized
- * name + description, and write it to the local database. The Items route
- * shows what's in the DB across reloads.
+ * Round-trip demo: take a String.wz item node, fetch its localized name +
+ * description, and write it to the local database. The Items route shows
+ * what's in the DB across reloads.
  */
 function SaveItemPanel({ node }: { node: WzNodeInfo }) {
   const parser = useMemo(() => getParserClient(), []);
@@ -318,8 +318,9 @@ function resolveItemTarget(fullPath: string): { itemPath: string; id: number } |
 }
 
 /**
- * Best-effort category inference from a String.wz path. Replaced by proper
- * extractors in Phase 3.
+ * Best-effort category inference from a String.wz path. Used only by the
+ * manual save-from-lookup flow on this page; bulk extractors do this
+ * properly via their own category mapping.
  */
 function inferCategory(path: string): string | null {
   const match = path.match(/String\.wz\/([^/]+)\.img/i);

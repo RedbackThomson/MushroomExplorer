@@ -15,12 +15,10 @@ export function ExtractAllPanel() {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Bulk extract to database</h2>
+      <h2 className="text-lg font-semibold">Re-index everything</h2>
       <p className="text-muted-foreground text-sm">
-        Walks every loaded WZ file: items + equips + mobs + NPCs + maps (with their NPC, mob, and
-        portal placements) + quests (with their requirements and rewards). Records are saved to
-        the local SQLite database. Map.wz extraction is memory-intensive — load it only if you
-        want full map data.
+        Runs every available extractor against the currently loaded files and writes results into
+        your library. Maps are memory-intensive — only run this if you want full map data.
       </p>
       <div className="flex items-center gap-3">
         <Button onClick={run} disabled={isRunning}>

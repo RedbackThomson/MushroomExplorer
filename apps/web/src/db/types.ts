@@ -1,8 +1,7 @@
 // Public types for the DB layer.
 //
 // These cross the worker boundary, so they must be structured-cloneable.
-// Domain types here mirror the SQL schema 1:1 — extractors (Phase 3+) will
-// populate them.
+// Domain types here mirror the SQL schema 1:1.
 
 export interface ItemRecord {
   id: number;

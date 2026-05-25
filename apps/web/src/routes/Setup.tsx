@@ -161,7 +161,7 @@ export default function Setup() {
         const sizeMb = (file.size / 1_000_000).toFixed(1);
         const proceed = confirm(
           `Replace the current database with ${file.name} (${sizeMb} MB)?\n\n` +
-            `This will discard everything currently in your local database. Your WZ files on disk are untouched.`,
+            `This will discard everything currently in your local library. Your game files on disk are untouched.`,
         );
         if (!proceed) return;
       }
@@ -398,7 +398,7 @@ export default function Setup() {
   const subtitle =
     stepMode === 'update'
       ? 'Add files for more categories, refresh existing ones, or drop a backup to restore.'
-      : 'Load your game files once. They stay on this device — nothing is uploaded.';
+      : 'Load your game files to build your personal wiki.';
 
   return (
     <WizardLayout

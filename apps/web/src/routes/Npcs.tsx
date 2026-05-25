@@ -42,21 +42,17 @@ export default function Npcs() {
     <div className="max-w-6xl space-y-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">NPCs</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Non-player characters extracted from <code className="font-mono text-xs">Npc.wz</code> and
-          joined with names from <code className="font-mono text-xs">String.wz/Npc.img</code>.
-        </p>
       </header>
 
       <section className="space-y-3">
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No NPCs yet. Load <code className="font-mono">Npc.wz</code> via{' '}
+              No NPCs loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (

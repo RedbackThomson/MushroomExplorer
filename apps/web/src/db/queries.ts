@@ -1,7 +1,4 @@
 // Domain query helpers built on top of the thin `Sqlite` wrapper.
-//
-// Phase 2 surface: items CRUD, datasets, status, clear-all. Extractors in
-// Phase 3+ will add equip/mob/npc/map/quest helpers alongside these.
 
 import type { Sqlite, Row } from './sqlite';
 import type {

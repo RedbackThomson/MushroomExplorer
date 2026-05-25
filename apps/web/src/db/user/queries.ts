@@ -1,7 +1,6 @@
 // Domain query helpers for the user-data SQLite file.
 //
 // Mirrors `db/queries.ts` shape so the worker passthrough stays uniform.
-// Phase C adds JSON and raw-bytes export/import for portability.
 
 import { Sqlite, type Row } from '../sqlite';
 import { USER_MIGRATIONS } from './migrations';

@@ -138,7 +138,7 @@ export interface UserDbStatus {
 }
 
 /**
- * Boundary contract for the user DB. Phase B surface.
+ * Boundary contract for the user DB.
  */
 export interface UserDatabase {
   open(): Promise<UserDbStatus>;

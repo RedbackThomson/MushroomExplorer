@@ -75,8 +75,7 @@ export default function Weapons() {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">{headerTitle}</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Weapons extracted from <code className="font-mono text-xs">Character.wz</code>,
-          classified by <code className="font-mono text-xs">Math.floor(id / 10000)</code>.
+          Filter by weapon type to see the stat columns most relevant to it.
         </p>
       </header>
 
@@ -84,11 +83,11 @@ export default function Weapons() {
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No weapons yet. Load <code className="font-mono">Character.wz</code> via{' '}
+              No weapons loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (

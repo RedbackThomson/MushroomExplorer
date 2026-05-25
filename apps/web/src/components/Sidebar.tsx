@@ -316,7 +316,7 @@ export function Sidebar({ variant = 'desktop' }: SidebarProps = {}) {
         </ul>
         <div className={cn('border-border mt-3 space-y-1 border-t pt-3', collapsed && 'mx-1')}>
           <NavItem to="/settings" icon={SettingsIcon} label="Settings" collapsed={collapsed} />
-          <NavItem to="/debug" icon={Wrench} label="Parser debug" collapsed={collapsed} />
+          <NavItem to="/debug" icon={Wrench} label="Diagnostics" collapsed={collapsed} />
         </div>
       </nav>
       <DbStatusIndicator collapsed={collapsed} />

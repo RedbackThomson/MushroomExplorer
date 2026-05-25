@@ -69,8 +69,8 @@ export function NavigationProvider() {
     },
     {
       id: 'nav-debug',
-      label: 'Parser debug',
-      keywords: ['wz', 'tree'],
+      label: 'Diagnostics',
+      keywords: ['debug', 'parser', 'wz', 'tree', 'troubleshoot'],
       to: '/debug',
       icon: Wrench,
     },

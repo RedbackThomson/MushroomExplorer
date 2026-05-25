@@ -70,12 +70,12 @@ export default function ItemDetail() {
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">Item not found</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          ID <code className="font-mono">{id}</code> isn't in the local database. Try running
-          extraction on the{' '}
-          <Link to="/debug" className="text-primary hover:underline">
-            /debug
+          Item <code className="font-mono">{id}</code> isn't in your library yet. It may not have
+          been loaded —{' '}
+          <Link to="/setup" className="text-primary hover:underline">
+            visit Setup
           </Link>{' '}
-          page.
+          to add more files.
         </p>
       </div>
     );
@@ -209,10 +209,13 @@ export default function ItemDetail() {
             </section>
           )}
 
-          <div className="text-muted-foreground text-xs">
-            <div className="uppercase tracking-wide">WZ path</div>
-            <code className="break-all font-mono">{item.sourcePath}</code>
-          </div>
+          <section>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide">Source</h2>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wide">WZ path</p>
+            <code className="text-muted-foreground break-all font-mono text-xs">
+              {item.sourcePath}
+            </code>
+          </section>
         </aside>
       </div>
     </div>

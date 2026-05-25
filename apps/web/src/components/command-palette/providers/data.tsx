@@ -22,8 +22,8 @@ const ENTRIES = [
   },
   {
     id: 'data-debug',
-    label: 'Parser debug',
-    keywords: ['wz', 'tree', 'debug'],
+    label: 'Diagnostics',
+    keywords: ['debug', 'parser', 'wz', 'tree', 'troubleshoot'],
     to: '/debug',
     icon: Wrench,
   },

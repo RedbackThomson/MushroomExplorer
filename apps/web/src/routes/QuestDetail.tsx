@@ -90,6 +90,14 @@ export default function QuestDetail() {
           <ArrowLeft className="h-4 w-4" /> Back to quests
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">Quest not found</h1>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Quest <code className="font-mono">{id}</code> isn't in your library yet. It may not have
+          been loaded —{' '}
+          <Link to="/setup" className="text-primary hover:underline">
+            visit Setup
+          </Link>{' '}
+          to add more files.
+        </p>
       </div>
     );
   }
@@ -259,10 +267,13 @@ export default function QuestDetail() {
             </section>
           )}
 
-          <div className="text-muted-foreground text-xs">
-            <div className="uppercase tracking-wide">WZ path</div>
-            <code className="break-all font-mono">{q.sourcePath}</code>
-          </div>
+          <section>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide">Source</h2>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wide">WZ path</p>
+            <code className="text-muted-foreground break-all font-mono text-xs">
+              {q.sourcePath}
+            </code>
+          </section>
         </aside>
       </div>
     </div>

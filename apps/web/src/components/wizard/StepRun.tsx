@@ -77,11 +77,11 @@ export function StepRun({ version, files, forceAll, onComplete, mode }: Props) {
           <p className="mt-1 text-sm">{(extract.error as Error).message}</p>
         </div>
         <p className="text-muted-foreground text-sm">
-          You can fix the issue and try again. Diagnostics on{' '}
+          You can fix the issue and try again. The{' '}
           <Link to="/debug" className="text-primary hover:underline">
-            /debug
+            Diagnostics
           </Link>{' '}
-          have the full error chain.
+          page has the full error chain.
         </p>
       </section>
     );
@@ -110,11 +110,11 @@ export function StepRun({ version, files, forceAll, onComplete, mode }: Props) {
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-100">
             <h3 className="text-sm font-semibold">Some categories failed ({failedExtractors.length})</h3>
             <p className="mt-1 text-xs">
-              Diagnostics on{' '}
+              The{' '}
               <Link to="/debug" className="underline">
-                /debug
+                Diagnostics
               </Link>{' '}
-              have the full error chain.
+              page has the full error chain.
             </p>
             <ul className="mt-2 space-y-1 text-xs">
               {failedExtractors.map((k) => (

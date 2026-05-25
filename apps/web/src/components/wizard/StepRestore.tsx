@@ -77,7 +77,7 @@ export function StepRestore({ file, state, onPickAgain, onSwitchBack, parentMode
             <Upload className="h-4 w-4" /> Drop a different backup
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={onSwitchBack}>
-            <ArrowLeft className="h-4 w-4" /> Switch back to importing WZ files
+            <ArrowLeft className="h-4 w-4" /> Switch back to importing game files
           </Button>
         </div>
       </section>

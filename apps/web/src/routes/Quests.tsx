@@ -54,22 +54,17 @@ export default function Quests() {
     <div className="max-w-6xl space-y-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Quests</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Quest metadata, requirements, and rewards extracted from{' '}
-          <code className="font-mono text-xs">Quest.wz</code>, names joined from{' '}
-          <code className="font-mono text-xs">String.wz/Quest.img</code>.
-        </p>
       </header>
 
       <section className="space-y-3">
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No quests yet. Load <code className="font-mono">Quest.wz</code> via{' '}
+              No quests loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (

@@ -56,7 +56,7 @@ export default function Settings() {
   const onClear = useCallback(() => {
     if (
       confirm(
-        'Clear all data from the local database? Loaded items, mobs, NPCs, maps, and dataset records will be deleted. Your WZ files on disk are untouched.',
+        'Clear all data from the local library? Every loaded item, mob, NPC, map, and quest will be removed. Your game files on disk are untouched.',
       )
     ) {
       clearM.mutate();
@@ -107,7 +107,7 @@ export default function Settings() {
       const sizeMb = (file.size / 1_000_000).toFixed(1);
       const proceed = confirm(
         `Replace the current database with ${file.name} (${sizeMb} MB)?\n\n` +
-          `This will discard everything currently in your local database. Your WZ files on disk are untouched.`,
+          `This will discard everything currently in your local database. Your game files on disk are untouched.`,
       );
       if (!proceed) return;
       importM.mutate(file);
@@ -119,9 +119,6 @@ export default function Settings() {
     <div className="max-w-3xl space-y-8">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Manage your locally stored data and appearance preferences.
-        </p>
       </header>
 
       {/* --- Database health ----------------------------------------------- */}
@@ -192,8 +189,8 @@ export default function Settings() {
                   Clear database
                 </Button>
                 <p className="text-muted-foreground text-xs">
-                  Wipes every loaded item, equip, mob, NPC, map, quest, and dataset record. Your
-                  WZ files on disk are untouched.
+                  Removes every loaded entity from your library. Your game files on disk are
+                  untouched.
                 </p>
               </div>
             </>
@@ -209,10 +206,10 @@ export default function Settings() {
         </div>
 
         <div className="border-border bg-card text-card-foreground rounded-md border p-4">
-          <h3 className="text-sm font-semibold">Recent extraction runs</h3>
+          <h3 className="text-sm font-semibold">Recent setup runs</h3>
           <p className="text-muted-foreground mt-1 text-xs">
-            Each wizard run records the files it loaded and what each extractor produced. Expand
-            a row to see per-file load results and per-entity row counts.
+            Each setup run records which files were loaded and what was indexed. Expand a row to
+            see per-file results and counts.
           </p>
           {datasetsQ.isLoading && (
             <p className="text-muted-foreground mt-2 text-sm">
@@ -221,7 +218,7 @@ export default function Settings() {
           )}
           {datasetsQ.data && datasetsQ.data.length === 0 && (
             <p className="text-muted-foreground mt-2 text-sm">
-              No WZ files loaded yet. Start by setting up your wiki.
+              No game files loaded yet. Start by setting up your wiki.
             </p>
           )}
           {datasetsQ.data && datasetsQ.data.length > 0 && (
@@ -243,7 +240,7 @@ export default function Settings() {
               className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium"
             >
               <Upload className="h-4 w-4" />
-              Manage WZ files
+              Manage game files
             </Link>
           </div>
           <p className="text-muted-foreground mt-2 text-xs">
@@ -254,9 +251,9 @@ export default function Settings() {
         <div className="border-border bg-card text-card-foreground rounded-md border p-4">
           <h3 className="text-sm font-semibold">Database file</h3>
           <p className="text-muted-foreground mt-1 text-xs">
-            Export the local database as a <code className="font-mono">.sqlite3</code> file —
-            useful for sharing a pre-built index or backing up before clearing. Import replaces
-            everything currently stored on this device.
+            Save your library as a backup file, or restore from one. Useful for moving between
+            browsers or sharing a pre-built library. Importing replaces everything currently on
+            this device.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Button
@@ -603,11 +600,10 @@ function UserDataSection() {
       </div>
 
       <div className="border-border bg-card text-card-foreground rounded-md border p-4">
-        <h3 className="text-sm font-semibold">Collections database file</h3>
+        <h3 className="text-sm font-semibold">Collections backup</h3>
         <p className="text-muted-foreground mt-1 text-xs">
-          Export the raw <code className="font-mono">user.sqlite3</code> file — useful as a
-          bit-for-bit backup before clearing data, or to move collections between browsers. Import
-          replaces every collection currently stored on this device.
+          Back up your collections as a single file, or restore from one. Importing replaces every
+          collection currently on this device.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button

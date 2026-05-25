@@ -66,6 +66,14 @@ export default function EquipDetail() {
           <ArrowLeft className="h-4 w-4" /> Back to equips
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">Equip not found</h1>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Equip <code className="font-mono">{id}</code> isn't in your library yet. It may not have
+          been loaded —{' '}
+          <Link to="/setup" className="text-primary hover:underline">
+            visit Setup
+          </Link>{' '}
+          to add more files.
+        </p>
       </div>
     );
   }
@@ -206,10 +214,13 @@ export default function EquipDetail() {
             </section>
           )}
 
-          <div className="text-muted-foreground text-xs">
-            <div className="uppercase tracking-wide">WZ path</div>
-            <code className="break-all font-mono">{e.sourcePath}</code>
-          </div>
+          <section>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide">Source</h2>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wide">WZ path</p>
+            <code className="text-muted-foreground break-all font-mono text-xs">
+              {e.sourcePath}
+            </code>
+          </section>
         </aside>
       </div>
     </div>

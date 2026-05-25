@@ -55,8 +55,7 @@ export default function Items() {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Items</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Items extracted from <code className="font-mono text-xs">Item.wz</code>, joined with
-          localized names from <code className="font-mono text-xs">String.wz</code>.
+          Consumables, scrolls, etc, and setup items. Equipment is listed separately.
         </p>
       </header>
 
@@ -64,11 +63,11 @@ export default function Items() {
         {isEmpty ? (
           <div className="border-border bg-muted/40 rounded-md border p-6 text-center text-sm">
             <p className="text-muted-foreground">
-              No items yet. Load <code className="font-mono">Item.wz</code> via{' '}
+              No items loaded yet.{' '}
               <Link to="/setup" className="text-primary hover:underline">
-                setup
+                Run setup
               </Link>{' '}
-              to populate this list.
+              to add them.
             </p>
           </div>
         ) : (
