@@ -1,15 +1,19 @@
 import { useEffect } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Palette } from '@/components/command-palette/Palette';
 import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { useFeatures } from '@/lib/useFeatures';
+import { useSidebarLayout } from '@/lib/sidebarState';
 
 export function AppShell() {
   useFirstRunRedirect();
   return (
     <div className="flex h-full w-full">
       <Sidebar />
+      <MobileSidebarDrawer />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="flex-1 overflow-y-auto">
@@ -20,6 +24,44 @@ export function AppShell() {
       </div>
       <Palette />
     </div>
+  );
+}
+
+/**
+ * Mobile-only slide-in nav drawer. Auto-closes on route change so tapping a
+ * nav link doesn't strand the user on the new page with the drawer still
+ * covering it.
+ */
+function MobileSidebarDrawer() {
+  const open = useSidebarLayout((s) => s.mobileOpen);
+  const setOpen = useSidebarLayout((s) => s.setMobileOpen);
+  const location = useLocation();
+  useEffect(() => {
+    if (open) setOpen(false);
+    // Intentionally only depends on the URL — closing on every URL change is
+    // the desired behavior, regardless of whether `open` was true at render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:hidden" />
+        <DialogPrimitive.Content
+          aria-label="Navigation"
+          className="bg-sidebar fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col shadow-xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left md:hidden"
+        >
+          <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
+          <DialogPrimitive.Close
+            aria-label="Close navigation menu"
+            className="text-sidebar-muted hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2"
+          >
+            <X className="h-4 w-4" />
+          </DialogPrimitive.Close>
+          <Sidebar variant="mobile" />
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 

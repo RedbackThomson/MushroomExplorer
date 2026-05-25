@@ -1,10 +1,11 @@
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, PanelLeftClose, PanelLeftOpen, Sidebar as SidebarIcon, Sun, type LucideIcon } from 'lucide-react';
 import {
   CommandGroup,
   CommandItem as CommandItemPrimitive,
 } from '@/components/ui/command';
 import { useCommandPalette } from '@/lib/useCommandPalette';
 import { useTheme, type ThemeMode } from '@/lib/theme';
+import { useSidebarLayout } from '@/lib/sidebarState';
 
 function fuzzy(q: string, hay: string): boolean {
   const t = q.trim().toLowerCase();
@@ -24,18 +25,73 @@ const THEME_CHOICES: ThemeChoice[] = [
   { id: 'system', label: 'Theme: System', icon: Monitor },
 ];
 
+interface SidebarCommand {
+  id: 'collapse' | 'expand' | 'toggle';
+  label: string;
+  keywords: string[];
+  icon: LucideIcon;
+  /** Only surfaces when the resolved layout matches this state, so we don't
+   *  offer "Collapse" while already collapsed. `toggle` has no precondition. */
+  visibleWhen?: (collapsed: boolean) => boolean;
+  run: (api: {
+    collapsed: boolean;
+    setCollapsed: (v: boolean) => void;
+    toggleCollapsed: () => void;
+  }) => void;
+}
+
+const SIDEBAR_COMMANDS: SidebarCommand[] = [
+  {
+    id: 'collapse',
+    label: 'Sidebar: Collapse',
+    keywords: ['sidebar', 'collapse', 'hide', 'nav'],
+    icon: PanelLeftClose,
+    visibleWhen: (collapsed) => !collapsed,
+    run: ({ setCollapsed }) => setCollapsed(true),
+  },
+  {
+    id: 'expand',
+    label: 'Sidebar: Expand',
+    keywords: ['sidebar', 'expand', 'show', 'open', 'nav'],
+    icon: PanelLeftOpen,
+    visibleWhen: (collapsed) => collapsed,
+    run: ({ setCollapsed }) => setCollapsed(false),
+  },
+  {
+    id: 'toggle',
+    label: 'Sidebar: Toggle',
+    keywords: ['sidebar', 'toggle', 'nav'],
+    icon: SidebarIcon,
+    run: ({ toggleCollapsed }) => toggleCollapsed(),
+  },
+];
+
 export function TogglesProvider() {
   const setOpen = useCommandPalette((s) => s.setOpen);
   const query = useCommandPalette((s) => s.query);
   const current = useTheme((s) => s.mode);
   const setMode = useTheme((s) => s.setMode);
+  const collapsed = useSidebarLayout((s) => s.collapsed);
+  const setCollapsed = useSidebarLayout((s) => s.setCollapsed);
+  const toggleCollapsed = useSidebarLayout((s) => s.toggleCollapsed);
 
-  const items = THEME_CHOICES.filter((c) => fuzzy(query, c.label));
-  if (items.length === 0) return null;
+  const themeItems = THEME_CHOICES.filter((c) => fuzzy(query, c.label));
+  // Sidebar commands are intentionally hidden on an empty query — they're
+  // utilities most users won't reach for, and we'd rather not crowd the
+  // cold-open palette. They surface as soon as the user types something
+  // matching ("sidebar", "collapse", "toggle", "nav", …).
+  const hasQuery = query.trim().length > 0;
+  const sidebarItems = hasQuery
+    ? SIDEBAR_COMMANDS.filter((c) => !c.visibleWhen || c.visibleWhen(collapsed)).filter((c) =>
+        fuzzy(query, `${c.label} ${c.keywords.join(' ')}`),
+      )
+    : [];
+
+  if (themeItems.length === 0 && sidebarItems.length === 0) return null;
 
   return (
     <CommandGroup heading="Toggles">
-      {items.map((c) => {
+      {themeItems.map((c) => {
         const Icon = c.icon;
         return (
           <CommandItemPrimitive
@@ -52,6 +108,23 @@ export function TogglesProvider() {
             {current === c.id && (
               <span className="text-muted-foreground shrink-0 text-xs">Active</span>
             )}
+          </CommandItemPrimitive>
+        );
+      })}
+      {sidebarItems.map((c) => {
+        const Icon = c.icon;
+        return (
+          <CommandItemPrimitive
+            key={`sidebar-${c.id}`}
+            value={`sidebar-${c.id}`}
+            keywords={c.keywords}
+            onSelect={() => {
+              c.run({ collapsed, setCollapsed, toggleCollapsed });
+              setOpen(false);
+            }}
+          >
+            <Icon className="text-muted-foreground h-4 w-4" />
+            <span className="min-w-0 flex-1 truncate">{c.label}</span>
           </CommandItemPrimitive>
         );
       })}

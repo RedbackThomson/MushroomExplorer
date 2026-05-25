@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Loader2,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   Shield,
   Skull,
   Swords,
@@ -22,7 +24,7 @@ import {
 } from 'lucide-react';
 import { WEAPON_TYPE_ORDER, labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
 import { useFeatures } from '@/lib/useFeatures';
-import { useSidebarSections } from '@/lib/sidebarState';
+import { useSidebarLayout, useSidebarSections } from '@/lib/sidebarState';
 import { getDbClient } from '@/db';
 import { getUserDbClient } from '@/db/user';
 import { resolveCollectionColor, resolveCollectionIcon } from '@/components/collections';
@@ -54,13 +56,29 @@ const ITEM_CATEGORY_CHILDREN = [
   { label: 'Cash', to: '/items?f_category=cash' },
 ];
 
-export function Sidebar() {
+export interface SidebarProps {
+  /**
+   * `mobile`: the sidebar is rendered inside the mobile slide-in drawer
+   * (always visible, full content, parent owns the open/close).
+   */
+  variant?: 'desktop' | 'mobile';
+}
+
+export function Sidebar({ variant = 'desktop' }: SidebarProps = {}) {
   const features = useFeatures();
   const db = useMemo(() => getDbClient(), []);
   const userDb = useMemo(() => getUserDbClient(), []);
   const location = useLocation();
   const expanded = useSidebarSections((s) => s.expanded);
   const toggleSection = useSidebarSections((s) => s.toggle);
+  const collapsedDesktop = useSidebarLayout((s) => s.collapsed);
+  const toggleCollapsed = useSidebarLayout((s) => s.toggleCollapsed);
+  // Mobile drawer always renders the full sidebar — collapsed state only
+  // applies to the desktop rail.
+  const collapsed = variant === 'desktop' && collapsedDesktop;
+  // Only the desktop variant gets the collapse toggle — mobile uses the
+  // drawer's own close button, and collapsing makes no sense there.
+  const showCollapseToggle = variant === 'desktop';
 
   const slotsQ = useQuery({
     queryKey: ['db', 'equip-slots'],
@@ -158,17 +176,56 @@ export function Sidebar() {
   };
   const sectionsToRender = [...entitySections, collectionsSection];
 
+  // Desktop visibility is controlled here; mobile variant is rendered inside
+  // a Dialog that handles its own visibility, so it must always be visible
+  // and take its parent's width.
+  const rootClass =
+    variant === 'mobile'
+      ? 'bg-sidebar text-sidebar-foreground border-border flex h-full w-full flex-col'
+      : cn(
+          'bg-sidebar text-sidebar-foreground border-border hidden shrink-0 border-r transition-[width] duration-200 ease-out md:flex md:flex-col',
+          collapsed ? 'w-14' : 'w-60',
+        );
+
   return (
-    <aside className="bg-sidebar text-sidebar-foreground border-border hidden w-60 shrink-0 border-r md:flex md:flex-col">
-      <div className="border-border flex h-14 items-center gap-2 border-b px-4">
-        <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded font-bold">
-          M
-        </div>
-        <span className="font-semibold tracking-tight">Mushroom</span>
+    <aside className={rootClass}>
+      <div
+        className={cn(
+          'border-border flex h-14 items-center border-b',
+          collapsed ? 'justify-center px-2' : 'gap-2 px-4',
+        )}
+      >
+        {!collapsed && (
+          <>
+            <div className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded font-bold">
+              M
+            </div>
+            <span className="font-semibold tracking-tight">Mushroom</span>
+          </>
+        )}
+        {showCollapseToggle && (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-pressed={collapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'text-sidebar-muted hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors',
+              !collapsed && 'ml-auto',
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" aria-hidden />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" aria-hidden />
+            )}
+          </button>
+        )}
       </div>
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className={cn('flex-1 overflow-y-auto', collapsed ? 'px-1 py-2' : 'p-2')}>
         <ul className="space-y-1">
-          <NavItem to="/" icon={Home} label="Home" end />
+          <NavItem to="/" icon={Home} label="Home" end collapsed={collapsed} />
           {sectionsToRender.map((section) => {
             // Section's own link uses `end` so query-string children don't
             // also light up the parent — we drive parent active state
@@ -176,8 +233,30 @@ export function Sidebar() {
             // is selected.
             const sectionActive = location.pathname === section.to;
             const hasChildren = !!section.children && section.children.length > 0;
-            const isExpanded = !!expanded[section.to];
+            const isExpanded = !collapsed && !!expanded[section.to];
             const childListId = `sidebar-children-${section.to.replace(/[^a-z0-9]/gi, '-')}`;
+            if (collapsed) {
+              // In the collapsed rail, children are inaccessible — only the
+              // parent route is reachable. Tooltip via `title` for discovery.
+              return (
+                <li key={section.to}>
+                  <NavLink
+                    to={section.to}
+                    end
+                    title={section.label}
+                    aria-label={section.label}
+                    className={cn(
+                      'flex items-center justify-center rounded-md p-2 transition-colors',
+                      sectionActive
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-sidebar-muted hover:bg-accent hover:text-accent-foreground',
+                    )}
+                  >
+                    <section.icon className="h-4 w-4" />
+                  </NavLink>
+                </li>
+              );
+            }
             return (
               <li key={section.to}>
                 <div
@@ -235,13 +314,15 @@ export function Sidebar() {
             );
           })}
         </ul>
-        <div className="border-border mt-3 space-y-1 border-t pt-3">
-          <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
-          <NavItem to="/debug" icon={Wrench} label="Parser debug" />
+        <div className={cn('border-border mt-3 space-y-1 border-t pt-3', collapsed && 'mx-1')}>
+          <NavItem to="/settings" icon={SettingsIcon} label="Settings" collapsed={collapsed} />
+          <NavItem to="/debug" icon={Wrench} label="Parser debug" collapsed={collapsed} />
         </div>
       </nav>
-      <DbStatusIndicator />
-      <div className="text-sidebar-muted px-3 pb-3 text-[10px]">{APP_VERSION_LABEL}</div>
+      <DbStatusIndicator collapsed={collapsed} />
+      {!collapsed && (
+        <div className="text-sidebar-muted px-3 pb-3 text-[10px]">{APP_VERSION_LABEL}</div>
+      )}
     </aside>
   );
 }
@@ -293,7 +374,7 @@ const HEALTH_CONFIG: Record<
   },
 };
 
-function DbStatusIndicator() {
+function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
   const db = useMemo(() => getDbClient(), []);
   const statusQ = useQuery({
     queryKey: ['db', 'status'],
@@ -314,20 +395,30 @@ function DbStatusIndicator() {
 
   return (
     <div
-      className="border-border border-t px-3 pb-2 pt-3"
+      className={cn(
+        'border-border border-t',
+        collapsed ? 'flex justify-center px-2 py-2' : 'px-3 pb-2 pt-3',
+      )}
       title={cfg.title}
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-2 text-xs">
+      {collapsed ? (
         <Icon
-          className={cn('h-3.5 w-3.5 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
-          aria-hidden
+          className={cn('h-4 w-4 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
+          aria-label={cfg.label}
         />
-        <span className={cn('truncate', cfg.textClass ?? 'text-sidebar-foreground')}>
-          {cfg.label}
-        </span>
-      </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs">
+          <Icon
+            className={cn('h-3.5 w-3.5 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
+            aria-hidden
+          />
+          <span className={cn('truncate', cfg.textClass ?? 'text-sidebar-foreground')}>
+            {cfg.label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -337,20 +428,25 @@ function NavItem({
   icon: Icon,
   label,
   end,
+  collapsed,
 }: {
   to: string;
   icon: LucideIcon;
   label: string;
   end?: boolean;
+  collapsed?: boolean;
 }) {
   return (
     <li>
       <NavLink
         to={to}
         end={end}
+        title={collapsed ? label : undefined}
+        aria-label={collapsed ? label : undefined}
         className={({ isActive }) =>
           cn(
-            'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+            'flex items-center rounded-md text-sm font-medium transition-colors',
+            collapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2',
             isActive
               ? 'bg-accent text-accent-foreground'
               : 'text-sidebar-muted hover:bg-accent hover:text-accent-foreground',
@@ -358,7 +454,7 @@ function NavItem({
         }
       >
         <Icon className="h-4 w-4" />
-        {label}
+        {!collapsed && label}
       </NavLink>
     </li>
   );

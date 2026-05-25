@@ -36,3 +36,39 @@ export const useSidebarSections = create<SidebarStore>((set, get) => ({
     set({ expanded: next });
   },
 }));
+
+interface SidebarLayoutStore {
+  /** Desktop: render the sidebar as a narrow icon-only rail. Persisted. */
+  collapsed: boolean;
+  toggleCollapsed: () => void;
+  setCollapsed: (v: boolean) => void;
+  /** Mobile: the slide-in drawer is open. Not persisted. */
+  mobileOpen: boolean;
+  setMobileOpen: (v: boolean) => void;
+}
+
+const COLLAPSED_KEY = 'mushex.sidebar.collapsed';
+
+function readCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(COLLAPSED_KEY) === '1';
+}
+
+function persistCollapsed(v: boolean) {
+  window.localStorage.setItem(COLLAPSED_KEY, v ? '1' : '0');
+}
+
+export const useSidebarLayout = create<SidebarLayoutStore>((set, get) => ({
+  collapsed: readCollapsed(),
+  toggleCollapsed: () => {
+    const next = !get().collapsed;
+    persistCollapsed(next);
+    set({ collapsed: next });
+  },
+  setCollapsed: (v) => {
+    persistCollapsed(v);
+    set({ collapsed: v });
+  },
+  mobileOpen: false,
+  setMobileOpen: (v) => set({ mobileOpen: v }),
+}));
