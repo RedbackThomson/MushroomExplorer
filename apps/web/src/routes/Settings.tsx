@@ -28,6 +28,7 @@ import {
 import { useTheme } from '@/lib/theme';
 import { shortHash } from '@/lib/hashFile';
 import { createLogger, describeError } from '@/lib/logger';
+import { acceptForDesktop } from '@/lib/filePickerAccept';
 import { cn } from '@/lib/utils';
 
 const log = createLogger('settings');
@@ -293,7 +294,7 @@ export default function Settings() {
             <input
               ref={importInputRef}
               type="file"
-              accept=".sqlite3,.sqlite,.db,application/vnd.sqlite3"
+              accept={acceptForDesktop('.sqlite3,.sqlite,.db,application/vnd.sqlite3')}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -641,7 +642,7 @@ function UserDataSection() {
           <input
             ref={importInputRef}
             type="file"
-            accept=".sqlite3,.sqlite,.db,application/vnd.sqlite3"
+            accept={acceptForDesktop('.sqlite3,.sqlite,.db,application/vnd.sqlite3')}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

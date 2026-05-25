@@ -17,6 +17,7 @@ import { getDbClient } from '@/db';
 import { createLogger, describeError } from '@/lib/logger';
 import { cn } from '@/lib/utils';
 import { useWizardMode } from '@/lib/useWizardMode';
+import { acceptForDesktop } from '@/lib/filePickerAccept';
 import type { WzMapleVersionName } from '@/parser';
 
 const log = createLogger('setup');
@@ -478,7 +479,7 @@ function RestoreDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3"
+          accept={acceptForDesktop('.sqlite,.sqlite3,.db,application/vnd.sqlite3')}
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

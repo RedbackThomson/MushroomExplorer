@@ -16,6 +16,7 @@ import { sha256OfFile, shortHash } from '@/lib/hashFile';
 import { createLogger, describeError } from '@/lib/logger';
 import type { Features } from '@/lib/useFeatures';
 import { cn } from '@/lib/utils';
+import { acceptForDesktop } from '@/lib/filePickerAccept';
 import type { WzMapleVersionName } from '@/parser';
 import { splitByKind } from './dropClassify';
 import { EntityStatus } from './EntityStatus';
@@ -243,7 +244,7 @@ export function StepFiles({
           <input
             ref={inputRef}
             type="file"
-            accept=".wz,.sqlite,.sqlite3,.db,application/vnd.sqlite3"
+            accept={acceptForDesktop('.wz,.sqlite,.sqlite3,.db,application/vnd.sqlite3')}
             multiple
             className="hidden"
             onChange={(e) => {
