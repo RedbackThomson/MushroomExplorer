@@ -509,6 +509,11 @@ export interface GameDatabase {
   /** Find the most recent dataset_files row whose hash matches, or null. */
   findFileByHash(hash: string): Promise<DatasetFileRef | null>;
 
+  /** The selected server profile's id (singleton row). */
+  getServerProfile(): Promise<string>;
+  /** Set the selected server profile by id. */
+  setServerProfile(profileId: string): Promise<void>;
+
   clearAllData(): Promise<void>;
 
   /**

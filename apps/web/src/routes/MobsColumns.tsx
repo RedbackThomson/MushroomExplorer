@@ -1,6 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Crown, Skull } from 'lucide-react';
 import { EntityIcon } from '@/components/EntityIcon';
+import { ExpValue } from '@/components/ExpValue';
 import { MobLink } from '@/components/entity-links';
 import type { MobRecord } from '@/db';
 import {
@@ -95,7 +96,7 @@ export const columns: ColumnDef<MobRecord>[] = [
     accessorFn: (m) => m.exp,
     header: 'EXP',
     meta: { filter: 'number' },
-    cell: ({ row }) => row.original.exp?.toLocaleString() ?? '—',
+    cell: ({ row }) => <ExpValue exp={row.original.exp} />,
   },
   ...elementColumns,
   {

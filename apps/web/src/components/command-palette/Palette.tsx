@@ -16,6 +16,7 @@ import { HelpProvider } from './providers/help';
 import { NavigationProvider } from './providers/navigation';
 import { PinCurrentProvider, PinnedSearchesProvider } from './providers/pinned';
 import { RecentsProvider } from './providers/recents';
+import { ServerProfileProvider } from './providers/serverProfile';
 import { TogglesProvider } from './providers/toggles';
 
 export function Palette() {
@@ -60,6 +61,7 @@ export function Palette() {
         <CollectionsNavigationProvider />
         <CollectionsCreateProvider />
         <TogglesProvider />
+        <ServerProfileProvider />
         <DataProvider />
         <FunProvider />
       </CommandList>

@@ -10,6 +10,7 @@ import {
   Database,
   Download,
   FileText,
+  Gamepad2,
   Loader2,
   Moon,
   Shield,
@@ -27,11 +28,9 @@ import {
   useImportUserDbBytes,
 } from '@/lib/useCollections';
 import { useTheme } from '@/lib/theme';
-import {
-  isAnalyticsAvailable,
-  isAnalyticsOptedOut,
-  setAnalyticsOptOut,
-} from '@/lib/analytics';
+import { useServerProfile, useSetServerProfile } from '@/lib/useServerProfile';
+import { BUILTIN_PROFILES } from '@/lib/serverProfiles';
+import { isAnalyticsAvailable, isAnalyticsOptedOut, setAnalyticsOptOut } from '@/lib/analytics';
 import { shortHash } from '@/lib/hashFile';
 import { createLogger, describeError } from '@/lib/logger';
 import { acceptForDesktop } from '@/lib/filePickerAccept';
@@ -324,6 +323,9 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* --- Server profile ------------------------------------------------- */}
+      <ServerProfileSection />
+
       {/* --- User data ------------------------------------------------------ */}
       <UserDataSection />
 
@@ -415,6 +417,52 @@ function PrivacySectionInner() {
               )}
             />
           </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ServerProfileSection() {
+  const sp = useServerProfile();
+  const setM = useSetServerProfile();
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Gamepad2 className="h-4 w-4" />
+        <h2 className="text-lg font-semibold">Server profile</h2>
+      </div>
+      <div className="border-border bg-card text-card-foreground space-y-4 rounded-md border p-4">
+        <p className="text-muted-foreground text-xs">
+          Tailor displayed calculations to your server. A profile sets the EXP rate and how dropped
+          equipment stat ranges are estimated.
+        </p>
+
+        <div className="space-y-2">
+          {BUILTIN_PROFILES.map((p) => {
+            const active = p.id === sp.profile.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setM.mutate(p.id)}
+                aria-pressed={active}
+                className={cn(
+                  'flex w-full flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition',
+                  active ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/40',
+                )}
+              >
+                <span className="flex w-full items-center gap-2 text-sm font-medium">
+                  {p.name}
+                  {active && <span className="text-primary ml-auto text-xs">Active</span>}
+                </span>
+                {p.description && (
+                  <span className="text-muted-foreground text-xs">{p.description}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>

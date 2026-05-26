@@ -240,6 +240,14 @@ class WorkerDb {
     await this.ensureOpen();
     return this.api.findFileByHash(hash);
   }
+  async getServerProfile() {
+    await this.ensureOpen();
+    return this.api.getServerProfile();
+  }
+  async setServerProfile(profileId: string) {
+    await this.ensureOpen();
+    return this.api.setServerProfile(profileId);
+  }
   async clearAllData() {
     await this.ensureOpen();
     return this.api.clearAllData();

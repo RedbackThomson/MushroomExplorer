@@ -13,6 +13,7 @@ import {
 } from '@/components/DetailPageLayout';
 import { EntityAvatar } from '@/components/EntityAvatar';
 import { EntityRow } from '@/components/EntityRow';
+import { ExpValue } from '@/components/ExpValue';
 import { getDbClient } from '@/db';
 import type { QuestRequirementWithName, QuestRewardWithName } from '@/db';
 import { NpcLink } from '@/components/entity-links';
@@ -184,7 +185,9 @@ export default function QuestDetail() {
           <li className="flex items-center gap-3 px-3 py-2 text-sm">
             <Sparkles className="text-muted-foreground h-6 w-6 shrink-0" />
             <span className="flex-1">Experience</span>
-            <span className="font-mono text-xs">{(expReward.amount ?? 0).toLocaleString()}</span>
+            <span className="font-mono text-xs">
+              <ExpValue exp={expReward.amount ?? 0} showRate />
+            </span>
           </li>
         )}
         {mesoReward && (
@@ -267,7 +270,9 @@ function RequirementRow({
       id={r.targetId}
       name={r.targetName}
       meta={
-        r.amount !== null && r.amount > 1 ? <span className="font-mono">×{r.amount}</span> : undefined
+        r.amount !== null && r.amount > 1 ? (
+          <span className="font-mono">×{r.amount}</span>
+        ) : undefined
       }
       linkable={linkable}
     />
@@ -294,7 +299,9 @@ function RewardRow({ r, linkable }: { r: QuestRewardWithName; linkable: boolean 
       id={r.targetId}
       name={r.targetName}
       meta={
-        r.amount !== null && r.amount > 1 ? <span className="font-mono">×{r.amount}</span> : undefined
+        r.amount !== null && r.amount > 1 ? (
+          <span className="font-mono">×{r.amount}</span>
+        ) : undefined
       }
       linkable={linkable}
     />

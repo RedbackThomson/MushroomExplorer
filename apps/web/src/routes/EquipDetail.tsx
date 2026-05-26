@@ -22,12 +22,15 @@ import { useFeatures } from '@/lib/useFeatures';
 import { labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
 import { formatEquipJobs, parseReqJob } from '@/lib/equipJobs';
 import { useListSort } from '@/lib/useListSort';
+import { useServerProfile } from '@/lib/useServerProfile';
+import type { EquipStatRange } from '@/lib/serverProfiles';
 
 export default function EquipDetail() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const client = useMemo(() => getDbClient(), []);
   const features = useFeatures();
+  const serverProfile = useServerProfile();
 
   const equipQ = useQuery({
     queryKey: ['db', 'equip', id],
@@ -89,6 +92,14 @@ export default function EquipDetail() {
     e.accuracy !== null ||
     e.avoidability !== null ||
     e.upgradeSlots !== null;
+  const statRanges = serverProfile.equipRanges({
+    attack: e.attack,
+    magicAttack: e.magicAttack,
+    defense: e.defense,
+    magicDefense: e.magicDefense,
+    accuracy: e.accuracy,
+    avoidability: e.avoidability,
+  });
 
   return (
     <DetailPageLayout
@@ -136,12 +147,24 @@ export default function EquipDetail() {
           )}
           {hasAnyStat && (
             <InfoSection title="Stats">
-              <StatRow label="Attack" value={e.attack} />
-              <StatRow label="Magic atk" value={e.magicAttack} />
-              <StatRow label="Defense" value={e.defense} />
-              <StatRow label="Magic def" value={e.magicDefense} />
-              <StatRow label="Accuracy" value={e.accuracy} />
-              <StatRow label="Avoidability" value={e.avoidability} />
+              <StatRangeRow label="Attack" value={e.attack} range={statRanges.attack} />
+              <StatRangeRow
+                label="Magic atk"
+                value={e.magicAttack}
+                range={statRanges.magicAttack}
+              />
+              <StatRangeRow label="Defense" value={e.defense} range={statRanges.defense} />
+              <StatRangeRow
+                label="Magic def"
+                value={e.magicDefense}
+                range={statRanges.magicDefense}
+              />
+              <StatRangeRow label="Accuracy" value={e.accuracy} range={statRanges.accuracy} />
+              <StatRangeRow
+                label="Avoidability"
+                value={e.avoidability}
+                range={statRanges.avoidability}
+              />
               <StatRow label="Upgrade slots" value={e.upgradeSlots} />
             </InfoSection>
           )}
@@ -193,4 +216,33 @@ export default function EquipDetail() {
 function StatRow({ label, value }: { label: string; value: number | null }) {
   if (value === null || value === 0) return null;
   return <InfoRow label={label} value={String(value)} />;
+}
+
+// Like StatRow, but shows the possible dropped-stat range from the active
+// server profile's calculator alongside the base value.
+function StatRangeRow({
+  label,
+  value,
+  range,
+}: {
+  label: string;
+  value: number | null;
+  range?: EquipStatRange;
+}) {
+  if (value === null || value === 0) return null;
+  if (!range) return <InfoRow label={label} value={String(value)} />;
+  return (
+    <InfoRow
+      label={label}
+      value={
+        <span>
+          {range.base.toLocaleString()}{' '}
+          <span className="text-muted-foreground text-xs">
+            ({range.min} ~ {range.max}
+            {range.godlyMax !== undefined ? ` or ${range.godlyMax}` : ''})
+          </span>
+        </span>
+      }
+    />
+  );
 }

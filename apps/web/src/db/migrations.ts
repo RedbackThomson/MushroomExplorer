@@ -426,4 +426,22 @@ export const MIGRATIONS: readonly Migration[] = [
       UPDATE equips SET slot = 'pet-equip', category = 'pet-equip' WHERE slot = 'petequip';
     `,
   },
+  {
+    version: 13,
+    name: 'server profile selection',
+    sql: `
+      -- Records which immutable server profile the user selected. Profiles are
+      -- defined in code / bundled JSON (lib/serverProfiles) and are never
+      -- edited in place — this row just stores the chosen id. Lives in the
+      -- game DB so it travels with a library backup.
+      CREATE TABLE server_profile (
+        id         INTEGER PRIMARY KEY CHECK (id = 1),
+        profile_id TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      INSERT INTO server_profile (id, profile_id, updated_at)
+      VALUES (1, 'vanilla-v83', strftime('%s','now')*1000);
+    `,
+  },
 ];

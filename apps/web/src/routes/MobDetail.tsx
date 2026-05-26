@@ -14,6 +14,7 @@ import {
 import { EntityAvatar } from '@/components/EntityAvatar';
 import { EntityIcon } from '@/components/EntityIcon';
 import { EntityRow } from '@/components/EntityRow';
+import { ExpValue } from '@/components/ExpValue';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
@@ -122,7 +123,7 @@ export default function MobDetail() {
             <InfoRow label="Level" value={m.level !== null ? String(m.level) : '—'} />
             <InfoRow label="HP" value={m.hp !== null ? m.hp.toLocaleString() : '—'} />
             <InfoRow label="MP" value={m.mp !== null ? m.mp.toLocaleString() : '—'} />
-            <InfoRow label="EXP" value={m.exp !== null ? m.exp.toLocaleString() : '—'} />
+            <InfoRow label="EXP" value={<ExpValue exp={m.exp} showRate />} />
           </InfoSection>
           <ElementsSection element={m.elementAttack} />
           <SourceSection path={m.sourcePath} />

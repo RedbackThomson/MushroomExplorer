@@ -1551,6 +1551,20 @@ export class DbApi implements GameDatabase {
     return this.sql.importBytes(bytes);
   }
 
+  async getServerProfile(): Promise<string> {
+    const row = this.sql.selectObject<{ profile_id: string }>(
+      'SELECT profile_id FROM server_profile WHERE id = 1',
+    );
+    return row?.profile_id ?? 'vanilla-v83';
+  }
+
+  async setServerProfile(profileId: string): Promise<void> {
+    this.sql.exec('UPDATE server_profile SET profile_id = ?, updated_at = ? WHERE id = 1', [
+      profileId,
+      Date.now(),
+    ]);
+  }
+
   async clearAllData(): Promise<void> {
     this.sql.transaction(() => {
       // Order respects FK direction. No foreign keys are declared yet, but
