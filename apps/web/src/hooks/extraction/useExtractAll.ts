@@ -2,24 +2,20 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { proxy } from 'comlink';
 import { getParserClient } from '@/parser';
-import { getDbClient, type DatasetFileRef, type ExtractorResultRecord } from '@/db';
+import { getDbClient, type DatasetFileRef } from '@/db';
 import { createLogger, describeError } from '@/lib/logger';
 import type { ProgressUpdate } from '@/lib/progress';
+import {
+  ExtractorTracker,
+  buildExtractStats,
+  mergeFileStatuses,
+  shouldSkip,
+  type ExtractStats,
+} from './shared';
+
+export type { ExtractStats } from './shared';
 
 const log = createLogger('extract-ui');
-
-export interface ExtractStats {
-  items: number;
-  equips: number;
-  mobs: number;
-  npcs: number;
-  maps: number;
-  quests: number;
-  skipped: number;
-  ms: number;
-  /** Per-extractor outcome rows persisted into `extraction_extractors`. */
-  perExtractor: ExtractorResultRecord[];
-}
 
 export interface UseExtractAllOptions {
   /**
@@ -44,10 +40,6 @@ export interface UseExtractAllOptions {
    * the Settings → extraction-reports panel can show what failed.
    */
   loadErrors?: { name: string; message: string }[];
-}
-
-function shouldSkip(skipWz: Set<string> | undefined, wz: string): boolean {
-  return !!skipWz && skipWz.has(wz);
 }
 
 /**
@@ -217,14 +209,7 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
       if (opts.recordFiles && opts.recordFiles.length > 0) {
         setProgress({ phase: 'Recording dataset', current: 0 });
         const errorByName = new Map((opts.loadErrors ?? []).map((e) => [e.name, e.message]));
-        const filesWithStatus: DatasetFileRef[] = opts.recordFiles.map((f) => {
-          const err = errorByName.get(f.name);
-          return {
-            ...f,
-            loadStatus: err ? 'load_failed' : 'loaded',
-            loadError: err ?? null,
-          };
-        });
+        const filesWithStatus = mergeFileStatuses(opts.recordFiles, errorByName);
         await db.recordDataset({
           label: opts.label ?? `WZ load · ${new Date().toLocaleString()}`,
           wzVersion: opts.wzVersion ?? 'GMS',
@@ -235,17 +220,7 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
         });
       }
 
-      const result: ExtractStats = {
-        items: countOf(perExtractor, 'item'),
-        equips: countOf(perExtractor, 'equip'),
-        mobs: countOf(perExtractor, 'mob'),
-        npcs: countOf(perExtractor, 'npc'),
-        maps: countOf(perExtractor, 'map'),
-        quests: countOf(perExtractor, 'quest'),
-        skipped: skippedTotal,
-        ms,
-        perExtractor,
-      };
+      const result: ExtractStats = buildExtractStats(perExtractor, skippedTotal, ms);
       log.info('extract+persist complete', result);
       return result;
     },
@@ -274,72 +249,4 @@ export function useExtractAll(opts: UseExtractAllOptions = {}) {
       mutation.reset();
     },
   };
-}
-
-function countOf(records: ExtractorResultRecord[], key: string): number {
-  return records.find((r) => r.extractor === key)?.rows ?? 0;
-}
-
-/**
- * Accumulates per-extractor results as the pipeline runs. Every known
- * extractor key starts as `skipped` and is upgraded to `ran` when its
- * stage actually executes — that way `extraction_extractors` records the
- * full picture even for extractors that didn't run, which keeps the
- * Settings panel from leaving question marks in its breakdown.
- */
-class ExtractorTracker {
-  private readonly map = new Map<string, ExtractorResultRecord>();
-
-  constructor(skipWz?: Set<string>) {
-    const allKeys: ExtractorResultRecord['extractor'][] = [
-      'item',
-      'equip',
-      'mob',
-      'npc',
-      'map',
-      'quest',
-    ];
-    for (const k of allKeys) {
-      this.map.set(k, {
-        extractor: k,
-        status: shouldSkip(skipWz, equivWzKey(k)) ? 'skipped' : 'skipped',
-        rows: 0,
-        skippedRows: 0,
-        placeholderNames: 0,
-        error: null,
-      });
-    }
-  }
-
-  ran(key: string, rows: number, skippedRows: number, placeholderNames = 0): void {
-    this.map.set(key, {
-      extractor: key,
-      status: 'ran',
-      rows,
-      skippedRows,
-      placeholderNames,
-      error: null,
-    });
-  }
-
-  failed(key: string, err: unknown): void {
-    const existing = this.map.get(key);
-    this.map.set(key, {
-      extractor: key,
-      status: 'ran',
-      rows: existing?.rows ?? 0,
-      skippedRows: existing?.skippedRows ?? 0,
-      placeholderNames: existing?.placeholderNames ?? 0,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
-
-  records(): ExtractorResultRecord[] {
-    return [...this.map.values()];
-  }
-}
-
-/** Item / Equip extractors share the `item` skipWz key (Item.wz drives both). */
-function equivWzKey(extractor: string): string {
-  return extractor === 'equip' ? 'item' : extractor;
 }

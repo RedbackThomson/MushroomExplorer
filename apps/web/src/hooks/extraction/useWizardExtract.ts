@@ -38,11 +38,17 @@ import {
 } from '@/db';
 import { createLogger, describeError } from '@/lib/logger';
 import type { ProgressUpdate } from '@/lib/progress';
+import {
+  ALL_EXTRACTOR_KEYS,
+  buildExtractStats,
+  mergeFileStatuses,
+  type ExtractorKey,
+  type ExtractStats,
+} from './shared';
 
 const log = createLogger('wizard-extract');
 
-export const ALL_EXTRACTOR_KEYS = ['item', 'equip', 'mob', 'npc', 'map', 'quest'] as const;
-export type ExtractorKey = (typeof ALL_EXTRACTOR_KEYS)[number];
+export { ALL_EXTRACTOR_KEYS, type ExtractorKey } from './shared';
 
 export const EXTRACTOR_TO_WORKER: Record<ExtractorKey, PoolWorkerName> = {
   item: 'items',
@@ -80,17 +86,7 @@ export interface ExtractorStatus {
   files: string[];
 }
 
-export interface ExtractStats {
-  items: number;
-  equips: number;
-  mobs: number;
-  npcs: number;
-  maps: number;
-  quests: number;
-  skipped: number;
-  ms: number;
-  perExtractor: ExtractorResultRecord[];
-}
+export type { ExtractStats } from './shared';
 
 export interface UseWizardExtractOptions {
   version: WzMapleVersionName;
@@ -285,14 +281,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
       for (const [, r] of Object.entries(loadResults)) {
         for (const e of r?.errors ?? []) errorByName.set(e.name, e.message);
       }
-      const filesWithStatus: DatasetFileRef[] = opts.recordFiles.map((f) => {
-        const err = errorByName.get(f.name);
-        return {
-          ...f,
-          loadStatus: err ? 'load_failed' : 'loaded',
-          loadError: err ?? null,
-        };
-      });
+      const filesWithStatus = mergeFileStatuses(opts.recordFiles, errorByName);
       const allOk = perExtractor.every((e) => !e.error) && errorByName.size === 0;
       if (filesWithStatus.length > 0) {
         await db.recordDataset({
@@ -305,17 +294,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
         });
       }
 
-      const result: ExtractStats = {
-        items: rowsFor(perExtractor, 'item'),
-        equips: rowsFor(perExtractor, 'equip'),
-        mobs: rowsFor(perExtractor, 'mob'),
-        npcs: rowsFor(perExtractor, 'npc'),
-        maps: rowsFor(perExtractor, 'map'),
-        quests: rowsFor(perExtractor, 'quest'),
-        skipped: skippedTotal,
-        ms,
-        perExtractor,
-      };
+      const result: ExtractStats = buildExtractStats(perExtractor, skippedTotal, ms);
       log.info('pool extraction complete', result);
       return result;
     },
@@ -478,8 +457,4 @@ async function runWorkerExtractors(
     patchExtractor('quest', { phase: 'done', progress: null });
     return;
   }
-}
-
-function rowsFor(records: ExtractorResultRecord[], key: string): number {
-  return records.find((r) => r.extractor === key)?.rows ?? 0;
 }
