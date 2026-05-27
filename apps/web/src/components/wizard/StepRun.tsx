@@ -17,7 +17,6 @@ import type { WizardFile } from './StepFiles';
 interface Props {
   version: WzMapleVersionName;
   files: WizardFile[];
-  forceAll: boolean;
   onComplete: () => void;
   mode: 'first-run' | 'update';
 }
@@ -31,8 +30,8 @@ interface Props {
  * The items worker runs `item` then `equip` back-to-back, and they show
  * as two separate rows so the UI reflects the actual sequence.
  */
-export function StepRun({ version, files, forceAll, onComplete, mode }: Props) {
-  const plan = useMemo(() => buildPlan(files, { forceAll }), [files, forceAll]);
+export function StepRun({ version, files, onComplete, mode }: Props) {
+  const plan = useMemo(() => buildPlan(files), [files]);
 
   const droppedFiles = useMemo(
     () => plan.filesToLoad.map((f) => ({ name: f.file.name, source: f.file })),

@@ -41,8 +41,6 @@ export interface PlannedExtractor {
   key: ExtractorKey;
   label: string;
   primary: string;
-  /** True if the primary file was force-re-processed (vs. a fresh file). */
-  forced: boolean;
 }
 
 export interface MissingDep {
@@ -61,37 +59,29 @@ export interface WizardPlan {
    */
   missingDeps: MissingDep[];
   /**
-   * Every file the user dropped, regardless of hash-match. parser.load is
-   * called with all of these so a hash-matched String.wz still ends up in
-   * worker memory for name lookups even when we're not re-extracting it.
+   * Every file the user dropped. parser.load is called with all of these so
+   * companion files like String.wz end up in worker memory for name lookups.
    */
   filesToLoad: WizardFile[];
   /**
    * WZ keys (lowercase, no `.wz` suffix) to **skip** in useExtractAll. The
-   * complement of `willRun`. Built as: every known extractor key except
-   * the ones with a primary file in `includedFiles` AND a green light to
-   * re-process.
+   * complement of `willRun` — every known extractor key except the ones with
+   * a primary file in `includedFiles`.
    */
   skipWz: Set<string>;
   /** Per-file refs to persist into the `datasets` table on success. */
   recordFiles: DatasetFileRef[];
 }
 
-export interface BuildPlanOpts {
-  /**
-   * Master "force re-process all" override from the wizard. When true, every
-   * file is treated as if its per-file `forceReprocess` were on, so hash-
-   * matched primaries still trigger their extractors.
-   */
-  forceAll?: boolean;
-}
-
 /**
  * Compute the wizard plan from the current file list. Pure function —
  * call freely from any component without worrying about stable references.
+ *
+ * Every dropped primary triggers its extractor; we always re-process, even
+ * when a file's hash matches one we've loaded before. The hash match is kept
+ * purely to tell the user "this is the same file you provided last time."
  */
-export function buildPlan(files: WizardFile[], opts: BuildPlanOpts = {}): WizardPlan {
-  const forceAll = opts.forceAll === true;
+export function buildPlan(files: WizardFile[]): WizardPlan {
   const included = files.filter((f) => f.include);
   const byName = new Map(included.map((f) => [f.file.name, f]));
 
@@ -100,14 +90,10 @@ export function buildPlan(files: WizardFile[], opts: BuildPlanOpts = {}): Wizard
     const dep = EXTRACTOR_DEPS[key];
     const file = byName.get(dep.primary);
     if (!file) continue;
-    const forced = forceAll || file.forceReprocess;
-    // Primary is dropped, but hash-matched without force → skip extraction.
-    if (file.matchedExisting && !forced) continue;
     willRun.push({
       key,
       label: dep.label,
       primary: dep.primary,
-      forced,
     });
   }
 

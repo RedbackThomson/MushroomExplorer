@@ -5,14 +5,13 @@ import {
   FileWarning,
   Info,
   Loader2,
-  RefreshCw,
   Trash2,
   Upload,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { getDbClient } from '@/db';
-import { sha256OfFile, shortHash } from '@/lib/hashFile';
+import { sha256OfFile } from '@/lib/hashFile';
 import { createLogger, describeError } from '@/lib/logger';
 import type { Features } from '@/lib/useFeatures';
 import { cn } from '@/lib/utils';
@@ -41,8 +40,6 @@ export interface WizardFile {
   include: boolean;
   /** Existing dataset_files row this hash matches, if any. */
   matchedExisting: { name: string } | null;
-  /** Force re-processing even if hash matches an existing row. */
-  forceReprocess: boolean;
 }
 
 export interface DetectionState {
@@ -65,9 +62,6 @@ export interface ProfileDetectionState {
 interface Props {
   files: WizardFile[];
   onChange: React.Dispatch<React.SetStateAction<WizardFile[]>>;
-  /** Master "force re-process all" override. Locks per-file checkboxes on. */
-  forceAll: boolean;
-  onForceAllChange: (v: boolean) => void;
   /** Encryption-version auto-detection state from the parent wizard. */
   detection: DetectionState;
   /** Manual override; `null` means "trust the auto-detected version." */
@@ -98,8 +92,6 @@ const VERSION_OPTIONS: { id: WzMapleVersionName; label: string }[] = [
 export function StepFiles({
   files,
   onChange,
-  forceAll,
-  onForceAllChange,
   detection,
   versionOverride,
   onVersionOverrideChange,
@@ -149,7 +141,6 @@ export function StepFiles({
           hashError: null,
           include: true,
           matchedExisting: null,
-          forceReprocess: false,
         });
       }
       if (incoming.length === 0) return;
@@ -189,7 +180,6 @@ export function StepFiles({
             hashPhase: 'done',
             hash,
             matchedExisting: matched,
-            forceReprocess: false,
           });
         })
         .catch((e) => {
@@ -212,11 +202,9 @@ export function StepFiles({
     onChange(files.filter((f) => f !== file));
   }
 
-  function toggle(file: WizardFile, field: 'include' | 'forceReprocess', value: boolean) {
-    onChange(files.map((f) => (f === file ? { ...f, [field]: value } : f)));
+  function toggle(file: WizardFile, value: boolean) {
+    onChange(files.map((f) => (f === file ? { ...f, include: value } : f)));
   }
-
-  const hasAnyMatched = useMemo(() => files.some((f) => f.matchedExisting !== null), [files]);
 
   return (
     <section className="space-y-6">
@@ -272,117 +260,84 @@ export function StepFiles({
           />
         </div>
 
-        <EntityStatus files={files} features={features} mode={mode} forceAll={forceAll} />
-
-        {files.length > 0 && (
-          <details className="border-border bg-card group rounded-md border text-sm">
-            <summary className="text-muted-foreground flex cursor-pointer items-center justify-between gap-2 px-4 py-2.5 text-xs">
-              <span className="font-medium uppercase tracking-wide">
-                Dropped files · {files.length}
-              </span>
-              <span className="text-muted-foreground/70 text-[10px] uppercase tracking-wide">
-                details
-              </span>
-            </summary>
-            <ul className="divide-border divide-y border-t">
-              {files.map((f) => (
-                <li key={f.file.name} className="space-y-2 px-4 py-3 text-sm">
-                  <div className="flex items-center gap-3">
-                    <label className="text-muted-foreground flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={f.include}
-                        onChange={(e) => toggle(f, 'include', e.target.checked)}
-                        className="accent-primary h-3.5 w-3.5"
-                        disabled={f.hashPhase === 'queued' || f.hashPhase === 'hashing'}
-                      />
-                    </label>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-medium">{f.file.name}</span>
-                        {HEAVY_FILES.has(f.file.name) && (
-                          <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                            <FileWarning className="h-3 w-3" /> large file
-                          </span>
-                        )}
-                        {existingNames.data?.includes(f.file.name) && !f.matchedExisting && (
-                          <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                            updating
-                          </span>
-                        )}
-                        {f.matchedExisting && (
-                          <span className="inline-flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
-                            <CheckCircle2 className="h-3 w-3" /> already loaded
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-muted-foreground mt-0.5 text-xs">
-                        {(f.file.size / 1_000_000).toFixed(1)} MB
-                      </div>
+        <details className="border-border bg-card group rounded-md border text-sm">
+          <summary className="text-muted-foreground flex cursor-pointer items-center justify-between gap-2 px-4 py-2.5 text-xs">
+            <span className="font-medium uppercase tracking-wide">
+              Dropped files · {files.length}
+            </span>
+            <span className="text-muted-foreground/70 text-[10px] uppercase tracking-wide">
+              details
+            </span>
+          </summary>
+          <ul className="divide-border divide-y border-t">
+            {files.map((f) => (
+              <li key={f.file.name} className="space-y-2 px-4 py-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <label className="text-muted-foreground flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={f.include}
+                      onChange={(e) => toggle(f, e.target.checked)}
+                      className="accent-primary h-3.5 w-3.5"
+                      disabled={f.hashPhase === 'queued' || f.hashPhase === 'hashing'}
+                    />
+                  </label>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-medium">{f.file.name}</span>
+                      {HEAVY_FILES.has(f.file.name) && (
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                          <FileWarning className="h-3 w-3" /> large file
+                        </span>
+                      )}
+                      {existingNames.data?.includes(f.file.name) && !f.matchedExisting && (
+                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                          updating
+                        </span>
+                      )}
+                      {f.matchedExisting && (
+                        <span className="inline-flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
+                          <CheckCircle2 className="h-3 w-3" /> already loaded
+                        </span>
+                      )}
                     </div>
-                    {f.matchedExisting && f.hashPhase === 'done' && (
-                      <button
-                        type="button"
-                        onClick={() => toggle(f, 'forceReprocess', !f.forceReprocess)}
-                        disabled={forceAll}
-                        aria-pressed={forceAll || f.forceReprocess}
-                        aria-label="Re-process this file (load it again from scratch)"
-                        title="Re-process this file (load it again from scratch)"
-                        className={cn(
-                          'shrink-0 transition-colors',
-                          forceAll || f.forceReprocess
-                            ? 'text-primary'
-                            : 'text-muted-foreground hover:text-foreground',
-                          forceAll && 'cursor-not-allowed opacity-60',
-                        )}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => remove(f)}
-                      className="text-muted-foreground hover:text-destructive shrink-0"
-                      aria-label={`Remove ${f.file.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="text-muted-foreground mt-0.5 text-xs">
+                      {(f.file.size / 1_000_000).toFixed(1)} MB
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(f)}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    aria-label={`Remove ${f.file.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
 
-                  {(f.hashPhase === 'queued' || f.hashPhase === 'hashing') && (
-                    <p className="text-muted-foreground inline-flex items-center gap-1.5 pl-7 text-xs">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {f.hashPhase === 'queued' ? 'Queued…' : 'Reading…'}
-                    </p>
-                  )}
-                  {f.hashPhase === 'error' && f.hashError && (
-                    <p className="text-destructive inline-flex items-center gap-1.5 pl-7 text-xs">
-                      <AlertTriangle className="h-3 w-3" /> {f.hashError}
-                    </p>
-                  )}
-                  {f.hash && (
-                    <details className="text-muted-foreground/70 pl-7 text-[11px]">
-                      <summary className="cursor-pointer">Technical details</summary>
-                      <div className="mt-1 font-mono">sha256: {shortHash(f.hash)}…</div>
-                    </details>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+                {(f.hashPhase === 'queued' || f.hashPhase === 'hashing') && (
+                  <p className="text-muted-foreground inline-flex items-center gap-1.5 pl-7 text-xs">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {f.hashPhase === 'queued' ? 'Queued…' : 'Reading…'}
+                  </p>
+                )}
+                {f.hashPhase === 'error' && f.hashError && (
+                  <p className="text-destructive inline-flex items-center gap-1.5 pl-7 text-xs">
+                    <AlertTriangle className="h-3 w-3" /> {f.hashError}
+                  </p>
+                )}
+                {f.hash && (
+                  <details className="text-muted-foreground/70 pl-7 text-[11px]">
+                    <summary className="cursor-pointer">Technical details</summary>
+                    <div className="mt-1 font-mono">sha256: {f.hash}</div>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
 
-        {hasAnyMatched && (
-          <label className="text-muted-foreground flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              checked={forceAll}
-              onChange={(e) => onForceAllChange(e.target.checked)}
-              className="accent-primary h-3.5 w-3.5"
-            />
-            Re-process every file (even ones already loaded before)
-          </label>
-        )}
+        <EntityStatus files={files} features={features} mode={mode} />
 
         {files.length > 0 && (
           <>

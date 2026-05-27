@@ -67,7 +67,6 @@ export default function Setup() {
     (location.state as { reason?: string } | null)?.reason === 'data-incompatible';
   const [stepId, setStepId] = useState<(typeof STEPS)[number]['id']>('files');
   const [files, setFiles] = useState<WizardFile[]>([]);
-  const [forceAll, setForceAll] = useState(false);
 
   // Auto-detected encryption from the first hashed file; advanced override
   // takes precedence. Falls back to 'GMS' if both are null (the most common
@@ -370,7 +369,7 @@ export default function Setup() {
   const needsManualVersion = detection.status === 'failed' && versionOverride === null;
   const canProceedFromFiles = filesReady && someIncluded && !needsManualVersion;
 
-  const plan = buildPlan(files, { forceAll });
+  const plan = buildPlan(files);
   const planIsRunnable = plan.willRun.length > 0 && plan.missingDeps.length === 0;
 
   function goPrev() {
@@ -397,8 +396,6 @@ export default function Setup() {
         <StepFiles
           files={files}
           onChange={setFiles}
-          forceAll={forceAll}
-          onForceAllChange={setForceAll}
           detection={detection}
           versionOverride={versionOverride}
           onVersionOverrideChange={setVersionOverride}
@@ -416,7 +413,6 @@ export default function Setup() {
       <StepRun
         version={effectiveVersion}
         files={files}
-        forceAll={forceAll}
         mode={stepMode}
         onComplete={() => {
           setRunComplete(true);

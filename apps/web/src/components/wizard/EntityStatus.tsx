@@ -35,11 +35,9 @@ interface Props {
   features: Features;
   /** First-run hides the "Loaded — N items" affordance entirely. */
   mode: 'first-run' | 'update';
-  /** Master "force re-process all" — affects whether a matched primary counts as a refresh. */
-  forceAll: boolean;
 }
 
-export function EntityStatus({ files, features, mode, forceAll }: Props) {
+export function EntityStatus({ files, features, mode }: Props) {
   // Only included files count toward the entity status — matches the plan
   // builder, so unchecking a file in the dropped-files list immediately
   // reflects here as "not provided" for the categories it gated.
@@ -57,14 +55,7 @@ export function EntityStatus({ files, features, mode, forceAll }: Props) {
       </div>
       <ul className="border-border divide-border divide-y rounded-md border">
         {ALL_EXTRACTOR_KEYS.map((key) => (
-          <EntityRow
-            key={key}
-            ek={key}
-            byName={byName}
-            features={features}
-            mode={mode}
-            forceAll={forceAll}
-          />
+          <EntityRow key={key} ek={key} byName={byName} features={features} mode={mode} />
         ))}
       </ul>
     </section>
@@ -76,13 +67,11 @@ function EntityRow({
   byName,
   features,
   mode,
-  forceAll,
 }: {
   ek: ExtractorKey;
   byName: Map<string, WizardFile>;
   features: Features;
   mode: 'first-run' | 'update';
-  forceAll: boolean;
 }) {
   const dep = EXTRACTOR_DEPS[ek];
   const required = [dep.primary, ...dep.needs];
@@ -91,7 +80,7 @@ function EntityRow({
     state: classifyChip(n, byName, features),
   }));
 
-  const state = computeRowState(ek, chips, dep.primary, byName, features, mode, forceAll);
+  const state = computeRowState(ek, chips, dep.primary, byName, features, mode);
   const meta = ROW_META[state];
 
   const count = features.counts?.[ENTITY_FEATURE[ek].countKey];
@@ -185,24 +174,18 @@ function computeRowState(
   byName: Map<string, WizardFile>,
   features: Features,
   mode: 'first-run' | 'update',
-  forceAll: boolean,
 ): RowState {
   const primaryChip = chips.find((c) => c.name === primary)!;
   const companionChips = chips.filter((c) => c.name !== primary);
   const wf = byName.get(primary);
 
-  // Primary is in the dropped files for this run.
+  // Primary is in the dropped files for this run. We always re-extract it,
+  // even when its hash matches a file we've loaded before.
   if (wf) {
     if (primaryChip.state === 'hashing') return 'pending';
     if (primaryChip.state === 'error') return 'missing-deps'; // borrow the warning state
     const someCompanionMissing = companionChips.some((c) => c.state === 'needed');
     if (someCompanionMissing) return 'missing-deps';
-    const forced = forceAll || wf.forceReprocess;
-    // Hash-matched primary without force → no new extraction, treat as already-loaded.
-    if (wf.matchedExisting && !forced) {
-      if (mode === 'update' && features[ENTITY_FEATURE[ek].flag]) return 'loaded';
-      return 'will-load';
-    }
     if (mode === 'update' && features[ENTITY_FEATURE[ek].flag]) return 'will-refresh';
     return 'will-load';
   }
