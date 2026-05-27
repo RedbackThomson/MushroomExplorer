@@ -3,13 +3,15 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Palette } from '@/components/command-palette/Palette';
+import { DataUpdatePrompt } from '@/components/DataUpdatePrompt';
 import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { useFeatures } from '@/lib/useFeatures';
+import { useDataState } from '@/lib/useDataState';
 import { useSidebarLayout } from '@/lib/sidebarState';
 
 export function AppShell() {
-  useFirstRunRedirect();
+  useSetupRedirect();
   return (
     <div className="flex h-full w-full">
       <Sidebar />
@@ -23,6 +25,7 @@ export function AppShell() {
         </main>
       </div>
       <Palette />
+      <DataUpdatePrompt />
     </div>
   );
 }
@@ -66,27 +69,35 @@ function MobileSidebarDrawer() {
 }
 
 /**
- * Bounce first-time visitors to the setup wizard. A "first run" is defined
- * as: features hook has loaded AND no datasets have ever been recorded AND
- * every entity table is empty. The wizard's recordDataset call flips this
- * off before the user navigates away.
+ * Bounce users to the setup wizard when there's nothing to show, covering two
+ * cases with one redirect:
  *
- * `isFetching` gate: the wizard invalidates the db queries after
- * `recordDataset`, but no observers are mounted while the wizard is up.
- * When the user clicks "Go Explore", AppShell remounts and the queries
- * synchronously serve their stale pre-extraction data (datasets=0) while
- * a refetch is in flight — without this gate we'd redirect right back to
- * /setup based on that stale snapshot.
+ *   - **Rebuild needed**: an incompatible cache was destructively cleared on
+ *     open (`reinitialize-required`). We pass `state.reason` so the wizard
+ *     explains *why* — otherwise the redirect looks like the app is broken.
+ *   - **First run**: no data has ever been loaded. Plain redirect, no banner.
+ *
+ * Rebuild takes precedence: a just-cleared library looks empty (first-run) too,
+ * but the user needs the explanation.
+ *
+ * `isFetching` gate (inside `useDataState.ready`): the wizard invalidates the
+ * db queries after `recordDataset`, but no observers are mounted while the
+ * wizard is up. When the user clicks "Go Explore", AppShell remounts and the
+ * queries synchronously serve their stale pre-extraction snapshot while a
+ * refetch is in flight — without the gate we'd redirect right back to /setup.
  */
-function useFirstRunRedirect(): void {
+function useSetupRedirect(): void {
   const features = useFeatures();
+  const { state, ready } = useDataState();
   const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => {
-    if (!features.ready) return;
-    if (features.isFetching) return;
-    if (!features.isFirstRun) return;
+    if (!ready) return;
     if (location.pathname === '/setup') return;
-    navigate('/setup', { replace: true });
-  }, [features.ready, features.isFetching, features.isFirstRun, location.pathname, navigate]);
+    if (state === 'reinitialize-required') {
+      navigate('/setup', { replace: true, state: { reason: 'data-incompatible' } });
+    } else if (features.isFirstRun) {
+      navigate('/setup', { replace: true });
+    }
+  }, [ready, state, features.isFirstRun, location.pathname, navigate]);
 }

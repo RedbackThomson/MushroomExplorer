@@ -2,7 +2,8 @@
 
 import { EQUIP_CLASS_BIT, type EquipClass } from '@/lib/equipJobs';
 import { ELEMENT_CODE_BY_NAME, LEVEL_BY_STATUS, type ElementStatus } from '@/lib/mobElements';
-import type { Sqlite, Row } from './sqlite';
+import { CURRENT_DATA_REVISION, MINIMUM_SUPPORTED_DATA_REVISION } from './dataVersion';
+import type { Sqlite, Row, PreMigrateContext } from './sqlite';
 import type {
   ColumnFilter,
   DatasetFileRef,
@@ -538,18 +539,66 @@ function rowToEquip(r: EquipRow): EquipRecord {
   };
 }
 
+/**
+ * Pre-migration destructive-reset decision for the game cache. Passed to
+ * `Sqlite` as `resetBeforeMigrate`. If the stored data revision is below the
+ * minimum this build can read and the library actually has data, clear it so
+ * the breaking migration that follows applies to empty tables. A fresh DB
+ * (no data) is a genuine first run and left alone. Reads defensively because
+ * `app_meta` may not exist yet on a pre-tracking database.
+ */
+export function gameDataPreMigrateReset(ctx: PreMigrateContext): boolean {
+  const hasMeta =
+    ctx.selectValue("SELECT 1 FROM sqlite_master WHERE type='table' AND name='app_meta'") != null;
+  const revision = hasMeta
+    ? Number(ctx.selectValue<string>("SELECT value FROM app_meta WHERE key = 'data_revision'") ?? 0) ||
+      0
+    : 0;
+  if (revision >= MINIMUM_SUPPORTED_DATA_REVISION) return false;
+  if (!ctx.hasAnyUserData()) return false;
+  ctx.clearAllUserData();
+  return true;
+}
+
 export class DbApi implements GameDatabase {
   constructor(private readonly sql: Sqlite) {}
 
   async open(): Promise<DbStatus> {
-    await this.sql.open();
+    const result = await this.sql.open();
+    if (result.didDestructiveReset) this.markPendingRebuild();
     return this.status();
+  }
+
+  private getMeta(key: string): string | null {
+    const v = this.sql.selectValue('SELECT value FROM app_meta WHERE key = ?', [key]);
+    return typeof v === 'string' ? v : null;
+  }
+
+  private setMeta(key: string, value: string): void {
+    this.sql.exec('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)', [key, value]);
+  }
+
+  private deleteMeta(key: string): void {
+    this.sql.exec('DELETE FROM app_meta WHERE key = ?', [key]);
+  }
+
+  private markPendingRebuild(): void {
+    this.setMeta('pending_rebuild', '1');
   }
 
   async status(): Promise<DbStatus> {
     const schemaVersion = Number(this.sql.selectValue('SELECT MAX(version) FROM _migrations') ?? 0);
+    // A missing/non-numeric key reads as 0 — below the minimum supported
+    // revision, so a pre-tracking database is flagged for reinitialization.
+    const dataRevision = Number(this.getMeta('data_revision') ?? 0) || 0;
+    // Set when open()/importBytes destructively cleared an incompatible cache.
+    // Distinguishes "library was wiped, must rebuild" from a genuine first run,
+    // since both leave empty tables. Cleared by the next successful run.
+    const pendingRebuild = this.getMeta('pending_rebuild') === '1';
     return {
       schemaVersion,
+      dataRevision,
+      pendingRebuild,
       backend: this.sql.backend,
       fallbackReason: this.sql.fallbackReason,
       counts: {
@@ -1520,6 +1569,14 @@ export class DbApi implements GameDatabase {
           [id, e.extractor, e.status, e.rows, e.skippedRows, e.placeholderNames, e.error ?? null],
         );
       }
+      // A clean run stamps the library as produced by this build's data
+      // contract and clears the rebuild flag, dismissing any "reinitialize /
+      // re-index" prompt. A failed run leaves both untouched. See
+      // db/dataVersion.ts.
+      if (input.ok === true) {
+        this.setMeta('data_revision', String(CURRENT_DATA_REVISION));
+        this.deleteMeta('pending_rebuild');
+      }
       return this.readDataset(id)!;
     });
   }
@@ -1589,7 +1646,11 @@ export class DbApi implements GameDatabase {
   async importBytes(
     bytes: Uint8Array,
   ): Promise<{ backend: 'opfs' | 'memory'; schemaVersion: number }> {
-    return this.sql.importBytes(bytes);
+    const result = await this.sql.importBytes(bytes);
+    // An incompatible backup gets cleared on import too; flag the rebuild so
+    // the UI explains it instead of dropping the user into a blank wiki.
+    if (result.didDestructiveReset) this.markPendingRebuild();
+    return { backend: result.backend, schemaVersion: result.schemaVersion };
   }
 
   async getServerProfile(): Promise<string> {
@@ -1600,10 +1661,12 @@ export class DbApi implements GameDatabase {
   }
 
   async setServerProfile(profileId: string): Promise<void> {
-    this.sql.exec('UPDATE server_profile SET profile_id = ?, updated_at = ? WHERE id = 1', [
-      profileId,
-      Date.now(),
-    ]);
+    // Upsert, not UPDATE: a destructive reset wipes this singleton's row, and a
+    // bare UPDATE would silently no-op and lose the user's selection.
+    this.sql.exec(
+      'INSERT OR REPLACE INTO server_profile (id, profile_id, updated_at) VALUES (1, ?, ?)',
+      [profileId, Date.now()],
+    );
   }
 
   async clearAllData(): Promise<void> {
@@ -1631,6 +1694,10 @@ export class DbApi implements GameDatabase {
       for (const t of tables) this.sql.exec(`DELETE FROM ${t}`);
       // SQLite resets AUTOINCREMENT counters via the internal sequence table.
       this.sql.exec(`DELETE FROM sqlite_sequence WHERE name IN ('assets', 'datasets')`);
+      // Drop the revision stamp and rebuild flag so a deliberately-cleared
+      // library reverts to a clean first-run, not a stale revision or a
+      // lingering "rebuild needed" prompt. Keep other app_meta keys.
+      this.sql.exec(`DELETE FROM app_meta WHERE key IN ('data_revision', 'pending_rebuild')`);
     });
   }
 

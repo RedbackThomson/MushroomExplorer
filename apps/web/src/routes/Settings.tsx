@@ -157,7 +157,7 @@ export default function Settings() {
                     : 'memory (not persistent)'}
                 </span>
                 <span className="text-muted-foreground ml-auto text-xs">
-                  schema v{statusQ.data.schemaVersion}
+                  schema v{statusQ.data.schemaVersion} · data rev {statusQ.data.dataRevision}
                 </span>
               </div>
               <dl className="text-muted-foreground mt-3 grid grid-cols-3 gap-2 text-xs sm:grid-cols-7">

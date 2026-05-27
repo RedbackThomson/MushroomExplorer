@@ -465,4 +465,21 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE equips ADD COLUMN inc_jump  INTEGER;
     `,
   },
+  {
+    version: 15,
+    name: 'app metadata key-value store',
+    sql: `
+      -- Generic key-value store for app-level metadata about the library.
+      -- Currently holds 'data_revision' (see db/dataVersion.ts): the revision
+      -- of the extracted-data contract that produced the current rows. Lives in
+      -- the game DB so it travels with a backup. We intentionally do NOT seed a
+      -- data_revision here — a missing key reads as revision 0, which is below
+      -- the minimum supported revision, so every pre-tracking database is
+      -- correctly flagged as "must reinitialize" on first load of this build.
+      CREATE TABLE app_meta (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `,
+  },
 ];

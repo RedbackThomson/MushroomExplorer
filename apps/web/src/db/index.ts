@@ -39,4 +39,10 @@ export type {
   SearchEntry,
   SortDir,
 } from './types';
+export {
+  CURRENT_DATA_REVISION,
+  MINIMUM_SUPPORTED_DATA_REVISION,
+  evaluateDataState,
+  type DataState,
+} from './dataVersion';
 export { getDbClient, terminateDbClient } from './client';

@@ -325,6 +325,18 @@ export interface DatasetRecord {
 
 export interface DbStatus {
   schemaVersion: number;
+  /**
+   * Revision of the extracted-data contract that produced the current rows
+   * (see db/dataVersion.ts). 0 means the library predates revision tracking and
+   * must be rebuilt. Independent of `schemaVersion`.
+   */
+  dataRevision: number;
+  /**
+   * True when an incompatible cache was destructively cleared on open/import
+   * and no successful rebuild has happened since. Tells a "must rebuild" empty
+   * library apart from a genuine first run.
+   */
+  pendingRebuild: boolean;
   backend: 'opfs' | 'memory';
   /**
    * Short, user-facing explanation of why the in-memory fallback was used.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Info, Loader2 } from 'lucide-react';
 import { detectVersion } from '@mushex/wz';
@@ -60,6 +60,11 @@ async function detectProfileFromString(
 
 export default function Setup() {
   const { mode, isReady, features, setRestore } = useWizardMode();
+  const location = useLocation();
+  // Set when the user was bounced here because their stored library is too old
+  // for this build to read (see AppShell#useSetupRedirect).
+  const incompatibleLibrary =
+    (location.state as { reason?: string } | null)?.reason === 'data-incompatible';
   const [stepId, setStepId] = useState<(typeof STEPS)[number]['id']>('files');
   const [files, setFiles] = useState<WizardFile[]>([]);
   const [forceAll, setForceAll] = useState(false);
@@ -510,6 +515,19 @@ export default function Setup() {
       footer={footer}
       exitSlot={exitSlot}
     >
+      {incompatibleLibrary && (
+        <div className="border-amber-500/40 bg-amber-500/10 text-foreground mb-4 flex items-start gap-2 rounded-md border p-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-medium">Your library needs to be rebuilt</p>
+            <p className="text-muted-foreground mt-1">
+              This version of the app changed how your library is stored, so the data already on
+              this device can't be read. Load your game files below to rebuild it, or restore a
+              recent backup.
+            </p>
+          </div>
+        </div>
+      )}
       {body}
     </WizardLayout>
   );

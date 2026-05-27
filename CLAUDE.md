@@ -46,6 +46,29 @@ Don't switch these without updating `docs/technical_requirements.md` first.
 - Comments only for non-obvious _why_. Don't describe _what_ the code does.
 - No backwards-compatibility shims, no speculative abstractions, no error handling for cases that can't occur.
 
+## Data integrity — schema vs. data revisions
+
+The library is a derived cache of the user's game files, guarded by two
+independent versions. Know which one a change needs. Mechanics: `DEVELOPMENT.md`
+→ "Schema and data versioning".
+
+- **Schema version** (`_migrations`, `db/migrations.ts`): the SQL shape. Add a
+  migration for any DDL change. Forward-only — append, never edit or reorder.
+- **Data revision** (`db/dataVersion.ts`): the extracted-data contract. Bump it
+  when extraction output changes (new extraction-fed column, reinterpreted field,
+  changed extractor); a migration changes the shape, the bump refills the rows.
+
+Two ways to bump, and prefer breaking:
+
+- **Breaking** (the data changes): raise **both** constants. The cache is
+  destructively cleared *before* migrations run, so your migration hits empty
+  tables — write a clean schema (`ADD COLUMN … NOT NULL`, no nullable sentinels).
+- **Additive** (old data still renders): raise `CURRENT_DATA_REVISION` only. The
+  migration hits populated tables, so new columns must tolerate existing rows
+  (nullable or `NOT NULL DEFAULT`) — the only case a nullable backfill belongs.
+
+Don't bump revisions for UI-only or extraction-independent schema changes.
+
 ## When in doubt
 
 - Reach for the boring, conventional option.

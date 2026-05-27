@@ -24,6 +24,20 @@ const DEFAULT_POOL_NAME = 'mushex-db-pool';
 export interface OpenResult {
   backend: Backend;
   schemaVersion: number;
+  /** True if `resetBeforeMigrate` cleared the cache on this open. */
+  didDestructiveReset: boolean;
+}
+
+/**
+ * Minimal surface handed to a `resetBeforeMigrate` hook. Lets the caller read
+ * metadata and destructively reset the cache without exposing the full engine.
+ */
+export interface PreMigrateContext {
+  selectValue<T extends SqlValue = SqlValue>(sql: string, bind?: BindingSpec): T | null;
+  /** True if any non-internal table holds at least one row. */
+  hasAnyUserData(): boolean;
+  /** DELETE every row from all non-internal tables (schema + ledger kept). */
+  clearAllUserData(): void;
 }
 
 export interface SqliteOptions {
@@ -38,6 +52,14 @@ export interface SqliteOptions {
   migrations?: readonly Migration[];
   /** Tag used in log lines so two DBs are distinguishable in the console. */
   logTag?: string;
+  /**
+   * Optional hook run after the database opens but *before* migrations. Lets a
+   * caller destructively reset an incompatible derived cache (clear all rows)
+   * so that breaking migrations apply to empty tables instead of failing on a
+   * populated one. Return true if it cleared data. Only the derived game cache
+   * sets this — the user-authored DB must not, or it would wipe real data.
+   */
+  resetBeforeMigrate?: (ctx: PreMigrateContext) => boolean;
 }
 
 export class Sqlite {
@@ -50,12 +72,14 @@ export class Sqlite {
   private readonly poolName: string;
   private readonly migrations: readonly Migration[];
   private readonly logTag: string;
+  private readonly resetBeforeMigrate?: (ctx: PreMigrateContext) => boolean;
 
   constructor(options: SqliteOptions = {}) {
     this.opfsFilename = options.opfsFilename ?? DEFAULT_OPFS_FILENAME;
     this.poolName = options.poolName ?? DEFAULT_POOL_NAME;
     this.migrations = options.migrations ?? MIGRATIONS;
     this.logTag = options.logTag ?? this.opfsFilename;
+    this.resetBeforeMigrate = options.resetBeforeMigrate;
   }
 
   get backend(): Backend {
@@ -69,7 +93,11 @@ export class Sqlite {
 
   async open(): Promise<OpenResult> {
     if (this.db) {
-      return { backend: this._backend, schemaVersion: this.currentSchemaVersion() };
+      return {
+        backend: this._backend,
+        schemaVersion: this.currentSchemaVersion(),
+        didDestructiveReset: false,
+      };
     }
 
     log.info('initializing sqlite3 module', { db: this.logTag });
@@ -104,6 +132,24 @@ export class Sqlite {
     }
 
     this.db.exec('PRAGMA foreign_keys = ON;');
+
+    // Destructive-reset fallback (Room-style): clear an incompatible cache
+    // before migrating, so breaking migrations run against empty tables.
+    let didDestructiveReset = false;
+    if (this.resetBeforeMigrate) {
+      try {
+        didDestructiveReset = this.resetBeforeMigrate(this);
+        if (didDestructiveReset) {
+          log.info('destructively reset cache before migrating', { db: this.logTag });
+        }
+      } catch (err) {
+        log.warn('pre-migration reset hook threw; continuing without reset', {
+          db: this.logTag,
+          ...describeError(err),
+        });
+      }
+    }
+
     this.runMigrations();
 
     const version = this.currentSchemaVersion();
@@ -112,7 +158,48 @@ export class Sqlite {
       backend: this._backend,
       schemaVersion: version,
     });
-    return { backend: this._backend, schemaVersion: version };
+    return { backend: this._backend, schemaVersion: version, didDestructiveReset };
+  }
+
+  /**
+   * True if any non-internal table holds at least one row. Used to tell a
+   * fresh database (genuine first run) apart from a populated one that needs a
+   * destructive reset. Excludes `_migrations` and `app_meta` (metadata, not
+   * user data).
+   */
+  hasAnyUserData(): boolean {
+    const db = this.require();
+    const tables = db
+      .selectObjects(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('_migrations','app_meta')",
+      )
+      .map((r) => String(r.name));
+    for (const t of tables) {
+      if (db.selectValue(`SELECT 1 FROM "${t}" LIMIT 1`) != null) return true;
+    }
+    return false;
+  }
+
+  /**
+   * DELETE every row from all non-internal tables, keeping the schema and the
+   * `_migrations` ledger intact. Generic — no domain table names — so it stays
+   * correct as the schema evolves.
+   */
+  clearAllUserData(): void {
+    const db = this.require();
+    const tables = db
+      .selectObjects(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> '_migrations'",
+      )
+      .map((r) => String(r.name));
+    this.transaction(() => {
+      for (const t of tables) db.exec(`DELETE FROM "${t}"`);
+      const hasSeq =
+        db.selectValue(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'",
+        ) != null;
+      if (hasSeq) db.exec('DELETE FROM sqlite_sequence');
+    });
   }
 
   /** Execute a one-shot statement (DDL or write). */
@@ -254,10 +341,25 @@ export class Sqlite {
     }
 
     this.db.exec('PRAGMA foreign_keys = ON;');
+
+    // Same destructive-reset fallback as open(): an incompatible backup is
+    // incompatible however it arrived, so clear it before migrating.
+    let didDestructiveReset = false;
+    if (this.resetBeforeMigrate) {
+      try {
+        didDestructiveReset = this.resetBeforeMigrate(this);
+      } catch (err) {
+        log.warn('pre-migration reset hook threw during import; continuing', {
+          db: this.logTag,
+          ...describeError(err),
+        });
+      }
+    }
+
     this.runMigrations();
     const version = this.currentSchemaVersion();
     log.info('importBytes complete', { backend: this._backend, schemaVersion: version });
-    return { backend: this._backend, schemaVersion: version };
+    return { backend: this._backend, schemaVersion: version, didDestructiveReset };
   }
 
   close(): void {

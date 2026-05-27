@@ -1,14 +1,14 @@
 /// <reference lib="WebWorker" />
 import { expose } from 'comlink';
 import { Sqlite } from '@/db/sqlite';
-import { DbApi } from '@/db/queries';
+import { DbApi, gameDataPreMigrateReset } from '@/db/queries';
 import { createLogger, describeError } from '@/lib/logger';
 
 const log = createLogger('db-worker');
 log.info('db worker started');
 
 class WorkerDb {
-  private readonly api = new DbApi(new Sqlite());
+  private readonly api = new DbApi(new Sqlite({ resetBeforeMigrate: gameDataPreMigrateReset }));
   private opened: Promise<void> | null = null;
 
   private async ensureOpen() {

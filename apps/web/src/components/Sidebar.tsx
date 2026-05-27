@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -11,6 +11,8 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
+  RotateCcw,
   Shield,
   Skull,
   Swords,
@@ -25,6 +27,7 @@ import {
 } from 'lucide-react';
 import { WEAPON_TYPE_ORDER, labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
 import { useFeatures } from '@/lib/useFeatures';
+import { useDataState } from '@/lib/useDataState';
 import { useOnlineStatus } from '@/lib/useOnlineStatus';
 import { useSidebarLayout, useSidebarSections } from '@/lib/sidebarState';
 import { getDbClient } from '@/db';
@@ -350,7 +353,7 @@ export function Sidebar({ variant = 'desktop' }: SidebarProps = {}) {
 // back to the pre-release marker.
 const APP_VERSION_LABEL = (import.meta.env.VITE_APP_VERSION as string | undefined) || 'Pre-alpha';
 
-type DbHealth = 'pending' | 'healthy' | 'warning' | 'error';
+type DbHealth = 'pending' | 'healthy' | 'warning' | 'error' | 'reinitialize' | 'update';
 
 interface HealthCfg {
   icon: LucideIcon;
@@ -359,6 +362,8 @@ interface HealthCfg {
   iconClass: string;
   textClass?: string;
   spin?: boolean;
+  /** When set, the indicator links here so the user can act on the state. */
+  actionTo?: string;
 }
 
 const HEALTH_CONFIG: Record<DbHealth, HealthCfg> = {
@@ -389,6 +394,23 @@ const HEALTH_CONFIG: Record<DbHealth, HealthCfg> = {
     title: 'Database is corrupted or unreachable — recreating from scratch may be required',
     iconClass: 'text-red-600 dark:text-red-400',
     textClass: 'text-red-700 dark:text-red-300',
+  },
+  reinitialize: {
+    icon: RotateCcw,
+    label: 'Rebuild needed',
+    title: 'This version changed how your library is stored. Reload your game files to rebuild it.',
+    iconClass: 'text-red-600 dark:text-red-400',
+    textClass: 'text-red-700 dark:text-red-300',
+    actionTo: '/setup',
+  },
+  update: {
+    icon: RefreshCw,
+    label: 'Refresh library',
+    title:
+      'Your library is out of date. Re-run setup with your game files to unlock the latest features.',
+    iconClass: 'text-amber-600 dark:text-amber-400',
+    textClass: 'text-amber-700 dark:text-amber-300',
+    actionTo: '/setup',
   },
 };
 
@@ -428,6 +450,7 @@ function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
   // reload, so we surface a warning regardless of which side it is.
   const gameStatusQ = useQuery({ queryKey: ['db', 'status'], queryFn: () => db.status() });
   const userStatusQ = useQuery({ queryKey: ['user', 'status'], queryFn: () => userDb.status() });
+  const { state: dataState } = useDataState();
 
   let health: DbHealth;
   let reason: string | null = null;
@@ -435,6 +458,10 @@ function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
     health = 'pending';
   } else if (gameStatusQ.isError || userStatusQ.isError) {
     health = 'error';
+  } else if (dataState === 'reinitialize-required') {
+    // A library too old to read outranks the in-memory warning — rebuilding is
+    // the only way forward and that flow starts at /setup anyway.
+    health = 'reinitialize';
   } else {
     const inMemory: string[] = [];
     if (gameStatusQ.data.backend !== 'opfs') {
@@ -446,6 +473,8 @@ function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
     if (inMemory.length > 0) {
       health = 'warning';
       reason = inMemory.join('\n');
+    } else if (dataState === 'update-recommended') {
+      health = 'update';
     } else {
       health = 'healthy';
     }
@@ -455,29 +484,38 @@ function DbStatusIndicator({ collapsed }: { collapsed: boolean }) {
   const Icon = cfg.icon;
   const title = reason ? `${cfg.title}\n\n${reason}` : cfg.title;
 
+  const body = collapsed ? (
+    <Icon
+      className={cn('h-4 w-4 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
+      aria-label={cfg.label}
+    />
+  ) : (
+    <div className="flex items-center gap-2 text-xs">
+      <Icon
+        className={cn('h-3.5 w-3.5 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
+        aria-hidden
+      />
+      <span className={cn('truncate', cfg.textClass ?? 'text-sidebar-foreground')}>{cfg.label}</span>
+    </div>
+  );
+
+  const containerClass = cn(collapsed ? 'flex justify-center px-2 py-2' : 'px-3 pb-2 pt-3');
+
+  if (cfg.actionTo) {
+    return (
+      <Link
+        to={cfg.actionTo}
+        className={cn(containerClass, 'hover:bg-accent block rounded-md transition-colors')}
+        title={title}
+      >
+        {body}
+      </Link>
+    );
+  }
+
   return (
-    <div
-      className={cn(collapsed ? 'flex justify-center px-2 py-2' : 'px-3 pb-2 pt-3')}
-      title={title}
-      role="status"
-      aria-live="polite"
-    >
-      {collapsed ? (
-        <Icon
-          className={cn('h-4 w-4 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
-          aria-label={cfg.label}
-        />
-      ) : (
-        <div className="flex items-center gap-2 text-xs">
-          <Icon
-            className={cn('h-3.5 w-3.5 shrink-0', cfg.iconClass, cfg.spin && 'animate-spin')}
-            aria-hidden
-          />
-          <span className={cn('truncate', cfg.textClass ?? 'text-sidebar-foreground')}>
-            {cfg.label}
-          </span>
-        </div>
-      )}
+    <div className={containerClass} title={title} role="status" aria-live="polite">
+      {body}
     </div>
   );
 }
