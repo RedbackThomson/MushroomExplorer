@@ -1,5 +1,5 @@
 import { Menu } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { PaletteTrigger } from '@/components/command-palette/PaletteTrigger';
 import { Button } from '@/components/ui/button';
 import { useSidebarLayout } from '@/stores/sidebarState';

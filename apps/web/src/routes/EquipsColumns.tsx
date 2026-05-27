@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { ItemIcon } from '@/components/ItemIcon';
+import { ItemIcon } from '@/components/entity-display/ItemIcon';
 import { EquipLink } from '@/components/entity-links';
 import type { EquipRecord } from '@/db';
 import { ABILITY_STAT_FIELDS } from '@/domain/abilityStats';

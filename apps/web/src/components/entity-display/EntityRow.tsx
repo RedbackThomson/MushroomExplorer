@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { EntityAvatar } from '@/components/EntityAvatar';
+import { EntityAvatar } from '@/components/entity-display/EntityAvatar';
 import { EntityLink } from '@/components/entity-links';
 import type { EntityKind } from '@/db/types';
 import { cn } from '@/lib/utils';

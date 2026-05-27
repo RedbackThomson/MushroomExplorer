@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Crown, Map as MapIcon, MapPin, Package, ScrollText, Skull } from 'lucide-react';
-import { DetailListSection } from '@/components/DetailListSection';
+import { DetailListSection } from '@/components/layout/DetailListSection';
 import {
   DetailPageLayout,
   DetailPageLoading,
@@ -10,12 +10,12 @@ import {
   InfoRow,
   InfoSection,
   SourceSection,
-} from '@/components/DetailPageLayout';
-import { EntityAvatar } from '@/components/EntityAvatar';
-import { EntityIcon } from '@/components/EntityIcon';
-import { EntityRow } from '@/components/EntityRow';
-import { ExpValue } from '@/components/ExpValue';
-import { ListSortControl } from '@/components/ListSortControl';
+} from '@/components/layout/DetailPageLayout';
+import { EntityAvatar } from '@/components/entity-display/EntityAvatar';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
+import { EntityRow } from '@/components/entity-display/EntityRow';
+import { ExpValue } from '@/components/entity-display/ExpValue';
+import { ListSortControl } from '@/components/common/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
 import type { CommandItem } from '@/components/command-palette/types';

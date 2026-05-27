@@ -2,8 +2,8 @@ import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Crown, Skull } from 'lucide-react';
-import { EntityIcon } from '@/components/EntityIcon';
-import { HoverPopover } from '@/components/HoverPopover';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
+import { HoverPopover } from '@/components/common/HoverPopover';
 import { HoverCardSaveFooter } from '@/components/collections';
 import { getDbClient } from '@/db';
 import {

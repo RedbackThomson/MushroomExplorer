@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Award, Coins, Copy, Package, ScrollText, Sparkles, Target, Users } from 'lucide-react';
-import { DetailListSection } from '@/components/DetailListSection';
+import { DetailListSection } from '@/components/layout/DetailListSection';
 import {
   DetailPageLayout,
   DetailPageLoading,
@@ -10,10 +10,10 @@ import {
   InfoRow,
   InfoSection,
   SourceSection,
-} from '@/components/DetailPageLayout';
-import { EntityAvatar } from '@/components/EntityAvatar';
-import { EntityRow } from '@/components/EntityRow';
-import { ExpValue } from '@/components/ExpValue';
+} from '@/components/layout/DetailPageLayout';
+import { EntityAvatar } from '@/components/entity-display/EntityAvatar';
+import { EntityRow } from '@/components/entity-display/EntityRow';
+import { ExpValue } from '@/components/entity-display/ExpValue';
 import { getDbClient } from '@/db';
 import type { QuestRequirementWithName, QuestRewardWithName } from '@/db';
 import { NpcLink } from '@/components/entity-links';

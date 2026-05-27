@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Crown, Skull } from 'lucide-react';
-import { EntityIcon } from '@/components/EntityIcon';
-import { ExpValue } from '@/components/ExpValue';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
+import { ExpValue } from '@/components/entity-display/ExpValue';
 import { MobLink } from '@/components/entity-links';
 import type { MobRecord } from '@/db';
 import {

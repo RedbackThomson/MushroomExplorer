@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Skull } from 'lucide-react';
-import { DetailListSection } from '@/components/DetailListSection';
+import { DetailListSection } from '@/components/layout/DetailListSection';
 import {
   DetailPageLayout,
   DetailPageLoading,
@@ -10,12 +10,15 @@ import {
   InfoRow,
   InfoSection,
   SourceSection,
-} from '@/components/DetailPageLayout';
-import { EntityRow } from '@/components/EntityRow';
-import { ItemIcon } from '@/components/ItemIcon';
+} from '@/components/layout/DetailPageLayout';
+import { EntityRow } from '@/components/entity-display/EntityRow';
+import { ItemIcon } from '@/components/entity-display/ItemIcon';
 import { Badge } from '@/components/ui/badge';
-import { MetadataFlagBadges, EQUIP_FLAG_ORDER } from '@/components/MetadataFlagBadges';
-import { ListSortControl } from '@/components/ListSortControl';
+import {
+  MetadataFlagBadges,
+  EQUIP_FLAG_ORDER,
+} from '@/components/entity-display/MetadataFlagBadges';
+import { ListSortControl } from '@/components/common/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
 import type { CommandItem } from '@/components/command-palette/types';

@@ -1,4 +1,4 @@
-import { HoverPopover } from '@/components/HoverPopover';
+import { HoverPopover } from '@/components/common/HoverPopover';
 import { useServerProfile } from '@/hooks/useServerProfile';
 
 /**

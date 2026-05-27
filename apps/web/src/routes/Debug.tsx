@@ -10,10 +10,10 @@ import {
   Loader2,
   Save,
 } from 'lucide-react';
-import { FilePicker } from '@/components/FilePicker';
+import { FilePicker } from '@/components/data/FilePicker';
 import { Button } from '@/components/ui/button';
-import { ExtractAllPanel } from '@/components/ExtractAllPanel';
-import { ProgressBar } from '@/components/ProgressBar';
+import { ExtractAllPanel } from '@/components/data/ExtractAllPanel';
+import { ProgressBar } from '@/components/common/ProgressBar';
 import { getParserClient, type WzNodeInfo, type WzMapleVersionName } from '@/parser';
 import { getDbClient } from '@/db';
 import { cn } from '@/lib/utils';

@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { ItemIcon } from '@/components/ItemIcon';
+import { ItemIcon } from '@/components/entity-display/ItemIcon';
 import { ItemLink } from '@/components/entity-links';
 import type { ItemRecord } from '@/db';
 

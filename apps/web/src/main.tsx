@@ -6,7 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v6';
 
 import { router } from '@/router';
-import { UpdatePrompt } from '@/components/UpdatePrompt';
+import { UpdatePrompt } from '@/components/common/UpdatePrompt';
 import { initAnalytics } from '@/analytics';
 import '@/styles/index.css';
 

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Map as MapIcon, MapPin, ScrollText, Users } from 'lucide-react';
-import { DetailListSection } from '@/components/DetailListSection';
+import { DetailListSection } from '@/components/layout/DetailListSection';
 import {
   DetailPageLayout,
   DetailPageLoading,
@@ -10,10 +10,10 @@ import {
   InfoRow,
   InfoSection,
   SourceSection,
-} from '@/components/DetailPageLayout';
-import { EntityIcon } from '@/components/EntityIcon';
-import { EntityRow } from '@/components/EntityRow';
-import { ListSortControl } from '@/components/ListSortControl';
+} from '@/components/layout/DetailPageLayout';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
+import { EntityRow } from '@/components/entity-display/EntityRow';
+import { ListSortControl } from '@/components/common/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
 import type { CommandItem } from '@/components/command-palette/types';

@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Users } from 'lucide-react';
-import { EntityIcon } from '@/components/EntityIcon';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
 import { NpcLink } from '@/components/entity-links';
 import type { NpcRecord } from '@/db';
 

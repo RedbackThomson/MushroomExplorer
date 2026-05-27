@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Database, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ProgressBar } from '@/components/ProgressBar';
+import { ProgressBar } from '@/components/common/ProgressBar';
 import { useExtractAll } from '@/hooks/extraction/useExtractAll';
 
 /**

@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ItemIcon } from '@/components/ItemIcon';
-import { HoverPopover } from '@/components/HoverPopover';
+import { ItemIcon } from '@/components/entity-display/ItemIcon';
+import { HoverPopover } from '@/components/common/HoverPopover';
 import { HoverCardSaveFooter } from '@/components/collections';
 import { getDbClient } from '@/db';
 import { labelForEquipSlot, labelForEquipType } from '@/domain/equipTypes';

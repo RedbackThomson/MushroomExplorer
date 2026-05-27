@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, DoorOpen, Map as MapIcon, MapPin, Maximize, Skull, Users } from 'lucide-react';
-import { DetailListSection } from '@/components/DetailListSection';
+import { DetailListSection } from '@/components/layout/DetailListSection';
 import {
   DetailPageLayout,
   DetailPageLoading,
@@ -10,10 +10,10 @@ import {
   InfoRow,
   InfoSection,
   SourceSection,
-} from '@/components/DetailPageLayout';
-import { EntityIcon } from '@/components/EntityIcon';
-import { EntityRow } from '@/components/EntityRow';
-import { ListSortControl } from '@/components/ListSortControl';
+} from '@/components/layout/DetailPageLayout';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
+import { EntityRow } from '@/components/entity-display/EntityRow';
+import { ListSortControl } from '@/components/common/ListSortControl';
 import { MapLink } from '@/components/entity-links';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { MapViewerModal, type MapViewerHighlight } from '@/components/MapViewer';

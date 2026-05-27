@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { HoverPopover } from '@/components/HoverPopover';
+import { HoverPopover } from '@/components/common/HoverPopover';
 import { cn } from '@/lib/utils';
 
 interface MapViewerIconProps {

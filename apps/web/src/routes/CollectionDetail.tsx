@@ -17,7 +17,7 @@ import {
   todayStamp,
 } from '@/components/collections';
 import { EntityLink } from '@/components/entity-links';
-import { EntityAvatar } from '@/components/EntityAvatar';
+import { EntityAvatar } from '@/components/entity-display/EntityAvatar';
 import { getDbClient, type EntitySummary } from '@/db';
 import {
   useCollection,

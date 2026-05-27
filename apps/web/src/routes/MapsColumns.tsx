@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Map as MapIcon } from 'lucide-react';
-import { EntityIcon } from '@/components/EntityIcon';
+import { EntityIcon } from '@/components/entity-display/EntityIcon';
 import { MapLink } from '@/components/entity-links';
 import type { MapRecord } from '@/db';
 
