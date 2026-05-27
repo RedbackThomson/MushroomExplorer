@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Package,
+  ScrollText,
+  Shield,
+  Skull,
+  Users,
+  XCircle,
+  Map as MapIcon,
+  type LucideIcon,
+} from 'lucide-react';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import type { WzMapleVersionName } from '@/parser';
 import {
@@ -20,6 +32,21 @@ interface Props {
   onComplete: () => void;
   mode: 'first-run' | 'update';
 }
+
+/** Per-category summary tiles, keyed by the count field on `ExtractStats`.
+ *  Icons mirror the sidebar so the summary reads like the app it built. */
+const SUMMARY_CARDS: {
+  key: 'items' | 'equips' | 'mobs' | 'npcs' | 'maps' | 'quests';
+  label: string;
+  Icon: LucideIcon;
+}[] = [
+  { key: 'items', label: 'Items', Icon: Package },
+  { key: 'equips', label: 'Equips', Icon: Shield },
+  { key: 'mobs', label: 'Mobs', Icon: Skull },
+  { key: 'npcs', label: 'NPCs', Icon: Users },
+  { key: 'maps', label: 'Maps', Icon: MapIcon },
+  { key: 'quests', label: 'Quests', Icon: ScrollText },
+];
 
 /**
  * Runs the wizard's extraction in parallel across the parser pool.
@@ -93,8 +120,11 @@ export function StepRun({ version, files, onComplete, mode }: Props) {
   }
 
   if (extract.stats) {
+    const stats = extract.stats;
+    const loaded = SUMMARY_CARDS.filter((c) => stats[c.key] > 0);
+    const total = loaded.reduce((n, c) => n + stats[c.key], 0);
     return (
-      <section className="space-y-4">
+      <section className="space-y-5">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
           <div>
@@ -102,15 +132,39 @@ export function StepRun({ version, files, onComplete, mode }: Props) {
               {mode === 'update' ? 'Update complete' : 'Your wiki is ready'}
             </h2>
             <p className="text-muted-foreground text-sm">
-              Loaded {extract.stats.items} items, {extract.stats.equips} equips,{' '}
-              {extract.stats.mobs} mobs, {extract.stats.npcs} NPCs, {extract.stats.maps} maps,{' '}
-              {extract.stats.quests} quests in {(extract.stats.ms / 1000).toFixed(1)}s.
-              {extract.stats.skipped > 0 && (
-                <> {extract.stats.skipped} entries were skipped because they had no name.</>
-              )}
+              {total.toLocaleString()} entries indexed in {(stats.ms / 1000).toFixed(1)}s. Everything
+              is stored on this device and ready to explore.
             </p>
           </div>
         </div>
+
+        {loaded.length > 0 && (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {loaded.map(({ key, label, Icon }) => (
+              <li
+                key={key}
+                className="border-border bg-card text-card-foreground flex items-center gap-3 rounded-md border p-3"
+              >
+                <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-mono text-lg font-semibold tabular-nums leading-none">
+                    {stats[key].toLocaleString()}
+                  </span>
+                  <span className="text-muted-foreground mt-1 block text-xs">{label}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {stats.skipped > 0 && (
+          <p className="text-muted-foreground text-xs">
+            {stats.skipped.toLocaleString()} entries were skipped because they had no name.
+          </p>
+        )}
+
         {failedExtractors.length > 0 && (
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-100">
             <h3 className="text-sm font-semibold">

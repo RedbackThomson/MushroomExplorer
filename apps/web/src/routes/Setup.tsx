@@ -12,6 +12,7 @@ import {
   type WizardFile,
 } from '@/components/wizard/StepFiles';
 import { StepRun } from '@/components/wizard/StepRun';
+import { StepWelcome } from '@/components/wizard/StepWelcome';
 import { StepRestore, type RestoreState } from '@/components/wizard/StepRestore';
 import { buildPlan } from '@/components/wizard/plan';
 import { getDbClient } from '@/db';
@@ -25,7 +26,15 @@ import { getParserClient, type DataSourceKind, type WzMapleVersionName } from '@
 
 const log = createLogger('setup');
 
-const STEPS: WizardStep[] = [
+type StepId = 'welcome' | 'files' | 'run';
+
+/** First-run opens on the welcome splash; update mode skips straight to files. */
+const FIRST_RUN_STEPS: (WizardStep & { id: StepId })[] = [
+  { id: 'welcome', label: 'Welcome' },
+  { id: 'files', label: 'Files' },
+  { id: 'run', label: 'Run' },
+];
+const UPDATE_STEPS: (WizardStep & { id: StepId })[] = [
   { id: 'files', label: 'Files' },
   { id: 'run', label: 'Run' },
 ];
@@ -97,7 +106,10 @@ export default function Setup() {
   // for this build to read (see AppShell#useSetupRedirect).
   const incompatibleLibrary =
     (location.state as { reason?: string } | null)?.reason === 'data-incompatible';
-  const [stepId, setStepId] = useState<(typeof STEPS)[number]['id']>('files');
+  const [stepId, setStepId] = useState<StepId>('welcome');
+  // Format the user committed to on the welcome step. Null until chosen (and
+  // stays null in update mode, where the files step auto-detects either).
+  const [source, setSource] = useState<DataSourceKind | null>(null);
   const [files, setFiles] = useState<WizardFile[]>([]);
 
   // Auto-detected encryption from the first hashed file; advanced override
@@ -406,6 +418,10 @@ export default function Setup() {
   // ─── First-run / Update branch ─────────────────────────────────────────────
   // All restore + null branches returned above.
   const stepMode: 'first-run' | 'update' = mode === 'restore' ? 'first-run' : mode;
+  const STEPS = stepMode === 'first-run' ? FIRST_RUN_STEPS : UPDATE_STEPS;
+  // Update mode has no welcome step; coerce the initial 'welcome' state to the
+  // first real step so navigation indexing stays in sync with STEPS.
+  const step: StepId = stepMode === 'update' && stepId === 'welcome' ? 'files' : stepId;
 
   const filesReady = files.length > 0 && files.every((f) => f.hashPhase === 'done');
   const someIncluded = files.some((f) => f.include);
@@ -415,19 +431,28 @@ export default function Setup() {
   const plan = buildPlan(files);
   const planIsRunnable = plan.willRun.length > 0 && plan.missingDeps.length === 0;
 
+  function chooseSource(kind: DataSourceKind) {
+    // Switching format mid-setup invalidates whatever was already dropped.
+    if (source !== kind) setFiles([]);
+    setSource(kind);
+    setStepId('files');
+  }
+
   function goPrev() {
-    const idx = STEPS.findIndex((s) => s.id === stepId);
+    const idx = STEPS.findIndex((s) => s.id === step);
     if (idx > 0) setStepId(STEPS[idx - 1].id);
   }
   function goNext() {
-    const idx = STEPS.findIndex((s) => s.id === stepId);
+    const idx = STEPS.findIndex((s) => s.id === step);
     if (idx < STEPS.length - 1) setStepId(STEPS[idx + 1].id);
   }
 
   const canStart = canProceedFromFiles && planIsRunnable;
 
   let body: React.ReactNode;
-  if (stepId === 'files')
+  if (step === 'welcome')
+    body = <StepWelcome onChoose={chooseSource} onRestore={() => setRestore(true)} />;
+  else if (step === 'files')
     body = (
       <>
         {ignoredNotice && (
@@ -446,6 +471,7 @@ export default function Setup() {
           profileOverride={profileOverride}
           onProfileOverrideChange={setProfileOverride}
           mode={stepMode}
+          source={source}
           features={features}
           onRestoreFile={onRestoreFile}
         />
@@ -474,8 +500,9 @@ export default function Setup() {
 
   const exitSlot = stepMode === 'update' ? <ExitToApp /> : undefined;
 
+  // The welcome splash carries its own choice buttons, so it needs no footer.
   const footer =
-    stepId === 'run' ? (
+    step === 'welcome' ? undefined : step === 'run' ? (
       runComplete ? (
         <>
           <span />
@@ -497,14 +524,14 @@ export default function Setup() {
       )
     ) : (
       <>
-        {stepId === STEPS[0].id && stepMode === 'update' ? (
+        {step === STEPS[0].id && stepMode === 'update' ? (
           <Link
             to="/"
             className="hover:bg-accent hover:text-accent-foreground inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" /> Exit
           </Link>
-        ) : stepId === STEPS[0].id ? (
+        ) : step === STEPS[0].id ? (
           <span />
         ) : (
           <Button variant="ghost" size="sm" onClick={goPrev}>
@@ -512,7 +539,7 @@ export default function Setup() {
           </Button>
         )}
         <div className="flex items-center gap-2">
-          {stepId === 'files' && !canStart && (
+          {step === 'files' && !canStart && (
             <span
               className={cn(
                 'text-xs',
@@ -532,25 +559,32 @@ export default function Setup() {
                         : 'Nothing to load'}
             </span>
           )}
-          <Button size="sm" onClick={goNext} disabled={stepId === 'files' && !canStart}>
-            {stepId === 'files' ? 'Start' : 'Continue'}
+          <Button size="sm" onClick={goNext} disabled={step === 'files' && !canStart}>
+            {step === 'files' ? 'Start' : 'Continue'}
           </Button>
         </div>
       </>
     );
 
-  const title = stepMode === 'update' ? 'Manage your wiki' : 'Set up your wiki';
-  const subtitle =
-    stepMode === 'update'
-      ? 'Add files for more categories, refresh existing ones, or drop a backup to restore.'
-      : 'Load your game files to build your personal wiki.';
+  let title: string;
+  let subtitle: string | undefined;
+  if (stepMode === 'update') {
+    title = 'Manage your wiki';
+    subtitle = 'Add files for more categories, refresh existing ones, or drop a backup to restore.';
+  } else if (step === 'welcome') {
+    title = 'Welcome to Scrolled';
+    subtitle = undefined;
+  } else {
+    title = 'Set up your wiki';
+    subtitle = 'Load your game files to build your personal wiki.';
+  }
 
   return (
     <WizardLayout
       title={title}
       subtitle={subtitle}
       steps={STEPS}
-      currentStepId={stepId}
+      currentStepId={step}
       footer={footer}
       exitSlot={exitSlot}
     >

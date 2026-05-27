@@ -28,7 +28,6 @@ import {
   type RelFile,
 } from './dropClassify';
 import { EntityStatus } from './EntityStatus';
-import { WelcomePanel } from './WelcomePanel';
 
 const log = createLogger('wizard-files');
 
@@ -95,8 +94,14 @@ interface Props {
   /** Manual profile override; `null` means "trust auto-detection." */
   profileOverride: string | null;
   onProfileOverrideChange: (v: string | null) => void;
-  /** Wizard mode — drives welcome panel visibility and entity-status copy. */
+  /** Wizard mode — drives entity-status copy. */
   mode: 'first-run' | 'update';
+  /**
+   * Format the user chose on the welcome step. Constrains the drop zone's
+   * instructions and accepted files. `null` (update mode) accepts either
+   * format and auto-detects, the long-standing behaviour.
+   */
+  source: DataSourceKind | null;
   features: Features;
   /**
    * Called when the user drops a backup file (`.scrolled-backup`, or a legacy
@@ -105,6 +110,69 @@ interface Props {
    */
   onRestoreFile: (file: File, ignoredOthers: number) => void;
 }
+
+/** Drop-zone copy and accepted extensions, keyed by the chosen source format
+ *  (`'any'` is update mode, where either format is welcome). */
+const DROP_COPY: Record<
+  'wz' | 'img' | 'any',
+  { heading: string; body: React.ReactNode; dropTitle: string; dropHint: React.ReactNode; accept: string }
+> = {
+  wz: {
+    heading: 'Add your .wz files',
+    body: (
+      <>
+        Open your game's installation folder, select every{' '}
+        <code className="font-mono text-xs">.wz</code> file, and drop them here. Everything stays on
+        this device.
+      </>
+    ),
+    dropTitle: 'Drag and drop your .wz files here',
+    dropHint: (
+      <>
+        the <code className="font-mono">.wz</code> files from your game folder
+      </>
+    ),
+    accept: '.wz',
+  },
+  img: {
+    heading: 'Add your Data folder',
+    body: (
+      <>
+        Open your game's installation folder and drop the whole{' '}
+        <code className="font-mono text-xs">Data</code> folder here — that's where the extracted{' '}
+        <code className="font-mono text-xs">.img</code> files live. Everything stays on this device.
+      </>
+    ),
+    dropTitle: 'Drag and drop your Data folder here',
+    dropHint: (
+      <>
+        the <code className="font-mono">Data</code> folder of <code className="font-mono">.img</code>{' '}
+        files
+      </>
+    ),
+    accept: '.img',
+  },
+  any: {
+    heading: 'Add your files',
+    body: (
+      <>
+        Drop your <code className="font-mono text-xs">.wz</code> files, or choose a folder of
+        extracted <code className="font-mono text-xs">.img</code> files. You can also drop a{' '}
+        <code className="font-mono text-xs">.scrolled-backup</code> file to restore a previously
+        exported wiki. Everything stays on this device.
+      </>
+    ),
+    dropTitle: 'Drag and drop files or a folder here',
+    dropHint: (
+      <>
+        <code className="font-mono">.wz</code> game files, an{' '}
+        <code className="font-mono">.img</code> folder, or a{' '}
+        <code className="font-mono">.scrolled-backup</code> file
+      </>
+    ),
+    accept: '.wz,.img,.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip',
+  },
+};
 
 const VERSION_OPTIONS: { id: WzMapleVersionName; label: string }[] = [
   { id: 'GMS', label: 'GMS · older global-region client' },
@@ -162,6 +230,7 @@ export function StepFiles({
   profileOverride,
   onProfileOverrideChange,
   mode,
+  source,
   features,
   onRestoreFile,
 }: Props) {
@@ -196,6 +265,16 @@ export function StepFiles({
       if (dk === 'none') return;
       if (dk === 'mixed') {
         setNotice('Add either .wz files or a folder of .img files — not both at once.');
+        return;
+      }
+      // The welcome step already committed to a format; reject the other one
+      // with a pointer back rather than silently switching modes.
+      if (source && dk !== source) {
+        setNotice(
+          source === 'wz'
+            ? 'These look like extracted .img files. Go back and choose the Data-folder option, or drop your .wz files here.'
+            : 'These look like .wz files. Go back and choose the .wz option, or drop your Data folder here.',
+        );
         return;
       }
       const currentKind = files[0]?.kind ?? null;
@@ -243,7 +322,7 @@ export function StepFiles({
       }));
       onChange(() => regrouped);
     },
-    [files, onChange, onRestoreFile],
+    [files, onChange, onRestoreFile, source],
   );
 
   // Hash newly added WZ archives (whole-file dedup) one budget's worth at a
@@ -296,19 +375,14 @@ export function StepFiles({
     onChange(files.map((f) => (f === file ? { ...f, include: value } : f)));
   }
 
+  const copy = DROP_COPY[source ?? 'any'];
+
   return (
     <section className="space-y-6">
-      {mode === 'first-run' && <WelcomePanel />}
-
       <div className="space-y-3">
         <div>
-          <h2 className="text-lg font-semibold">Add your files</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Drop your <code className="font-mono text-xs">.wz</code> files, or choose a folder of
-            extracted <code className="font-mono text-xs">.img</code> files. You can also drop a{' '}
-            <code className="font-mono text-xs">.scrolled-backup</code> file to restore a previously
-            exported wiki. Everything stays on this device.
-          </p>
+          <h2 className="text-lg font-semibold">{copy.heading}</h2>
+          <p className="text-muted-foreground mt-1 text-sm">{copy.body}</p>
         </div>
 
         <div
@@ -323,34 +397,39 @@ export function StepFiles({
             dragging && 'border-primary bg-primary/5',
           )}
         >
-          <Upload className="text-muted-foreground mb-3 h-8 w-8" />
-          <p className="text-sm font-medium">Drag and drop files or a folder here</p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            <code className="font-mono">.wz</code> game files, an <code className="font-mono">.img</code>{' '}
-            folder, or a <code className="font-mono">.scrolled-backup</code> file
-          </p>
+          {source === 'img' ? (
+            <FolderOpen className="text-muted-foreground mb-3 h-8 w-8" />
+          ) : (
+            <Upload className="text-muted-foreground mb-3 h-8 w-8" />
+          )}
+          <p className="text-sm font-medium">{copy.dropTitle}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{copy.dropHint}</p>
           <div className="mt-3 flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => inputRef.current?.click()}
-            >
-              Choose files
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => dirInputRef.current?.click()}
-            >
-              <FolderOpen className="h-4 w-4" /> Choose folder
-            </Button>
+            {source !== 'img' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => inputRef.current?.click()}
+              >
+                Choose files
+              </Button>
+            )}
+            {source !== 'wz' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => dirInputRef.current?.click()}
+              >
+                <FolderOpen className="h-4 w-4" /> Choose folder
+              </Button>
+            )}
           </div>
           <input
             ref={inputRef}
             type="file"
-            accept={acceptForDesktop('.wz,.img,.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip')}
+            accept={acceptForDesktop(copy.accept)}
             multiple
             className="hidden"
             onChange={(e) => {
