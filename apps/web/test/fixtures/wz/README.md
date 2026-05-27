@@ -6,23 +6,23 @@ This directory is **gitignored**. Drop your own MapleRoyals (or compatible) WZ f
 
 ## Expected files
 
-The Phase 1 integration tests look for these by default:
+The integration tests look for these by default:
 
 | File        | Used for                                                 |
 | ----------- | -------------------------------------------------------- |
 | `String.wz` | item / equip / mob / NPC / map / quest localized strings |
 | `Item.wz`   | item metadata                                            |
-| `Mob.wz`    | mob metadata (optional in Phase 1)                       |
-| `Npc.wz`    | NPC metadata (optional in Phase 1)                       |
-| `Map.wz`    | map metadata (optional in Phase 1)                       |
-| `Quest.wz`  | quest metadata (optional in Phase 1)                     |
-| `Skill.wz`  | skill metadata (optional in Phase 1)                     |
+| `Mob.wz`    | mob metadata (optional)                                  |
+| `Npc.wz`    | NPC metadata (optional)                                  |
+| `Map.wz`    | map metadata (optional)                                  |
+| `Quest.wz`  | quest metadata (optional)                                |
+| `Skill.wz`  | skill metadata (optional)                                |
 
-Tests skip gracefully when any expected file is missing, so you can drop in just `String.wz` + `Item.wz` for the Phase 1 spike and add the rest later.
+Tests skip gracefully when any expected file is missing, so you can drop in just `String.wz` + `Item.wz` and add the rest later.
 
 ## Encryption version
 
-The default is `WzMapleVersion.GMS` ("old GMS" — the encryption MapleRoyals' v83-era client uses). Override per-run via the `SCROLLED_WZ_VERSION` environment variable:
+The default is `GMS` ("old GMS" — the encryption MapleRoyals' v83-era client uses). Override per-run via the `SCROLLED_WZ_VERSION` environment variable:
 
 ```bash
 SCROLLED_WZ_VERSION=GMS pnpm test
@@ -39,3 +39,7 @@ SCROLLED_KNOWN_ITEM_ID=2000000 SCROLLED_KNOWN_ITEM_NAME='Red Potion' pnpm test
 ```
 
 Without those env vars, the integration test asserts only generic structure (top-level dirs present, at least one item resolvable).
+
+## IMG fixtures
+
+The binary `.img` counterpart lives in the sibling `../img/` directory — see its README.

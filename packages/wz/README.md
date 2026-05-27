@@ -10,7 +10,7 @@ Why this exists instead of `@tybys/wz`:
 
 ## Status
 
-In active development. The parser is built test-driven against the real MapleRoyals v83 (GMS-encryption) fixtures already present at `apps/web/test/fixtures/local/`. See `/Users/nicholasthomson/.claude/plans/loading-map-wz-files-is-eager-forest.md` for the staged plan.
+In active development. The parser is built test-driven against the real MapleRoyals v83 (GMS-encryption) fixtures already present at `apps/web/test/fixtures/wz/`. See `/Users/nicholasthomson/.claude/plans/loading-map-wz-files-is-eager-forest.md` for the staged plan.
 
 `@tybys/wz` is a transient `devDependency` here, used only as a byte-equality oracle in real-fixture tests. It is removed once parity is achieved.
 

@@ -523,4 +523,14 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE items ADD COLUMN trade_available   INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 18,
+    name: 'dataset source kind (wz vs img)',
+    sql: `
+      -- Which on-disk format the library was built from: a WZ archive or a
+      -- folder of standalone .img files. Metadata only (no extraction-output
+      -- change), so this is additive — existing rows default to 'wz'.
+      ALTER TABLE datasets ADD COLUMN source_kind TEXT NOT NULL DEFAULT 'wz';
+    `,
+  },
 ];

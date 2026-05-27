@@ -1,6 +1,7 @@
 /// <reference lib="WebWorker" />
 import { expose } from 'comlink';
 import { WzDataSource } from '@/parser/WzDataSource';
+import { ImgDataSource } from '@/parser/ImgDataSource';
 import { ensureWzInit } from '@/parser/wzInit';
 import {
   extractItems,
@@ -12,7 +13,12 @@ import {
 } from '@/extractors';
 import { createLogger, describeError } from '@/lib/logger';
 import { throttleProgress, type ProgressFn } from '@/lib/progress';
-import type { GameDataSource, LoadFileSpec, WzMapleVersionName } from '@/parser/types';
+import type {
+  DataSourceKind,
+  GameDataSource,
+  LoadFileSpec,
+  WzMapleVersionName,
+} from '@/parser/types';
 import type {
   ExtractItemsResult,
   ExtractEquipsResult,
@@ -26,41 +32,49 @@ const log = createLogger('worker');
 log.info('worker started');
 
 class WorkerGameDataSource implements GameDataSource {
-  private readonly inner = new WzDataSource();
+  // Picked on `init` based on the dataset kind. Both implement the same
+  // `GameDataSource` contract, so every method below — and the extractors —
+  // are format-agnostic.
+  private inner: GameDataSource | null = null;
 
-  async init(version: WzMapleVersionName) {
-    log.info('init requested', { version });
+  async init(version: WzMapleVersionName, kind: DataSourceKind = 'wz') {
+    log.info('init requested', { version, kind });
     try {
       await ensureWzInit();
     } catch (e) {
       log.error('ensureWzInit failed', describeError(e));
       throw e;
     }
-    await this.inner.init(version);
+    this.inner = kind === 'img' ? new ImgDataSource() : new WzDataSource();
+    await this.inner.init(version, kind);
+  }
+  private src(): GameDataSource {
+    if (!this.inner) throw new Error('parser worker used before init()');
+    return this.inner;
   }
   load(files: LoadFileSpec[], onProgress?: ProgressFn) {
-    return this.inner.load(files, onProgress ? throttleProgress(onProgress) : undefined);
+    return this.src().load(files, onProgress ? throttleProgress(onProgress) : undefined);
   }
   getNode(path: string) {
-    return this.inner.getNode(path);
+    return this.src().getNode(path);
   }
   listChildren(path: string) {
-    return this.inner.listChildren(path);
+    return this.src().listChildren(path);
   }
   readImageTree(path: string, opts?: { subtrees?: string[]; maxDepth?: number }) {
-    return this.inner.readImageTree(path, opts);
+    return this.src().readImageTree(path, opts);
   }
   listFiles() {
-    return this.inner.listFiles();
+    return this.src().listFiles();
   }
   getIconPng(path: string) {
-    return this.inner.getIconPng(path);
+    return this.src().getIconPng(path);
   }
   diagnose() {
-    return this.inner.diagnose();
+    return this.src().diagnose();
   }
   dispose() {
-    return this.inner.dispose();
+    return this.src().dispose();
   }
 
   /**
@@ -74,7 +88,7 @@ class WorkerGameDataSource implements GameDataSource {
    */
   async extractItems(onProgress?: ProgressFn): Promise<ExtractItemsResult> {
     log.info('extractItems requested');
-    const result = await extractItems(this.inner, {
+    const result = await extractItems(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractItems complete', {
@@ -86,7 +100,7 @@ class WorkerGameDataSource implements GameDataSource {
 
   async extractEquips(onProgress?: ProgressFn): Promise<ExtractEquipsResult> {
     log.info('extractEquips requested');
-    const result = await extractEquips(this.inner, {
+    const result = await extractEquips(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractEquips complete', {
@@ -98,7 +112,7 @@ class WorkerGameDataSource implements GameDataSource {
 
   async extractMobs(onProgress?: ProgressFn): Promise<ExtractMobsResult> {
     log.info('extractMobs requested');
-    const result = await extractMobs(this.inner, {
+    const result = await extractMobs(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractMobs complete', { mobs: result.mobs.length, skipped: result.skipped.length });
@@ -107,7 +121,7 @@ class WorkerGameDataSource implements GameDataSource {
 
   async extractNpcs(onProgress?: ProgressFn): Promise<ExtractNpcsResult> {
     log.info('extractNpcs requested');
-    const result = await extractNpcs(this.inner, {
+    const result = await extractNpcs(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractNpcs complete', { npcs: result.npcs.length, skipped: result.skipped.length });
@@ -116,7 +130,7 @@ class WorkerGameDataSource implements GameDataSource {
 
   async extractMaps(onProgress?: ProgressFn): Promise<ExtractMapsResult> {
     log.info('extractMaps requested');
-    const result = await extractMaps(this.inner, {
+    const result = await extractMaps(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractMaps complete', {
@@ -130,7 +144,7 @@ class WorkerGameDataSource implements GameDataSource {
 
   async extractQuests(onProgress?: ProgressFn): Promise<ExtractQuestsResult> {
     log.info('extractQuests requested');
-    const result = await extractQuests(this.inner, {
+    const result = await extractQuests(this.src(), {
       onProgress: onProgress ? throttleProgress(onProgress) : undefined,
     });
     log.info('extractQuests complete', {

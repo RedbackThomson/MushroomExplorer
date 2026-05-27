@@ -1,4 +1,5 @@
 export type {
+  DataSourceKind,
   Diagnostics,
   GameDataSource,
   LoadFileSpec,
@@ -10,6 +11,7 @@ export type {
   WzPropertyKind,
 } from './types';
 export { WzDataSource } from './WzDataSource';
+export { ImgDataSource } from './ImgDataSource';
 export { getParserClient, terminateParserClient, type ParserWorkerApi } from './client';
 export {
   getPoolWorker,

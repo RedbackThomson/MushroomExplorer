@@ -320,6 +320,7 @@ export class DbApi implements GameDatabase {
   async recordDataset(input: {
     label: string;
     wzVersion: string;
+    sourceKind?: 'wz' | 'img';
     files: DatasetFileRef[];
     notes?: string;
     totalMs?: number;

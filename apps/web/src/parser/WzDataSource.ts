@@ -1,11 +1,4 @@
-import {
-  decodeCanvas,
-  openFile,
-  resolveUol,
-  type WzCanvasProperty,
-  type WzFile,
-  type WzVersion,
-} from '@scrolled/wz';
+import { decodeCanvas, openFile, type WzFile, type WzVersion } from '@scrolled/wz';
 import type {
   Diagnostics,
   GameDataSource,
@@ -18,13 +11,8 @@ import type {
 import { createLogger, describeError, getLogEntries } from '@/lib/logger';
 import { ensureWzInit, getAesSmokeTestResult } from './wzInit';
 import type { ProgressFn } from '@/lib/progress';
-import {
-  buildSubtree,
-  makeProperty,
-  pathOfResolution,
-  resolvePath,
-  type ResolvedNode,
-} from './wzResolve';
+import { buildSubtree, resolvePath, resolveToCanvas, type ResolvedNode } from './wzResolve';
+import { toBytes } from './toBytes';
 import { encodeRgbaToPng } from './pngCodec';
 
 const log = createLogger('wz-data-source');
@@ -66,7 +54,7 @@ export class WzDataSource implements GameDataSource {
       const size = typeof spec.source !== 'string' ? spec.source.size : undefined;
       log.info('loading file', { name: spec.name, size, version: this.version });
       try {
-        const bytes = await this.toBytes(spec.source, spec.name, onProgress);
+        const bytes = await toBytes(spec.source, spec.name, onProgress);
         if (onProgress) {
           onProgress({
             phase: `Parsing ${spec.name}`,
@@ -145,7 +133,7 @@ export class WzDataSource implements GameDataSource {
       log.debug('getIconPng: path did not resolve', { path });
       return null;
     }
-    const canvas = await this.resolveToCanvas(resolved);
+    const canvas = resolveToCanvas(resolved);
     if (!canvas) {
       log.debug('getIconPng: not a canvas-like node', { path });
       return null;
@@ -154,8 +142,8 @@ export class WzDataSource implements GameDataSource {
       const t0 = performance.now();
       const pixels = await decodeCanvas({
         canvas: canvas.canvas,
-        fileBytes: canvas.file.bytes,
-        keystream: canvas.file.keystream,
+        fileBytes: canvas.host.bytes,
+        keystream: canvas.host.keystream,
       });
       const t1 = performance.now();
       const png = await encodeRgbaToPng(pixels.rgba, pixels.width, pixels.height);
@@ -185,52 +173,6 @@ export class WzDataSource implements GameDataSource {
     this.files.clear();
   }
 
-  private async toBytes(
-    input: File | string,
-    logName: string,
-    onProgress?: ProgressFn,
-  ): Promise<Uint8Array> {
-    if (typeof input === 'string') {
-      // Node path (vitest). Use dynamic import to keep this dead code in the browser.
-      const { readFile } = await import('node:fs/promises');
-      const buf = await readFile(input);
-      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-    }
-    const started = performance.now();
-    const total = input.size;
-    let buf: Uint8Array;
-    if (typeof input.stream === 'function') {
-      const chunks: Uint8Array[] = [];
-      let read = 0;
-      const reader = input.stream().getReader();
-      const phase = `Loading ${logName}`;
-      onProgress?.({ phase, current: 0, total });
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          read += value.byteLength;
-          onProgress?.({ phase, current: read, total });
-        }
-      }
-      buf = new Uint8Array(read);
-      let offset = 0;
-      for (const c of chunks) {
-        buf.set(c, offset);
-        offset += c.byteLength;
-      }
-    } else {
-      buf = new Uint8Array(await input.arrayBuffer());
-    }
-    log.info('buffered file into memory', {
-      name: logName,
-      bytes: buf.byteLength,
-      ms: Math.round(performance.now() - started),
-    });
-    return buf;
-  }
-
   private resolve(path: string): ResolvedNode | null {
     const segments = path.split('/').filter(Boolean);
     if (segments.length === 0) return null;
@@ -238,47 +180,5 @@ export class WzDataSource implements GameDataSource {
     const loaded = this.files.get(fileName!);
     if (!loaded) return null;
     return resolvePath(loaded.file, fileName!, rest);
-  }
-
-  /**
-   * Walk a resolved node (which may be inside a property tree) toward a
-   * canvas. Follows UOLs and "PNG" sub-children to mirror the old
-   * `resolveCanvas` helper in icons.ts.
-   */
-  private async resolveToCanvas(
-    resolved: ResolvedNode,
-    depth = 0,
-  ): Promise<{ file: WzFile; canvas: WzCanvasProperty } | null> {
-    if (depth > 4) return null;
-    if (resolved.kind !== 'property') return null;
-    const p = resolved.prop;
-    if (p.type === 'canvas') return { file: resolved.file, canvas: p };
-    if (p.type === 'uol') {
-      const target = resolveUol(resolved.imageRoot, resolved.imagePath, p.target);
-      if (!target) return null;
-      const newPath = pathOfResolution(resolved.imagePath, p.target);
-      const linked = makeProperty(
-        resolved.file,
-        target,
-        resolved.imageRoot,
-        newPath,
-        resolved.fullPath,
-      );
-      return this.resolveToCanvas(linked, depth + 1);
-    }
-    if (p.type === 'sub' || p.type === 'convex') {
-      const pngChild = p.children.find((c) => c.name === 'PNG');
-      if (pngChild) {
-        const linked = makeProperty(
-          resolved.file,
-          pngChild,
-          resolved.imageRoot,
-          [...resolved.imagePath, 'PNG'],
-          resolved.fullPath + '/PNG',
-        );
-        return this.resolveToCanvas(linked, depth + 1);
-      }
-    }
-    return null;
   }
 }

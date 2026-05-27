@@ -6,7 +6,7 @@ import type { WzVersion } from '@/types';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Reuses the app's gitignored fixtures directory so contributors only need to
 // drop their WZ files once.
-const FIXTURES_DIR = resolve(__dirname, '../../../../apps/web/test/fixtures/local');
+const FIXTURES_DIR = resolve(__dirname, '../../../../apps/web/test/fixtures/wz');
 
 const VALID_VERSIONS: ReadonlySet<WzVersion> = new Set(['BMS', 'GMS', 'EMS', 'MSEA', 'CLASSIC']);
 

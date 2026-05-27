@@ -50,8 +50,20 @@ export interface WzNodeTree extends WzNodeInfo {
 
 export type WzMapleVersionName = 'BMS' | 'GMS' | 'EMS' | 'CLASSIC';
 
+/**
+ * Which on-disk format a data source reads. `'wz'` is a WZ archive (PKG1
+ * header + directory tree); `'img'` is a folder of standalone `.img` files.
+ * The worker uses this to pick `WzDataSource` vs `ImgDataSource`.
+ */
+export type DataSourceKind = 'wz' | 'img';
+
 export interface LoadFileSpec {
-  /** Logical name (e.g. "String.wz"). Used as the root segment of paths. */
+  /**
+   * For WZ, the logical file name (e.g. "String.wz"). For IMG, the file's
+   * slash-separated relative path within the dropped folder (e.g.
+   * "String/Mob.img") — the data source derives the logical root from it.
+   * Either way this is the root of the paths the source exposes.
+   */
   name: string;
   /** Browser path: pass a File. Node path: pass an absolute filepath string. */
   source: File | string;
@@ -62,7 +74,7 @@ export interface LoadFileSpec {
  * thread (Node/tests) or in a Web Worker (browser, via comlink).
  */
 export interface GameDataSource {
-  init(version: WzMapleVersionName): Promise<void>;
+  init(version: WzMapleVersionName, kind?: DataSourceKind): Promise<void>;
   load(files: LoadFileSpec[], onProgress?: ProgressFn): Promise<LoadResult>;
   /** Get info for a single node by path. Returns null if not found. */
   getNode(path: string): Promise<WzNodeInfo | null>;

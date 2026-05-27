@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Info, Loader2 } from 'lucide-react';
-import { detectVersion } from '@scrolled/wz';
+import { detectVersion, detectImageVersion } from '@scrolled/wz';
 import { Button } from '@/components/ui/button';
 import { WizardLayout, type WizardStep } from '@/components/wizard/WizardLayout';
 import {
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { useWizardMode } from '@/hooks/useWizardMode';
 import { acceptForDesktop } from '@/lib/filePickerAccept';
 import { detectServerProfile } from '@/serverProfiles';
-import { getParserClient, type WzMapleVersionName } from '@/parser';
+import { getParserClient, type DataSourceKind, type WzMapleVersionName } from '@/parser';
 
 const log = createLogger('setup');
 
@@ -46,17 +46,48 @@ const DETECT_CHUNK_BYTES = 8 * 1024 * 1024;
  * correctly — a wrong variant yields garbage that won't match a fingerprint.
  */
 async function detectProfileFromString(
-  stringWz: File,
+  stringEntry: WizardFile,
   version: WzMapleVersionName,
+  kind: DataSourceKind,
 ): Promise<string | null> {
   const parser = getParserClient();
-  await parser.init(version);
-  await parser.load([{ name: 'String.wz', source: stringWz }]);
+  await parser.init(version, kind);
+  // WZ: load the single String.wz file. IMG: load every String/*.img by its
+  // relative path; the data source exposes them under the same `String.wz/…`
+  // logical paths the fingerprint reader walks.
+  await parser.load(stringEntry.members.map((m) => ({ name: m.relPath, source: m.file })));
   const profile = await detectServerProfile(async (file, path) => {
     const node = await parser.getNode(`${file}/${path}`);
     return typeof node?.scalar === 'string' ? node.scalar : null;
   });
   return profile?.id ?? null;
+}
+
+function datasetKindOf(files: WizardFile[]): DataSourceKind {
+  return files[0]?.kind ?? 'wz';
+}
+
+/**
+ * Pick what to run version detection against, once at least one entry has
+ * hashed. WZ slices the head of the `.wz`; IMG reads a small representative
+ * `.img` from the gate group (any image decrypts under the same region key,
+ * so `Mob.img` is preferred only as a small, reliably-present choice).
+ */
+function pickDetectCandidate(
+  files: WizardFile[],
+): { sourceFile: string; readBytes: () => Promise<Uint8Array> } | null {
+  const group = files.find((f) => f.hashPhase === 'done');
+  if (!group) return null;
+  const member =
+    group.kind === 'wz'
+      ? group.members[0]!
+      : (group.members.find((m) => /(^|\/)Mob\.img$/i.test(m.relPath)) ??
+        [...group.members].sort((a, b) => a.file.size - b.file.size)[0]!);
+  return {
+    sourceFile: group.name,
+    readBytes: async () =>
+      new Uint8Array(await member.file.slice(0, DETECT_CHUNK_BYTES).arrayBuffer()),
+  };
 }
 
 export default function Setup() {
@@ -122,7 +153,7 @@ export default function Setup() {
     // nothing. If the source file was removed, drop back to idle so the
     // next render picks a new candidate.
     if ((detection.status === 'done' || detection.status === 'failed') && detection.sourceFile) {
-      const stillThere = files.some((f) => f.file.name === detection.sourceFile);
+      const stillThere = files.some((f) => f.name === detection.sourceFile);
       if (stillThere) return;
       setDetection({
         status: 'idle',
@@ -136,40 +167,44 @@ export default function Setup() {
     if (detectionInflightRef.current) return;
     if (detection.status === 'running') return;
 
-    const candidate = files.find((f) => f.hashPhase === 'done');
+    const candidate = pickDetectCandidate(files);
     if (!candidate) return;
+    const kind = datasetKindOf(files);
+    const sourceFile = candidate.sourceFile;
 
     detectionInflightRef.current = true;
     setDetection({
       status: 'running',
       version: null,
       mapleVersion: null,
-      sourceFile: candidate.file.name,
+      sourceFile,
       error: null,
     });
 
     (async () => {
       try {
-        const blob = candidate.file.slice(0, DETECT_CHUNK_BYTES);
-        const buf = await blob.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        const result = await detectVersion(bytes);
+        const bytes = await candidate.readBytes();
+        // IMG has no PKG1 header / patch version; detect the region key only.
+        const result =
+          kind === 'img'
+            ? await detectImageVersion(bytes)
+            : await detectVersion(bytes);
         detectionInflightRef.current = false;
         if (!result) {
           setDetection({
             status: 'failed',
             version: null,
             mapleVersion: null,
-            sourceFile: candidate.file.name,
-            error: 'no IV produced a confidently-readable directory',
+            sourceFile,
+            error: 'no IV produced a confidently-readable result',
           });
           return;
         }
         setDetection({
           status: 'done',
           version: result.version as WzMapleVersionName,
-          mapleVersion: result.mapleVersion,
-          sourceFile: candidate.file.name,
+          mapleVersion: (result as { mapleVersion?: number }).mapleVersion ?? null,
+          sourceFile,
           error: null,
         });
       } catch (e) {
@@ -179,7 +214,7 @@ export default function Setup() {
           status: 'failed',
           version: null,
           mapleVersion: null,
-          sourceFile: candidate.file.name,
+          sourceFile,
           error: (e as Error).message ?? 'detection failed',
         });
       }
@@ -190,7 +225,7 @@ export default function Setup() {
   // result is kept while String.wz is still present and the variant it ran
   // under is unchanged; otherwise it drops back to idle and re-detects.
   useEffect(() => {
-    const stringFile = files.find((f) => f.file.name === 'String.wz' && f.hashPhase === 'done');
+    const stringFile = files.find((f) => f.name === 'String.wz' && f.hashPhase === 'done');
     const versionSettled = detection.status === 'done' || detection.status === 'failed';
 
     if (profileDetection.status === 'done' || profileDetection.status === 'failed') {
@@ -214,7 +249,11 @@ export default function Setup() {
 
     (async () => {
       try {
-        const profileId = await detectProfileFromString(stringFile.file, usedVersion);
+        const profileId = await detectProfileFromString(
+          stringFile,
+          usedVersion,
+          datasetKindOf(files),
+        );
         profileDetectionInflightRef.current = false;
         setProfileDetection({
           status: 'done',

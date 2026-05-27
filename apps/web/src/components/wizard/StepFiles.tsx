@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileWarning,
+  FolderOpen,
   Info,
   Loader2,
   Trash2,
@@ -16,9 +17,16 @@ import { createLogger, describeError } from '@/lib/logger';
 import type { Features } from '@/hooks/useFeatures';
 import { cn } from '@/lib/utils';
 import { acceptForDesktop } from '@/lib/filePickerAccept';
-import type { WzMapleVersionName } from '@/parser';
+import type { DataSourceKind, WzMapleVersionName } from '@/parser';
 import { BUILTIN_PROFILES } from '@/serverProfiles';
-import { splitByKind } from './dropClassify';
+import {
+  asRelFiles,
+  datasetKind,
+  gatherDropEntries,
+  normalizeImgRelPath,
+  splitByKind,
+  type RelFile,
+} from './dropClassify';
 import { EntityStatus } from './EntityStatus';
 import { WelcomePanel } from './WelcomePanel';
 
@@ -28,15 +36,30 @@ const HEAVY_FILES = new Set(['Map.wz', 'Character.wz', 'Sound.wz', 'Effect.wz'])
 
 export type HashPhase = 'queued' | 'hashing' | 'done' | 'error';
 
-export interface WizardFile {
-  /** The user-supplied File. Held only in memory; not persisted. */
+/** One underlying file plus its path relative to the dropped folder. */
+export interface WizardMember {
+  relPath: string;
   file: File;
-  /** Lowercase SHA-256 hex digest, once computed. */
+}
+
+/**
+ * A display/plan unit. For a WZ drop this is one `.wz` file. For an IMG drop
+ * this is one top-level folder (e.g. `Item/`), surfaced under the logical name
+ * `Item.wz` so the plan and entity-status UI light up the same rows as WZ —
+ * its `members` are every `.img` beneath that folder.
+ */
+export interface WizardFile {
+  /** Logical name: WZ file name, or `<Folder>.wz` for an IMG group. */
+  name: string;
+  /** Total bytes across `members`. */
+  size: number;
+  kind: DataSourceKind;
+  members: WizardMember[];
+  /** Lowercase SHA-256 of the file's bytes (WZ only). Always null for IMG. */
   hash: string | null;
-  /** Where this file is in the hash pipeline. */
   hashPhase: HashPhase;
   hashError: string | null;
-  /** User decision: include this file in extraction. */
+  /** User decision: include this entry in extraction. */
   include: boolean;
   /** Existing dataset_files row this hash matches, if any. */
   matchedExisting: { name: string } | null;
@@ -90,6 +113,45 @@ const VERSION_OPTIONS: { id: WzMapleVersionName; label: string }[] = [
   { id: 'CLASSIC', label: 'Classic · uncommon, zero-IV variant' },
 ];
 
+function topFolder(relPath: string): string {
+  return relPath.split('/')[0] ?? relPath;
+}
+
+function folderToLogical(folder: string): string {
+  return /\.wz$/i.test(folder) ? folder : `${folder}.wz`;
+}
+
+/** Regroup a flat list of `.img` members into per-top-folder WizardFiles.
+ *
+ * IMG groups are marked `'done'` (no hash) immediately: an `.img` folder can
+ * hold tens of thousands of files, and content/manifest hashing them on the
+ * main thread froze the wizard for minutes for a "have I seen this folder
+ * before?" badge that's marginal at best. WZ archives still hash (whole-file
+ * dedup via the worker); the dataset record just carries no hash for IMG. */
+function groupImgMembers(members: WizardMember[]): WizardFile[] {
+  const byFolder = new Map<string, WizardMember[]>();
+  const seen = new Set<string>();
+  for (const m of members) {
+    if (seen.has(m.relPath)) continue;
+    seen.add(m.relPath);
+    const logical = folderToLogical(topFolder(m.relPath));
+    const list = byFolder.get(logical) ?? [];
+    list.push(m);
+    byFolder.set(logical, list);
+  }
+  return [...byFolder.entries()].map(([name, mem]) => ({
+    name,
+    size: mem.reduce((n, m) => n + m.file.size, 0),
+    kind: 'img' as const,
+    members: mem,
+    hash: null,
+    hashPhase: 'done' as const,
+    hashError: null,
+    include: true,
+    matchedExisting: null,
+  }));
+}
+
 export function StepFiles({
   files,
   onChange,
@@ -105,11 +167,12 @@ export function StepFiles({
 }: Props) {
   const db = useMemo(() => getDbClient(), []);
   const [dragging, setDragging] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  /** Files we've already kicked off a hash for. We track them by File
-   *  identity rather than (name, size) so a Force-re-add can re-trigger
-   *  hashing if the same name+size is intentionally replaced. */
-  const startedHashing = useRef<WeakSet<File>>(new WeakSet());
+  const dirInputRef = useRef<HTMLInputElement>(null);
+  /** Hash jobs we've already started, keyed by `name:size` so a changed drop
+   *  re-triggers but a re-render doesn't. */
+  const startedHashing = useRef<Set<string>>(new Set());
 
   const existingNames = useQuery({
     queryKey: ['db', 'loaded-files'],
@@ -117,58 +180,89 @@ export function StepFiles({
   });
 
   const addFiles = useCallback(
-    (list: FileList | File[]) => {
-      const split = splitByKind(Array.from(list));
+    (incoming: RelFile[]) => {
+      const split = splitByKind(incoming);
       if (split.backup.length > 0) {
         // A backup drop wins. Restore is destructive and explicit; mixing in
         // fresh-import would be ambiguous.
-        const ignored = split.wz.length + split.other.length + (split.backup.length - 1);
-        onRestoreFile(split.backup[0], ignored);
+        const ignored =
+          split.wz.length + split.img.length + split.other.length + (split.backup.length - 1);
+        onRestoreFile(split.backup[0]!, ignored);
         return;
       }
-      for (const f of split.other) {
-        log.warn('ignoring unknown file', { name: f.name });
+      for (const f of split.other) log.warn('ignoring unknown file', { name: f.name });
+
+      const dk = datasetKind(split);
+      if (dk === 'none') return;
+      if (dk === 'mixed') {
+        setNotice('Add either .wz files or a folder of .img files — not both at once.');
+        return;
       }
-      if (split.wz.length === 0) return;
-      const incoming: WizardFile[] = [];
-      for (const f of split.wz) {
-        // Dedup by (name, size) so a re-drop doesn't double the list.
-        const dup = files.some((x) => x.file.name === f.name && x.file.size === f.size);
-        if (dup) continue;
-        incoming.push({
-          file: f,
-          hash: null,
-          hashPhase: 'queued',
-          hashError: null,
-          include: true,
-          matchedExisting: null,
-        });
+      const currentKind = files[0]?.kind ?? null;
+      if (currentKind && currentKind !== dk) {
+        setNotice(
+          `This library is being built from ${currentKind === 'wz' ? '.wz files' : 'an .img folder'}. Remove them first to switch formats.`,
+        );
+        return;
       }
-      if (incoming.length === 0) return;
-      onChange((prev) => [...prev, ...incoming]);
+      setNotice(null);
+
+      if (dk === 'wz') {
+        const incomingFiles: WizardFile[] = [];
+        for (const f of split.wz) {
+          const dup = files.some((x) => x.name === f.name && x.size === f.size);
+          if (dup) continue;
+          incomingFiles.push({
+            name: f.name,
+            size: f.size,
+            kind: 'wz',
+            members: [{ relPath: f.name, file: f }],
+            hash: null,
+            hashPhase: 'queued',
+            hashError: null,
+            include: true,
+            matchedExisting: null,
+          });
+        }
+        if (incomingFiles.length === 0) return;
+        onChange((prev) => [...prev, ...incomingFiles]);
+        return;
+      }
+
+      // IMG: union existing members with the incoming ones and regroup, so a
+      // second folder pick merges cleanly. `include` is preserved per folder.
+      const existingInclude = new Map(files.map((f) => [f.name, f.include]));
+      const incomingMembers = split.img.map((rf) => ({
+        relPath: normalizeImgRelPath(rf.relPath),
+        file: rf.file,
+      }));
+      const allMembers = [...files.flatMap((f) => f.members), ...incomingMembers];
+      const regrouped = groupImgMembers(allMembers).map((g) => ({
+        ...g,
+        include: existingInclude.get(g.name) ?? true,
+      }));
+      onChange(() => regrouped);
     },
     [files, onChange, onRestoreFile],
   );
 
-  // Kick off hashing for any newly added files. Each hash is started exactly
-  // once per File instance, tracked in a ref. The hashClient itself queues
-  // concurrent calls so we never run two digests at the same time.
+  // Hash newly added WZ archives (whole-file dedup) one budget's worth at a
+  // time. IMG groups are added already `'done'`, so they never appear here.
   useEffect(() => {
-    const toStart = files.filter(
-      (f) => f.hashPhase === 'queued' && !startedHashing.current.has(f.file),
-    );
+    const toStart = files.filter((f) => {
+      const key = `${f.name}:${f.size}`;
+      return f.hashPhase === 'queued' && !startedHashing.current.has(key);
+    });
     if (toStart.length === 0) return;
 
     for (const wf of toStart) {
-      startedHashing.current.add(wf.file);
-      const targetFile = wf.file;
+      const key = `${wf.name}:${wf.size}`;
+      startedHashing.current.add(key);
       const patch = (updates: Partial<WizardFile>) => {
-        onChange((prev) => prev.map((f) => (f.file === targetFile ? { ...f, ...updates } : f)));
+        onChange((prev) => prev.map((f) => (f.name === wf.name ? { ...f, ...updates } : f)));
       };
 
-      sha256OfFile(targetFile, {
-        onStarted: () => patch({ hashPhase: 'hashing' }),
-      })
+      sha256OfFile(wf.members[0]!.file, { onStarted: () => patch({ hashPhase: 'hashing' }) })
         .then(async (hash) => {
           let matched: WizardFile['matchedExisting'] = null;
           try {
@@ -177,18 +271,11 @@ export function StepFiles({
           } catch (e) {
             log.warn('findFileByHash failed', describeError(e));
           }
-          patch({
-            hashPhase: 'done',
-            hash,
-            matchedExisting: matched,
-          });
+          patch({ hashPhase: 'done', hash, matchedExisting: matched });
         })
         .catch((e) => {
           log.error('hashing failed', describeError(e));
-          patch({
-            hashPhase: 'error',
-            hashError: (e as Error).message ?? 'failed to read',
-          });
+          patch({ hashPhase: 'error', hashError: (e as Error).message ?? 'failed to read' });
         });
     }
   }, [files, db, onChange]);
@@ -196,7 +283,9 @@ export function StepFiles({
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
-    if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
+    void gatherDropEntries(e.dataTransfer).then((rel) => {
+      if (rel.length > 0) addFiles(rel);
+    });
   }
 
   function remove(file: WizardFile) {
@@ -215,9 +304,10 @@ export function StepFiles({
         <div>
           <h2 className="text-lg font-semibold">Add your files</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Drop your <code className="font-mono text-xs">.wz</code> files to enable categories, or
-            drop a <code className="font-mono text-xs">.scrolled-backup</code> file to restore a
-            previously exported wiki. Everything stays on this device.
+            Drop your <code className="font-mono text-xs">.wz</code> files, or choose a folder of
+            extracted <code className="font-mono text-xs">.img</code> files. You can also drop a{' '}
+            <code className="font-mono text-xs">.scrolled-backup</code> file to restore a previously
+            exported wiki. Everything stays on this device.
           </p>
         </div>
 
@@ -234,32 +324,60 @@ export function StepFiles({
           )}
         >
           <Upload className="text-muted-foreground mb-3 h-8 w-8" />
-          <p className="text-sm font-medium">Drag and drop files here</p>
+          <p className="text-sm font-medium">Drag and drop files or a folder here</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            <code className="font-mono">.wz</code> game files, or a{' '}
-            <code className="font-mono">.scrolled-backup</code> file
+            <code className="font-mono">.wz</code> game files, an <code className="font-mono">.img</code>{' '}
+            folder, or a <code className="font-mono">.scrolled-backup</code> file
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => inputRef.current?.click()}
-          >
-            Choose files
-          </Button>
+          <div className="mt-3 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+            >
+              Choose files
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => dirInputRef.current?.click()}
+            >
+              <FolderOpen className="h-4 w-4" /> Choose folder
+            </Button>
+          </div>
           <input
             ref={inputRef}
             type="file"
-            accept={acceptForDesktop('.wz,.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip')}
+            accept={acceptForDesktop('.wz,.img,.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip')}
             multiple
             className="hidden"
             onChange={(e) => {
-              if (e.target.files) addFiles(e.target.files);
+              if (e.target.files) addFiles(asRelFiles(e.target.files));
+              e.target.value = '';
+            }}
+          />
+          <input
+            ref={dirInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            // `webkitdirectory` isn't in React's input prop types.
+            {...({ webkitdirectory: '' } as Record<string, string>)}
+            onChange={(e) => {
+              if (e.target.files) addFiles(asRelFiles(e.target.files));
               e.target.value = '';
             }}
           />
         </div>
+
+        {notice && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-100">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
 
         <details className="border-border bg-card group rounded-md border text-sm">
           <summary className="text-muted-foreground flex cursor-pointer items-center justify-between gap-2 px-4 py-2.5 text-xs">
@@ -272,7 +390,7 @@ export function StepFiles({
           </summary>
           <ul className="divide-border divide-y border-t">
             {files.map((f) => (
-              <li key={f.file.name} className="space-y-2 px-4 py-3 text-sm">
+              <li key={f.name} className="space-y-2 px-4 py-3 text-sm">
                 <div className="flex items-center gap-3">
                   <label className="text-muted-foreground flex items-center gap-2 text-xs">
                     <input
@@ -285,13 +403,18 @@ export function StepFiles({
                   </label>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-medium">{f.file.name}</span>
-                      {HEAVY_FILES.has(f.file.name) && (
+                      <span className="font-mono text-xs font-medium">{f.name}</span>
+                      {f.kind === 'img' && (
+                        <span className="text-muted-foreground text-[10px]">
+                          {f.members.length.toLocaleString()} .img files
+                        </span>
+                      )}
+                      {HEAVY_FILES.has(f.name) && (
                         <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
                           <FileWarning className="h-3 w-3" /> large file
                         </span>
                       )}
-                      {existingNames.data?.includes(f.file.name) && !f.matchedExisting && (
+                      {existingNames.data?.includes(f.name) && !f.matchedExisting && (
                         <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
                           updating
                         </span>
@@ -303,14 +426,14 @@ export function StepFiles({
                       )}
                     </div>
                     <div className="text-muted-foreground mt-0.5 text-xs">
-                      {(f.file.size / 1_000_000).toFixed(1)} MB
+                      {(f.size / 1_000_000).toFixed(1)} MB
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => remove(f)}
                     className="text-muted-foreground hover:text-destructive shrink-0"
-                    aria-label={`Remove ${f.file.name}`}
+                    aria-label={`Remove ${f.name}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

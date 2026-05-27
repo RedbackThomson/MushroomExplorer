@@ -1,6 +1,25 @@
-import type { WzDirEntry, WzDirNode, WzFile, WzImageNode, WzProperty } from '@scrolled/wz';
+import {
+  resolveUol,
+  type WzCanvasProperty,
+  type WzDirEntry,
+  type WzDirNode,
+  type WzFile,
+  type WzImageNode,
+  type WzProperty,
+} from '@scrolled/wz';
 import type { WzNodeInfo, WzNodeTree } from './types';
 import { propertyToNodeInfo } from './nodeInfo';
+
+/**
+ * The minimal shape the canvas decoder and UOL resolver read off a parsed
+ * source: the backing bytes (canvas `dataOffset`s index into these) and the
+ * region keystream. Both a `WzFile` and a standalone `ImageFile` satisfy it,
+ * so property/canvas resolution is the same code for WZ and IMG sources.
+ */
+export interface CanvasHost {
+  bytes: Uint8Array;
+  keystream: Uint8Array;
+}
 
 export type ResolvedNode =
   | {
@@ -20,7 +39,7 @@ export type ResolvedNode =
     }
   | {
       kind: 'image';
-      file: WzFile;
+      file: CanvasHost;
       image: WzImageNode;
       props: WzProperty[];
       fullPath: string;
@@ -29,7 +48,7 @@ export type ResolvedNode =
     }
   | {
       kind: 'property';
-      file: WzFile;
+      file: CanvasHost;
       prop: WzProperty;
       imageRoot: WzProperty[];
       imagePath: string[];
@@ -77,7 +96,7 @@ export function resolvePath(file: WzFile, fileName: string, rest: string[]): Res
   return makeDir(file, dir, [fileName, ...rest].join('/'));
 }
 
-function walkProperties(
+export function walkProperties(
   root: WzProperty[],
   segments: string[],
 ): { prop: WzProperty; depth: number } | null {
@@ -144,7 +163,7 @@ function makeDir(file: WzFile, dir: WzDirNode, fullPath: string): ResolvedNode {
 }
 
 function makeImage(
-  file: WzFile,
+  file: CanvasHost,
   image: WzImageNode,
   props: WzProperty[],
   fullPath: string,
@@ -166,7 +185,7 @@ function makeImage(
 }
 
 export function makeProperty(
-  file: WzFile,
+  file: CanvasHost,
   prop: WzProperty,
   imageRoot: WzProperty[],
   imagePath: string[],
@@ -189,6 +208,49 @@ export function makeProperty(
       return [];
     },
   };
+}
+
+/**
+ * Walk a resolved node (which may sit inside a property tree) toward a canvas.
+ * Follows UOLs and `"PNG"` sub-children. Shared by both data sources — it only
+ * reads `.bytes`/`.keystream` via the `CanvasHost` on the resolved node, so it
+ * works identically for a WZ archive and a standalone `.img`.
+ */
+export function resolveToCanvas(
+  resolved: ResolvedNode,
+  depth = 0,
+): { host: CanvasHost; canvas: WzCanvasProperty } | null {
+  if (depth > 4) return null;
+  if (resolved.kind !== 'property') return null;
+  const p = resolved.prop;
+  if (p.type === 'canvas') return { host: resolved.file, canvas: p };
+  if (p.type === 'uol') {
+    const target = resolveUol(resolved.imageRoot, resolved.imagePath, p.target);
+    if (!target) return null;
+    const newPath = pathOfResolution(resolved.imagePath, p.target);
+    const linked = makeProperty(
+      resolved.file,
+      target,
+      resolved.imageRoot,
+      newPath,
+      resolved.fullPath,
+    );
+    return resolveToCanvas(linked, depth + 1);
+  }
+  if (p.type === 'sub' || p.type === 'convex') {
+    const pngChild = p.children.find((c) => c.name === 'PNG');
+    if (pngChild) {
+      const linked = makeProperty(
+        resolved.file,
+        pngChild,
+        resolved.imageRoot,
+        [...resolved.imagePath, 'PNG'],
+        resolved.fullPath + '/PNG',
+      );
+      return resolveToCanvas(linked, depth + 1);
+    }
+  }
+  return null;
 }
 
 export function pathOfResolution(from: string[], target: string): string[] {

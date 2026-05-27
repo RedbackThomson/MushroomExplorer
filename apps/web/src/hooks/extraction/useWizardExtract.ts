@@ -24,12 +24,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { proxy, type Remote } from 'comlink';
 import {
   getPoolWorker,
+  logicalToImgFolder,
   POOL_WORKER_FILES,
   POOL_WORKER_NAMES,
   WORKER_EXTRACTORS,
   type PoolWorkerName,
 } from '@/parser/pool';
-import type { ParserWorkerApi, WzMapleVersionName } from '@/parser';
+import type { DataSourceKind, LoadFileSpec, ParserWorkerApi, WzMapleVersionName } from '@/parser';
 import {
   getDbClient,
   type DatasetFileRef,
@@ -90,10 +91,17 @@ export type { ExtractStats } from './shared';
 
 export interface UseWizardExtractOptions {
   version: WzMapleVersionName;
+  /** Whether the dataset is a WZ archive or a folder of `.img` files. */
+  kind: DataSourceKind;
   /**
    * Files the user dropped (or hash-matched). Each file is routed to the
    * worker(s) that need it; the same `File` is sent to multiple workers
-   * when relevant (e.g. `String.wz` goes to every active worker).
+   * when relevant (e.g. `String.wz` / the `String/` folder goes to every
+   * active worker).
+   *
+   * For WZ, `name` is the logical file name (`Item.wz`). For IMG, `name` is
+   * the file's relative path within the dropped folder (`Item/Consume/.../x.img`);
+   * routing matches on the first path segment.
    */
   droppedFiles: { name: string; source: File }[];
   /** Plan keys ('item', 'mob', 'npc', 'map', 'quest') that should run. */
@@ -148,23 +156,21 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
     mutationFn: async () => {
       const started = performance.now();
       setStats(null);
-      const droppedByName = new Map(opts.droppedFiles.map((f) => [f.name, f.source]));
       const willRun = opts.willRunKeys;
+      const routeFiles = makeFileRouter(opts.kind, opts.droppedFiles);
 
       // Figure out which workers (and extractors) are active.
       const activeWorkers: PoolWorkerName[] = [];
-      const workerFiles: Partial<Record<PoolWorkerName, string[]>> = {};
+      const workerSpecs: Partial<Record<PoolWorkerName, LoadFileSpec[]>> = {};
       const next = makeInitialStatuses();
       for (const name of POOL_WORKER_NAMES) {
         const extractorsHere = WORKER_EXTRACTORS[name] as readonly ExtractorKey[];
         const willAnyRun = extractorsHere.some((e) => willRun.has(e));
         if (!willAnyRun) continue;
-        const required = POOL_WORKER_FILES[name];
-        const primary = required[0];
-        if (!droppedByName.has(primary)) continue;
-        const files = required.filter((f) => droppedByName.has(f));
+        const routing = routeFiles(name);
+        if (!routing.primaryPresent) continue;
         activeWorkers.push(name);
-        workerFiles[name] = files;
+        workerSpecs[name] = routing.specs;
         for (const ek of extractorsHere) {
           if (!willRun.has(ek)) continue;
           next[ek] = {
@@ -172,7 +178,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
             phase: 'loading',
             progress: null,
             error: null,
-            files,
+            files: routing.display,
           };
         }
       }
@@ -187,11 +193,8 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
       await Promise.all(
         activeWorkers.map(async (name) => {
           const worker = getPoolWorker(name);
-          await worker.init(opts.version);
-          const files = (workerFiles[name] ?? []).map((fname) => ({
-            name: fname,
-            source: droppedByName.get(fname)!,
-          }));
+          await worker.init(opts.version, opts.kind);
+          const files = workerSpecs[name] ?? [];
           const onProgress = proxy((p: ProgressUpdate) =>
             patchWorkerExtractors(name, { progress: p }),
           );
@@ -287,6 +290,7 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
         await db.recordDataset({
           label: opts.label,
           wzVersion: opts.version,
+          sourceKind: opts.kind,
           files: filesWithStatus,
           totalMs: ms,
           ok: allOk,
@@ -313,6 +317,49 @@ export function useWizardExtract(opts: UseWizardExtractOptions) {
     error: mutation.error as Error | null,
     extractors,
     stats,
+  };
+}
+
+interface WorkerRouting {
+  /** Files (as LoadFileSpec) this worker should load. */
+  specs: LoadFileSpec[];
+  /** Short display list for the status UI (logical names / folder names). */
+  display: string[];
+  /** Whether the worker's primary input is present (else it doesn't run). */
+  primaryPresent: boolean;
+}
+
+/**
+ * Build a per-worker file router for the dataset kind. WZ matches dropped
+ * files by exact logical name (`Item.wz`); IMG matches each file's first path
+ * segment against the worker's folders (`Item.wz` → folder `Item`).
+ */
+function makeFileRouter(
+  kind: DataSourceKind,
+  droppedFiles: { name: string; source: File }[],
+): (name: PoolWorkerName) => WorkerRouting {
+  if (kind === 'img') {
+    return (name) => {
+      const folders = POOL_WORKER_FILES[name].map(logicalToImgFolder);
+      const primaryFolder = logicalToImgFolder(POOL_WORKER_FILES[name][0]!);
+      const specs: LoadFileSpec[] = [];
+      const present = new Set<string>();
+      for (const f of droppedFiles) {
+        const top = f.name.split('/')[0] ?? f.name;
+        if (folders.includes(top)) {
+          specs.push({ name: f.name, source: f.source });
+          present.add(top);
+        }
+      }
+      return { specs, display: [...present], primaryPresent: present.has(primaryFolder) };
+    };
+  }
+  const byName = new Map(droppedFiles.map((f) => [f.name, f.source]));
+  return (name) => {
+    const required = POOL_WORKER_FILES[name];
+    const display = required.filter((f) => byName.has(f));
+    const specs = display.map((f) => ({ name: f, source: byName.get(f)! }));
+    return { specs, display, primaryPresent: byName.has(required[0]!) };
   };
 }
 

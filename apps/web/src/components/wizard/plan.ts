@@ -83,7 +83,7 @@ export interface WizardPlan {
  */
 export function buildPlan(files: WizardFile[]): WizardPlan {
   const included = files.filter((f) => f.include);
-  const byName = new Map(included.map((f) => [f.file.name, f]));
+  const byName = new Map(included.map((f) => [f.name, f]));
 
   const willRun: PlannedExtractor[] = [];
   for (const key of ALL_EXTRACTOR_KEYS) {
@@ -133,8 +133,8 @@ export function buildPlan(files: WizardFile[]): WizardPlan {
   // loadStatus / loadError land later — useExtractAll merges them in from
   // parser.load's LoadResult before writing the dataset row.
   const recordFiles: DatasetFileRef[] = included.map((f) => ({
-    name: f.file.name,
-    size: f.file.size,
+    name: f.name,
+    size: f.size,
     hash: f.hash,
     loadStatus: null,
     loadError: null,

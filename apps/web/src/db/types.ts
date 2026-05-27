@@ -339,6 +339,8 @@ export interface DatasetRecord {
   label: string;
   loadedAt: number;
   wzVersion: string;
+  /** Which on-disk format the library was built from. `'wz'` for pre-v18 rows. */
+  sourceKind: 'wz' | 'img';
   notes: string | null;
   /** Per-run wall-clock for the extraction phase (ms). `null` pre-v5. */
   totalMs: number | null;
@@ -543,6 +545,8 @@ export interface GameDatabase {
   recordDataset(input: {
     label: string;
     wzVersion: string;
+    /** Which on-disk format the library was built from. Defaults to `'wz'`. */
+    sourceKind?: 'wz' | 'img';
     files: DatasetFileRef[];
     notes?: string;
     /** Wall-clock duration of the extraction phase in ms. */

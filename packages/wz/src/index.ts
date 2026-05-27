@@ -4,6 +4,8 @@ export {
   readWzUnicodeString,
   readWzString,
   readWzStringAtOffset,
+  encodeWzAsciiString,
+  encodeWzUnicodeString,
 } from './io/wzString';
 
 export type { WzVersion } from './types';
@@ -18,6 +20,12 @@ export {
   type DetectVersionOptions,
 } from './file/detectVersion';
 export { readImage, type ParsedImage } from './img/readImage';
+export { openImageFile, type ImageFile } from './img/openImageFile';
+export {
+  detectImageVersion,
+  type DetectImageVersionResult,
+  type DetectImageVersionOptions,
+} from './img/detectImageVersion';
 export {
   type WzProperty,
   type WzPropertyType,

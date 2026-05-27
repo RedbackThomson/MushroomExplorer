@@ -1,13 +1,24 @@
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { WzMapleVersionName } from '@/parser';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FIXTURES_DIR = resolve(__dirname, '../fixtures/local');
+/** Real WZ archives (`.wz` files), gitignored. */
+const FIXTURES_DIR = resolve(__dirname, '../fixtures/wz');
+/** Root of a real IMG dataset: a folder tree of `.img` files (gitignored). */
+const IMG_DIR = resolve(__dirname, '../fixtures/img');
 
 export interface LocalFixture {
   name: string;
+  path: string;
+}
+
+/** One `.img` file from the local IMG dataset, with its dataset-relative path. */
+export interface ImgFixtureFile {
+  /** Slash-separated path relative to the IMG dataset root (e.g. `Mob/0100100.img`). */
+  relPath: string;
+  /** Absolute filesystem path. */
   path: string;
 }
 
@@ -32,7 +43,7 @@ export function requireLocalFixture(name: string): LocalFixture {
   if (!fixture) {
     throw new Error(
       `Missing local fixture: ${name}\n` +
-        `Drop the file in apps/web/test/fixtures/local/ to run this test.\n` +
+        `Drop the file in apps/web/test/fixtures/wz/ to run this test.\n` +
         `See that directory's README for details.`,
     );
   }
@@ -45,4 +56,24 @@ export function requireLocalFixture(name: string): LocalFixture {
  */
 export function hasLocalFixture(name: string): boolean {
   return getLocalFixture(name) !== null;
+}
+
+/**
+ * Recursively gather every `.img` file under the local IMG dataset root
+ * (`test/fixtures/img/`), returning each with its dataset-relative path.
+ * Empty when the directory is absent, so tests `skipIf` cleanly on CI.
+ */
+export function gatherImgFixtures(): ImgFixtureFile[] {
+  if (!existsSync(IMG_DIR)) return [];
+  const out: ImgFixtureFile[] = [];
+  for (const entry of readdirSync(IMG_DIR, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !/\.img$/i.test(entry.name)) continue;
+    const abs = resolve(entry.parentPath, entry.name);
+    out.push({ relPath: relative(IMG_DIR, abs).split(sep).join('/'), path: abs });
+  }
+  return out;
+}
+
+export function hasImgFixtures(): boolean {
+  return gatherImgFixtures().length > 0;
 }

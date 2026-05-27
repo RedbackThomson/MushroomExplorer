@@ -8,6 +8,7 @@ export function recordDataset(
   input: {
     label: string;
     wzVersion: string;
+    sourceKind?: 'wz' | 'img';
     files: DatasetFileRef[];
     notes?: string;
     totalMs?: number;
@@ -17,12 +18,13 @@ export function recordDataset(
 ): DatasetRecord {
   return sql.transaction(() => {
     sql.exec(
-      `INSERT INTO datasets (label, loaded_at, wz_version, notes, total_ms, ok)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO datasets (label, loaded_at, wz_version, source_kind, notes, total_ms, ok)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         input.label,
         Date.now(),
         input.wzVersion,
+        input.sourceKind ?? 'wz',
         input.notes ?? null,
         input.totalMs ?? null,
         input.ok === undefined ? null : input.ok ? 1 : 0,
@@ -107,6 +109,7 @@ function readDataset(sql: Sqlite, id: number): DatasetRecord | null {
     label: string;
     loaded_at: number;
     wz_version: string;
+    source_kind: string | null;
     notes: string | null;
     total_ms: number | null;
     ok: number | null;
@@ -140,6 +143,7 @@ function readDataset(sql: Sqlite, id: number): DatasetRecord | null {
     label: ds.label,
     loadedAt: ds.loaded_at,
     wzVersion: ds.wz_version,
+    sourceKind: ds.source_kind === 'img' ? 'img' : 'wz',
     notes: ds.notes,
     totalMs: ds.total_ms,
     ok: ds.ok === null ? null : ds.ok === 1,

@@ -11,7 +11,7 @@ import {
 /**
  * Integration test against real MapleRoyals WZ files.
  *
- * These tests only run when files are present in `test/fixtures/local/`.
+ * These tests only run when files are present in `test/fixtures/wz/`.
  * Drop your own files there; see that directory's README for details. CI runs
  * without the fixtures and these tests skip cleanly.
  */

@@ -109,7 +109,13 @@ export async function detectVersion(
   return best;
 }
 
-function scorePrintability(names: string[]): number {
+/**
+ * Fraction of bytes across `tokens` that are printable ASCII (0..1). Used to
+ * tell a correctly-decrypted directory / property tree (short ASCII tokens)
+ * from one decoded with the wrong key (high-bit garbage).
+ */
+export function scorePrintability(tokens: string[]): number {
+  const names = tokens;
   let total = 0;
   let printable = 0;
   for (const name of names) {

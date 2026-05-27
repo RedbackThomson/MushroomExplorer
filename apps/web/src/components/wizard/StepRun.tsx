@@ -32,15 +32,23 @@ interface Props {
  */
 export function StepRun({ version, files, onComplete, mode }: Props) {
   const plan = useMemo(() => buildPlan(files), [files]);
+  const kind = files[0]?.kind ?? 'wz';
 
+  // Flatten to the underlying files: WZ contributes one (`Item.wz`), IMG one
+  // per `.img` (named by its relative path, which the data source maps back to
+  // a logical root).
   const droppedFiles = useMemo(
-    () => plan.filesToLoad.map((f) => ({ name: f.file.name, source: f.file })),
+    () =>
+      plan.filesToLoad.flatMap((f) =>
+        f.members.map((m) => ({ name: m.relPath, source: m.file })),
+      ),
     [plan.filesToLoad],
   );
   const willRunKeys = useMemo(() => new Set(plan.willRun.map((r) => r.key)), [plan.willRun]);
 
   const extract = useWizardExtract({
     version,
+    kind,
     droppedFiles,
     willRunKeys,
     recordFiles: plan.recordFiles,

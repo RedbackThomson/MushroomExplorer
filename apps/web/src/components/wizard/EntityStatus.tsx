@@ -41,7 +41,7 @@ export function EntityStatus({ files, features, mode }: Props) {
   // Only included files count toward the entity status — matches the plan
   // builder, so unchecking a file in the dropped-files list immediately
   // reflects here as "not provided" for the categories it gated.
-  const byName = new Map(files.filter((f) => f.include).map((f) => [f.file.name, f]));
+  const byName = new Map(files.filter((f) => f.include).map((f) => [f.name, f]));
 
   return (
     <section className="space-y-2">

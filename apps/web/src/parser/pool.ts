@@ -48,6 +48,15 @@ export const POOL_WORKER_FILES: Record<PoolWorkerName, readonly string[]> = {
   quests: ['Quest.wz', 'String.wz'],
 };
 
+/**
+ * Map a logical WZ file name to its top-level folder in an IMG dataset
+ * (`Item.wz` → `Item`). IMG routing selects a worker's files by matching each
+ * dropped file's first path segment against these folders.
+ */
+export function logicalToImgFolder(logical: string): string {
+  return logical.replace(/\.wz$/i, '');
+}
+
 /** Which extractor keys are owned by which worker. `useExtractAll`-style
  *  keys ('item', 'equip', ...) — `item` and `equip` share the items worker
  *  because they both read from `Item.wz` + `String.wz`. */

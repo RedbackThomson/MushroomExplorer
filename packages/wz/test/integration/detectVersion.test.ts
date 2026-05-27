@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { detectVersion } from '../../src';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// We share the apps/web local fixtures dir — these binaries are gitignored.
-const FIXTURES_DIR = resolve(__dirname, '../../../../apps/web/test/fixtures/local');
+// We share the apps/web WZ fixtures dir — these binaries are gitignored.
+const FIXTURES_DIR = resolve(__dirname, '../../../../apps/web/test/fixtures/wz');
 
 const SAMPLES = ['String.wz', 'Item.wz', 'Mob.wz'];
 const present = SAMPLES.filter((n) => existsSync(resolve(FIXTURES_DIR, n)));
