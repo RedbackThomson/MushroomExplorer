@@ -82,7 +82,7 @@ export default function Settings() {
         const today = new Date().toISOString().slice(0, 10);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = `mushroom-explorer-${today}.sqlite3`;
+        anchor.download = `scrolled-${today}.sqlite3`;
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
@@ -675,7 +675,7 @@ function UserDataSection() {
   const onExport = async () => {
     const bytes = await exportM.mutateAsync();
     downloadBytes(
-      `mushroom-explorer-collections-${todayStamp()}.sqlite3`,
+      `scrolled-collections-${todayStamp()}.sqlite3`,
       bytes,
       'application/vnd.sqlite3',
     );

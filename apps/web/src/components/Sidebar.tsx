@@ -208,7 +208,7 @@ export function Sidebar({ variant = 'desktop' }: SidebarProps = {}) {
               aria-hidden
               className="h-7 w-7 shrink-0 rounded"
             />
-            <span className="font-semibold tracking-tight">Mushroom</span>
+            <span className="font-semibold tracking-tight">Scrolled</span>
           </>
         )}
         {showCollapseToggle && (

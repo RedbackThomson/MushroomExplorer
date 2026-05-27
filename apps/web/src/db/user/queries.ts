@@ -31,7 +31,7 @@ import type {
 } from './types';
 
 const USER_OPFS_FILENAME = '/user.sqlite3';
-const USER_POOL_NAME = 'mushex-user-db-pool';
+const USER_POOL_NAME = 'scrolled-user-db-pool';
 
 export class UserDbApi implements UserDatabase {
   constructor(

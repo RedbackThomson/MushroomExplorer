@@ -1,8 +1,8 @@
-# 🍄 Mushroom Explorer
+# Scrolled
 
 A wiki-style explorer for old-school Mushroom Game data — items, equips, mobs, NPCs, maps, and quests — that runs entirely in your browser.
 
-👉 **Try it now:** [mushroomexplorer.redback.dev](https://mushroomexplorer.redback.dev)
+👉 **Try it now:** [scrolled.dev](https://scrolled.dev)
 
 ## ✨ What it does
 
@@ -12,7 +12,7 @@ Point the app at your own local game files and it builds a searchable wiki out o
 
 ## 🚀 How to use it
 
-1. Open [mushroomexplorer.redback.dev](https://mushroomexplorer.redback.dev) (or run it locally — see below).
+1. Open [scrolled.dev](https://scrolled.dev) (or run it locally — see below).
 2. On the setup screen, select your local `.wz` files: `String.wz`, `Item.wz`, `Map.wz`, `Mob.wz`, `Npc.wz`, `Quest.wz`, `Skill.wz`, and related files.
 3. Wait for parsing to finish. The app builds an index and caches it locally so reopening the app is fast.
 4. Search, browse, and explore.
@@ -26,8 +26,8 @@ The hosted version is the easiest way to use the app, but the whole thing is jus
 You'll need [Node.js](https://nodejs.org/) 20 or newer and [pnpm](https://pnpm.io/) 9 or newer.
 
 ```bash
-git clone https://github.com/RedbackThomson/MushroomExplorer.git
-cd MushroomExplorer
+git clone https://github.com/RedbackThomson/scrolled.git
+cd scrolled
 pnpm install
 pnpm build
 pnpm preview

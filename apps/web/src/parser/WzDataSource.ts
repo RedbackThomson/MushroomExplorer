@@ -9,7 +9,7 @@ import {
   type WzImageNode,
   type WzProperty,
   type WzVersion,
-} from '@mushex/wz';
+} from '@scrolled/wz';
 import type {
   Diagnostics,
   GameDataSource,
@@ -35,11 +35,11 @@ interface LoadedFile {
 }
 
 /**
- * Parser implementation backed by `@mushex/wz`. Holds open `WzFile` instances
+ * Parser implementation backed by `@scrolled/wz`. Holds open `WzFile` instances
  * keyed by logical name (e.g. "String.wz", "Item.wz") and resolves paths
  * formatted as `<file>/<segments…>`.
  *
- * No mutex: `@mushex/wz`'s `Reader` is structurally cloneable, so concurrent
+ * No mutex: `@scrolled/wz`'s `Reader` is structurally cloneable, so concurrent
  * reads against the same file run truly in parallel within one Worker.
  *
  * Path conventions:

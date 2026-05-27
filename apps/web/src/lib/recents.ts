@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { get, set } from 'idb-keyval';
 import type { EntityKind } from '@/db';
 
-const ENTITIES_KEY = 'mushex.recents.entities';
-const QUERIES_KEY = 'mushex.recents.queries';
+const ENTITIES_KEY = 'scrolled.recents.entities';
+const QUERIES_KEY = 'scrolled.recents.queries';
 const MAX_ENTITIES = 30;
 const MAX_QUERIES = 15;
 

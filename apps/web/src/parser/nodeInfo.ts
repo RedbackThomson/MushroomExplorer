@@ -1,4 +1,4 @@
-import type { WzCanvasProperty, WzConvexProperty, WzProperty, WzSubProperty } from '@mushex/wz';
+import type { WzCanvasProperty, WzConvexProperty, WzProperty, WzSubProperty } from '@scrolled/wz';
 import type { WzNodeInfo, WzPropertyKind } from './types';
 
 function propertyKindOf(prop: WzProperty): WzPropertyKind {
@@ -56,7 +56,7 @@ function propertyHasChildren(prop: WzProperty): boolean {
 }
 
 /**
- * Convert an `@mushex/wz` `WzProperty` to a worker-boundary `WzNodeInfo`. The
+ * Convert an `@scrolled/wz` `WzProperty` to a worker-boundary `WzNodeInfo`. The
  * result is structurally cloneable (plain object, primitive scalars only).
  */
 export function propertyToNodeInfo(prop: WzProperty, fullPath: string): WzNodeInfo {

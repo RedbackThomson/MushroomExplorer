@@ -12,7 +12,7 @@ export function getDbClient(): Remote<GameDatabase> {
   if (!cached) {
     const worker = new Worker(new URL('@/workers/dbWorker.ts', import.meta.url), {
       type: 'module',
-      name: 'mushex-db',
+      name: 'scrolled-db',
     });
     cached = { worker, proxy: wrap<GameDatabase>(worker) };
   }

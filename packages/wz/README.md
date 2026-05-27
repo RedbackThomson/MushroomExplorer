@@ -1,6 +1,6 @@
-# @mushex/wz
+# @scrolled/wz
 
-A self-contained TypeScript WZ-file parser used by Mushroom Explorer.
+A self-contained TypeScript WZ-file parser used by Scrolled.
 
 Why this exists instead of `@tybys/wz`:
 

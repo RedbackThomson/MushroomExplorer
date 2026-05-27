@@ -37,7 +37,7 @@ function getClient(): Remote<HashApi> {
   if (!cached) {
     const worker = new Worker(new URL('@/workers/hashWorker.ts', import.meta.url), {
       type: 'module',
-      name: 'mushex-hash',
+      name: 'scrolled-hash',
     });
     cached = { worker, proxy: wrap<HashApi>(worker) };
   }

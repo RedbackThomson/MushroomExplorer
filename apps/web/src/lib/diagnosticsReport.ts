@@ -26,7 +26,7 @@ export function buildReport(input: ReportInput | Diagnostics): string {
   const merged = [...mainLog, ...workerLog].sort((a, b) => a.t - b.t);
 
   const lines: string[] = [];
-  lines.push('## Mushroom Explorer — diagnostics');
+  lines.push('## Scrolled — diagnostics');
   lines.push('');
   lines.push('### Environment');
   for (const [k, v] of Object.entries(env())) {

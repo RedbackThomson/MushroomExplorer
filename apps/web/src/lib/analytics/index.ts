@@ -2,7 +2,7 @@ import type { AnalyticsProvider } from './types';
 
 export type { AnalyticsProvider } from './types';
 
-const OPTOUT_KEY = 'mushex.analytics.optout';
+const OPTOUT_KEY = 'scrolled.analytics.optout';
 
 interface AnalyticsConfig {
   provider: string;

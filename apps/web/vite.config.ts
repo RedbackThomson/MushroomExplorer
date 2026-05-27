@@ -18,8 +18,8 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Mushroom Explorer',
-        short_name: 'Mushroom Explorer',
+        name: 'Scrolled',
+        short_name: 'Scrolled',
         description: 'Browse items, mobs, NPCs, maps, and quests from your game data, fully on-device.',
         theme_color: '#0f172a',
         background_color: '#0f172a',

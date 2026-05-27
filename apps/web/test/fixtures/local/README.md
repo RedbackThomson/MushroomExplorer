@@ -22,10 +22,10 @@ Tests skip gracefully when any expected file is missing, so you can drop in just
 
 ## Encryption version
 
-The default is `WzMapleVersion.GMS` ("old GMS" — the encryption MapleRoyals' v83-era client uses). Override per-run via the `MUSHEX_WZ_VERSION` environment variable:
+The default is `WzMapleVersion.GMS` ("old GMS" — the encryption MapleRoyals' v83-era client uses). Override per-run via the `SCROLLED_WZ_VERSION` environment variable:
 
 ```bash
-MUSHEX_WZ_VERSION=GMS pnpm test
+SCROLLED_WZ_VERSION=GMS pnpm test
 ```
 
 Accepted values: `BMS`, `GMS`, `EMS`, `CLASSIC`.
@@ -35,7 +35,7 @@ Accepted values: `BMS`, `GMS`, `EMS`, `CLASSIC`.
 If you want a test to verify a specific item parses to a known name, set:
 
 ```bash
-MUSHEX_KNOWN_ITEM_ID=2000000 MUSHEX_KNOWN_ITEM_NAME='Red Potion' pnpm test
+SCROLLED_KNOWN_ITEM_ID=2000000 SCROLLED_KNOWN_ITEM_NAME='Red Potion' pnpm test
 ```
 
 Without those env vars, the integration test asserts only generic structure (top-level dirs present, at least one item resolvable).

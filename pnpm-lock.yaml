@@ -47,12 +47,12 @@ importers:
 
   apps/web:
     dependencies:
-      '@mushex/wz':
-        specifier: workspace:*
-        version: link:../../packages/wz
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.29))(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@scrolled/wz':
+        specifier: workspace:*
+        version: link:../../packages/wz
       '@sqlite.org/sqlite-wasm':
         specifier: 3.53.0-build1
         version: 3.53.0-build1

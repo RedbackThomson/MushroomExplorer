@@ -11,10 +11,10 @@ const FIXTURES_DIR = resolve(__dirname, '../../../../apps/web/test/fixtures/loca
 const VALID_VERSIONS: ReadonlySet<WzVersion> = new Set(['BMS', 'GMS', 'EMS', 'MSEA', 'CLASSIC']);
 
 export function wzVersionFromEnv(): WzVersion {
-  const raw = process.env.MUSHEX_WZ_VERSION?.toUpperCase() as WzVersion | undefined;
+  const raw = process.env.SCROLLED_WZ_VERSION?.toUpperCase() as WzVersion | undefined;
   // MapleRoyals (v83-era client) uses the "old GMS" WZ encryption.
   if (!raw) return 'GMS';
-  if (!VALID_VERSIONS.has(raw)) throw new Error(`Unknown MUSHEX_WZ_VERSION=${raw}`);
+  if (!VALID_VERSIONS.has(raw)) throw new Error(`Unknown SCROLLED_WZ_VERSION=${raw}`);
   return raw;
 }
 

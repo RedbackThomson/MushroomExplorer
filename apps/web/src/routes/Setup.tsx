@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Info, Loader2 } from 'lucide-react';
-import { detectVersion } from '@mushex/wz';
+import { detectVersion } from '@scrolled/wz';
 import { Button } from '@/components/ui/button';
 import { WizardLayout, type WizardStep } from '@/components/wizard/WizardLayout';
 import {

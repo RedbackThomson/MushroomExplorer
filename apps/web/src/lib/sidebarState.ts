@@ -5,7 +5,7 @@ interface SidebarStore {
   toggle: (key: string) => void;
 }
 
-const STORAGE_KEY = 'mushex.sidebar.expanded';
+const STORAGE_KEY = 'scrolled.sidebar.expanded';
 
 function readInitial(): Record<string, boolean> {
   if (typeof window === 'undefined') return {};
@@ -47,7 +47,7 @@ interface SidebarLayoutStore {
   setMobileOpen: (v: boolean) => void;
 }
 
-const COLLAPSED_KEY = 'mushex.sidebar.collapsed';
+const COLLAPSED_KEY = 'scrolled.sidebar.collapsed';
 
 function readCollapsed(): boolean {
   if (typeof window === 'undefined') return false;

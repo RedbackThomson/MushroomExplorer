@@ -102,7 +102,7 @@ describe.skipIf(!present)(`Map.wz walk benchmark vs @tybys/wz`, () => {
 
     console.log(
       `Map.wz benchmark (${sample.length} maps):\n` +
-        `  @mushex/wz   open=${(tOpen - t0).toFixed(0)}ms  walk=${oursMs.toFixed(0)}ms  total=${oursTotalMs.toFixed(0)}ms  nodes=${nodeCount}\n` +
+        `  @scrolled/wz   open=${(tOpen - t0).toFixed(0)}ms  walk=${oursMs.toFixed(0)}ms  total=${oursTotalMs.toFixed(0)}ms  nodes=${nodeCount}\n` +
         `  @tybys/wz open=${(tOracleOpen - tOurs).toFixed(0)}ms  walk=${oracleMs.toFixed(0)}ms  nodes=${oracleNodeCount}`,
     );
 
