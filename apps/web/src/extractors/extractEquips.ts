@@ -161,6 +161,15 @@ export async function extractEquips(
       incJump: info.incJump,
       cash: info.cash === 1,
       equipType: resolveEquipType(w.id),
+      tradeBlock: info.tradeBlock === 1,
+      equipTradeBlock: info.equipTradeBlock === 1,
+      accountSharable: info.accountSharable === 1,
+      only: info.only === 1,
+      quest: info.quest === 1,
+      timeLimited: info.timeLimited === 1,
+      expireOnLogout: info.expireOnLogout === 1,
+      pickupBlock: info.pickupBlock === 1,
+      notSale: info.notSale === 1,
       iconPath,
       iconData,
       sourcePath: w.imagePath,
@@ -198,6 +207,15 @@ interface EquipInfo {
   tuc: number | null;
   /** 1 = cash-shop cosmetic, 0 / absent = regular in-game equip. */
   cash: number | null;
+  tradeBlock: number | null;
+  equipTradeBlock: number | null;
+  accountSharable: number | null;
+  only: number | null;
+  quest: number | null;
+  timeLimited: number | null;
+  expireOnLogout: number | null;
+  pickupBlock: number | null;
+  notSale: number | null;
 }
 
 const EMPTY_INFO: EquipInfo = {
@@ -224,6 +242,15 @@ const EMPTY_INFO: EquipInfo = {
   incJump: null,
   tuc: null,
   cash: null,
+  tradeBlock: null,
+  equipTradeBlock: null,
+  accountSharable: null,
+  only: null,
+  quest: null,
+  timeLimited: null,
+  expireOnLogout: null,
+  pickupBlock: null,
+  notSale: null,
 };
 
 async function readInfo(source: GameDataSource, imagePath: string): Promise<EquipInfo> {
@@ -259,6 +286,15 @@ async function readInfo(source: GameDataSource, imagePath: string): Promise<Equi
     incJump: scalarInt(map.get('incJump')),
     tuc: scalarInt(map.get('tuc')),
     cash: scalarInt(map.get('cash')),
+    tradeBlock: scalarInt(map.get('tradeBlock')),
+    equipTradeBlock: scalarInt(map.get('equipTradeBlock')),
+    accountSharable: scalarInt(map.get('accountSharable')),
+    only: scalarInt(map.get('only')),
+    quest: scalarInt(map.get('quest')),
+    timeLimited: scalarInt(map.get('timeLimited')),
+    expireOnLogout: scalarInt(map.get('expireOnLogout')),
+    pickupBlock: scalarInt(map.get('pickupBlock')),
+    notSale: scalarInt(map.get('notSale')),
   };
 }
 

@@ -482,4 +482,23 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 16,
+    name: 'equip tradability and inventory metadata flags',
+    sql: `
+      -- Extra metadata keys carried on an equip's WZ info block, beyond the
+      -- cosmetic 'cash' flag. The booleans default 0 (= flag absent in WZ);
+      -- this ships as a breaking data-revision bump, so the destructive reset
+      -- empties the table before this runs and re-extraction fills real values.
+      ALTER TABLE equips ADD COLUMN trade_block       INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN equip_trade_block INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN account_sharable  INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN only_one          INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN quest_item        INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN time_limited      INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN expire_on_logout  INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN pickup_block      INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE equips ADD COLUMN not_sale          INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

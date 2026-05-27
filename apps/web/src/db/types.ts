@@ -58,6 +58,20 @@ export interface EquipRecord {
    * so non-null is the canonical "is this a weapon?" check.
    */
   equipType: string | null;
+  /**
+   * Extra metadata flags from the WZ `info` block. Each is true when the
+   * corresponding key is present and non-zero. Mirrors the in-game item
+   * properties shown as badges on the detail page.
+   */
+  tradeBlock: boolean;
+  equipTradeBlock: boolean;
+  accountSharable: boolean;
+  only: boolean;
+  quest: boolean;
+  timeLimited: boolean;
+  expireOnLogout: boolean;
+  pickupBlock: boolean;
+  notSale: boolean;
   iconPath: string | null;
   iconData: Uint8Array | null;
   sourcePath: string;

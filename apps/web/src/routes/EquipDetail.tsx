@@ -13,11 +13,12 @@ import {
 } from '@/components/DetailPageLayout';
 import { EntityRow } from '@/components/EntityRow';
 import { ItemIcon } from '@/components/ItemIcon';
+import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
 import type { CommandItem } from '@/components/command-palette/types';
-import { getDbClient } from '@/db';
+import { getDbClient, type EquipRecord } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
 import { ABILITY_STAT_FIELDS } from '@/lib/abilityStats';
 import { labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
@@ -25,6 +26,25 @@ import { formatEquipJobs, parseReqJob } from '@/lib/equipJobs';
 import { useListSort } from '@/lib/useListSort';
 import { useServerProfile } from '@/lib/useServerProfile';
 import type { EquipStatRange } from '@/lib/serverProfiles';
+
+// Boolean metadata flags from the WZ info block, in display order. Each
+// renders as a badge when true. Labels are deliberately generic and
+// trademark-free per docs/writing_conventions.md.
+type EquipFlagKey = {
+  [K in keyof EquipRecord]: EquipRecord[K] extends boolean ? K : never;
+}[keyof EquipRecord];
+
+const EQUIP_FLAG_BADGES: { key: EquipFlagKey; label: string; tone: BadgeTone }[] = [
+  { key: 'only', label: 'Unique Item', tone: 'violet' },
+  { key: 'quest', label: 'Quest Item', tone: 'emerald' },
+  { key: 'tradeBlock', label: 'Permanently Untradeable', tone: 'red' },
+  { key: 'equipTradeBlock', label: 'Untradeable After Equip', tone: 'amber' },
+  { key: 'accountSharable', label: 'Tradable Within Account', tone: 'blue' },
+  { key: 'timeLimited', label: 'Has Expiration Timer', tone: 'amber' },
+  { key: 'expireOnLogout', label: 'Removed on Logout', tone: 'amber' },
+  { key: 'pickupBlock', label: 'Cannot Pick Up Duplicates', tone: 'slate' },
+  { key: 'notSale', label: 'Cannot Sell to NPC', tone: 'slate' },
+];
 
 export default function EquipDetail() {
   const params = useParams<{ id: string }>();
@@ -126,16 +146,13 @@ export default function EquipDetail() {
             <h1 className="text-3xl font-semibold tracking-tight">{e.name}</h1>
             <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-mono">{e.id}</span>
-              {e.cash && (
-                <span className="inline-flex items-center rounded bg-pink-500/15 px-1.5 py-0.5 text-[10px] font-medium text-pink-700 dark:text-pink-300">
-                  Cash Shop (cosmetic)
-                </span>
-              )}
-              {e.equipType && (
-                <span className="inline-flex items-center rounded bg-slate-500/15 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">
-                  {labelForEquipType(e.equipType)}
-                </span>
-              )}
+              {e.cash && <Badge tone="pink">Cash Shop (cosmetic)</Badge>}
+              {e.equipType && <Badge tone="slate">{labelForEquipType(e.equipType)}</Badge>}
+              {EQUIP_FLAG_BADGES.filter((b) => e[b.key]).map((b) => (
+                <Badge key={b.key} tone={b.tone}>
+                  {b.label}
+                </Badge>
+              ))}
             </div>
           </div>
         </header>

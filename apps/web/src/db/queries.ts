@@ -366,6 +366,15 @@ interface EquipRow extends Row {
   inc_jump: number | null;
   cash: number;
   equip_type: string | null;
+  trade_block: number;
+  equip_trade_block: number;
+  account_sharable: number;
+  only_one: number;
+  quest_item: number;
+  time_limited: number;
+  expire_on_logout: number;
+  pickup_block: number;
+  not_sale: number;
   icon_path: string | null;
   icon_data: Uint8Array | null;
   source_path: string;
@@ -533,6 +542,15 @@ function rowToEquip(r: EquipRow): EquipRecord {
     incJump: r.inc_jump,
     cash: r.cash === 1,
     equipType: r.equip_type,
+    tradeBlock: r.trade_block === 1,
+    equipTradeBlock: r.equip_trade_block === 1,
+    accountSharable: r.account_sharable === 1,
+    only: r.only_one === 1,
+    quest: r.quest_item === 1,
+    timeLimited: r.time_limited === 1,
+    expireOnLogout: r.expire_on_logout === 1,
+    pickupBlock: r.pickup_block === 1,
+    notSale: r.not_sale === 1,
     iconPath: r.icon_path,
     iconData: r.icon_data,
     sourcePath: r.source_path,
@@ -739,7 +757,10 @@ export class DbApi implements GameDatabase {
                   required_str, required_dex, required_int, required_luk, required_job,
                   attack, magic_attack, defense, magic_defense, accuracy, avoidability,
                   upgrade_slots, inc_str, inc_dex, inc_int, inc_luk, inc_hp, inc_mp,
-                  inc_speed, inc_jump, cash, equip_type, icon_path, NULL AS icon_data, source_path
+                  inc_speed, inc_jump, cash, equip_type,
+                  trade_block, equip_trade_block, account_sharable, only_one, quest_item,
+                  time_limited, expire_on_logout, pickup_block, not_sale,
+                  icon_path, NULL AS icon_data, source_path
            FROM equips ${clause}
            ORDER BY ${order.col} ${order.dir === 'desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC
            LIMIT ? OFFSET ?`,
@@ -1710,8 +1731,11 @@ export class DbApi implements GameDatabase {
         required_str, required_dex, required_int, required_luk, required_job,
         attack, magic_attack, defense, magic_defense, accuracy, avoidability,
         upgrade_slots, inc_str, inc_dex, inc_int, inc_luk, inc_hp, inc_mp,
-        inc_speed, inc_jump, cash, equip_type, icon_path, icon_data, source_path
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        inc_speed, inc_jump, cash, equip_type,
+        trade_block, equip_trade_block, account_sharable, only_one, quest_item,
+        time_limited, expire_on_logout, pickup_block, not_sale,
+        icon_path, icon_data, source_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name           = excluded.name,
         description    = excluded.description,
@@ -1738,8 +1762,17 @@ export class DbApi implements GameDatabase {
         inc_mp         = excluded.inc_mp,
         inc_speed      = excluded.inc_speed,
         inc_jump       = excluded.inc_jump,
-        cash           = excluded.cash,
-        equip_type     = excluded.equip_type,
+        cash              = excluded.cash,
+        equip_type        = excluded.equip_type,
+        trade_block       = excluded.trade_block,
+        equip_trade_block = excluded.equip_trade_block,
+        account_sharable  = excluded.account_sharable,
+        only_one          = excluded.only_one,
+        quest_item        = excluded.quest_item,
+        time_limited      = excluded.time_limited,
+        expire_on_logout  = excluded.expire_on_logout,
+        pickup_block      = excluded.pickup_block,
+        not_sale          = excluded.not_sale,
         icon_path      = excluded.icon_path,
         icon_data      = COALESCE(excluded.icon_data, equips.icon_data),
         source_path    = excluded.source_path`,
@@ -1772,6 +1805,15 @@ export class DbApi implements GameDatabase {
         e.incJump,
         e.cash ? 1 : 0,
         e.equipType,
+        e.tradeBlock ? 1 : 0,
+        e.equipTradeBlock ? 1 : 0,
+        e.accountSharable ? 1 : 0,
+        e.only ? 1 : 0,
+        e.quest ? 1 : 0,
+        e.timeLimited ? 1 : 0,
+        e.expireOnLogout ? 1 : 0,
+        e.pickupBlock ? 1 : 0,
+        e.notSale ? 1 : 0,
         e.iconPath,
         e.iconData,
         e.sourcePath,
