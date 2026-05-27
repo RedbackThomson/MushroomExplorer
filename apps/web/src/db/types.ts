@@ -37,6 +37,14 @@ export interface EquipRecord {
   accuracy: number | null;
   avoidability: number | null;
   upgradeSlots: number | null;
+  incStr: number | null;
+  incDex: number | null;
+  incInt: number | null;
+  incLuk: number | null;
+  incHp: number | null;
+  incMp: number | null;
+  incSpeed: number | null;
+  incJump: number | null;
   /**
    * `info/cash` from the WZ tree. True means the equip is a cash-shop
    * cosmetic that provides no stats; false is a regular in-game equip.

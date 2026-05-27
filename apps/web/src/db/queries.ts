@@ -77,12 +77,24 @@ const EQUIP_ORDER: Record<string, OrderSpec> = {
   equipType: { col: 'equip_type', defaultDir: 'asc' },
   cash: { col: 'cash', defaultDir: 'asc' },
   requiredLevel: { col: 'required_level', defaultDir: 'asc' },
+  requiredStr: { col: 'required_str', defaultDir: 'asc' },
+  requiredDex: { col: 'required_dex', defaultDir: 'asc' },
+  requiredInt: { col: 'required_int', defaultDir: 'asc' },
+  requiredLuk: { col: 'required_luk', defaultDir: 'asc' },
   attack: { col: 'attack', defaultDir: 'desc' },
   magicAttack: { col: 'magic_attack', defaultDir: 'desc' },
+  incStr: { col: 'inc_str', defaultDir: 'desc' },
+  incDex: { col: 'inc_dex', defaultDir: 'desc' },
+  incInt: { col: 'inc_int', defaultDir: 'desc' },
+  incLuk: { col: 'inc_luk', defaultDir: 'desc' },
+  incHp: { col: 'inc_hp', defaultDir: 'desc' },
+  incMp: { col: 'inc_mp', defaultDir: 'desc' },
   defense: { col: 'defense', defaultDir: 'desc' },
   magicDefense: { col: 'magic_defense', defaultDir: 'desc' },
   accuracy: { col: 'accuracy', defaultDir: 'desc' },
   avoidability: { col: 'avoidability', defaultDir: 'desc' },
+  incSpeed: { col: 'inc_speed', defaultDir: 'desc' },
+  incJump: { col: 'inc_jump', defaultDir: 'desc' },
   upgradeSlots: { col: 'upgrade_slots', defaultDir: 'desc' },
   id: { col: 'id', defaultDir: 'asc' },
 };
@@ -178,12 +190,24 @@ const EQUIP_FILTER: Record<string, FilterSpec> = {
   // cleanly to col = ?.
   cash: { col: 'cash', type: 'number' },
   requiredLevel: { col: 'required_level', type: 'number' },
+  requiredStr: { col: 'required_str', type: 'number' },
+  requiredDex: { col: 'required_dex', type: 'number' },
+  requiredInt: { col: 'required_int', type: 'number' },
+  requiredLuk: { col: 'required_luk', type: 'number' },
   attack: { col: 'attack', type: 'number' },
   magicAttack: { col: 'magic_attack', type: 'number' },
+  incStr: { col: 'inc_str', type: 'number' },
+  incDex: { col: 'inc_dex', type: 'number' },
+  incInt: { col: 'inc_int', type: 'number' },
+  incLuk: { col: 'inc_luk', type: 'number' },
+  incHp: { col: 'inc_hp', type: 'number' },
+  incMp: { col: 'inc_mp', type: 'number' },
   defense: { col: 'defense', type: 'number' },
   magicDefense: { col: 'magic_defense', type: 'number' },
   accuracy: { col: 'accuracy', type: 'number' },
   avoidability: { col: 'avoidability', type: 'number' },
+  incSpeed: { col: 'inc_speed', type: 'number' },
+  incJump: { col: 'inc_jump', type: 'number' },
   upgradeSlots: { col: 'upgrade_slots', type: 'number' },
   requiredJob: { col: 'required_job', type: 'classMask' },
   id: { col: 'id', type: 'number' },
@@ -331,6 +355,14 @@ interface EquipRow extends Row {
   accuracy: number | null;
   avoidability: number | null;
   upgrade_slots: number | null;
+  inc_str: number | null;
+  inc_dex: number | null;
+  inc_int: number | null;
+  inc_luk: number | null;
+  inc_hp: number | null;
+  inc_mp: number | null;
+  inc_speed: number | null;
+  inc_jump: number | null;
   cash: number;
   equip_type: string | null;
   icon_path: string | null;
@@ -490,6 +522,14 @@ function rowToEquip(r: EquipRow): EquipRecord {
     accuracy: r.accuracy,
     avoidability: r.avoidability,
     upgradeSlots: r.upgrade_slots,
+    incStr: r.inc_str,
+    incDex: r.inc_dex,
+    incInt: r.inc_int,
+    incLuk: r.inc_luk,
+    incHp: r.inc_hp,
+    incMp: r.inc_mp,
+    incSpeed: r.inc_speed,
+    incJump: r.inc_jump,
     cash: r.cash === 1,
     equipType: r.equip_type,
     iconPath: r.icon_path,
@@ -649,7 +689,8 @@ export class DbApi implements GameDatabase {
           `SELECT id, name, description, slot, category, required_level,
                   required_str, required_dex, required_int, required_luk, required_job,
                   attack, magic_attack, defense, magic_defense, accuracy, avoidability,
-                  upgrade_slots, cash, equip_type, icon_path, NULL AS icon_data, source_path
+                  upgrade_slots, inc_str, inc_dex, inc_int, inc_luk, inc_hp, inc_mp,
+                  inc_speed, inc_jump, cash, equip_type, icon_path, NULL AS icon_data, source_path
            FROM equips ${clause}
            ORDER BY ${order.col} ${order.dir === 'desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC
            LIMIT ? OFFSET ?`,
@@ -1601,8 +1642,9 @@ export class DbApi implements GameDatabase {
         id, name, description, slot, category, required_level,
         required_str, required_dex, required_int, required_luk, required_job,
         attack, magic_attack, defense, magic_defense, accuracy, avoidability,
-        upgrade_slots, cash, equip_type, icon_path, icon_data, source_path
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        upgrade_slots, inc_str, inc_dex, inc_int, inc_luk, inc_hp, inc_mp,
+        inc_speed, inc_jump, cash, equip_type, icon_path, icon_data, source_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name           = excluded.name,
         description    = excluded.description,
@@ -1621,6 +1663,14 @@ export class DbApi implements GameDatabase {
         accuracy       = excluded.accuracy,
         avoidability   = excluded.avoidability,
         upgrade_slots  = excluded.upgrade_slots,
+        inc_str        = excluded.inc_str,
+        inc_dex        = excluded.inc_dex,
+        inc_int        = excluded.inc_int,
+        inc_luk        = excluded.inc_luk,
+        inc_hp         = excluded.inc_hp,
+        inc_mp         = excluded.inc_mp,
+        inc_speed      = excluded.inc_speed,
+        inc_jump       = excluded.inc_jump,
         cash           = excluded.cash,
         equip_type     = excluded.equip_type,
         icon_path      = excluded.icon_path,
@@ -1645,6 +1695,14 @@ export class DbApi implements GameDatabase {
         e.accuracy,
         e.avoidability,
         e.upgradeSlots,
+        e.incStr,
+        e.incDex,
+        e.incInt,
+        e.incLuk,
+        e.incHp,
+        e.incMp,
+        e.incSpeed,
+        e.incJump,
         e.cash ? 1 : 0,
         e.equipType,
         e.iconPath,

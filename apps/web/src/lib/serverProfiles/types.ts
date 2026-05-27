@@ -44,9 +44,9 @@ export interface ServerProfile {
 }
 
 /**
- * Canonical combat stats an equip carries, as base values from the WZ data.
- * These are the stats a dropped-equip variance calculator operates on —
- * requirement stats (level, STR req, …) and upgrade slots are excluded.
+ * Stats an equip carries that roll a variance range when dropped, as base
+ * values from the WZ data. Requirement stats (level, STR req, …), upgrade
+ * slots, and fixed bonuses like speed/jump are excluded.
  */
 export interface EquipBaseStats {
   attack: number | null;
@@ -55,6 +55,12 @@ export interface EquipBaseStats {
   magicDefense: number | null;
   accuracy: number | null;
   avoidability: number | null;
+  incStr: number | null;
+  incDex: number | null;
+  incInt: number | null;
+  incLuk: number | null;
+  incHp: number | null;
+  incMp: number | null;
 }
 
 export type EquipStatKey = keyof EquipBaseStats;
@@ -66,6 +72,12 @@ export const EQUIP_STAT_KEYS: readonly EquipStatKey[] = [
   'magicDefense',
   'accuracy',
   'avoidability',
+  'incStr',
+  'incDex',
+  'incInt',
+  'incLuk',
+  'incHp',
+  'incMp',
 ];
 
 /** A computed possible-roll range for one equip stat. */

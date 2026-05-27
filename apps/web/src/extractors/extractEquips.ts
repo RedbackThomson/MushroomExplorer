@@ -151,6 +151,14 @@ export async function extractEquips(
       accuracy: info.incACC,
       avoidability: info.incEVA,
       upgradeSlots: info.tuc,
+      incStr: info.incSTR,
+      incDex: info.incDEX,
+      incInt: info.incINT,
+      incLuk: info.incLUK,
+      incHp: info.incMHP,
+      incMp: info.incMMP,
+      incSpeed: info.incSpeed,
+      incJump: info.incJump,
       cash: info.cash === 1,
       equipType: resolveEquipType(w.id),
       iconPath,
@@ -179,6 +187,14 @@ interface EquipInfo {
   incMDD: number | null;
   incACC: number | null;
   incEVA: number | null;
+  incSTR: number | null;
+  incDEX: number | null;
+  incINT: number | null;
+  incLUK: number | null;
+  incMHP: number | null;
+  incMMP: number | null;
+  incSpeed: number | null;
+  incJump: number | null;
   tuc: number | null;
   /** 1 = cash-shop cosmetic, 0 / absent = regular in-game equip. */
   cash: number | null;
@@ -198,6 +214,14 @@ const EMPTY_INFO: EquipInfo = {
   incMDD: null,
   incACC: null,
   incEVA: null,
+  incSTR: null,
+  incDEX: null,
+  incINT: null,
+  incLUK: null,
+  incMHP: null,
+  incMMP: null,
+  incSpeed: null,
+  incJump: null,
   tuc: null,
   cash: null,
 };
@@ -225,6 +249,14 @@ async function readInfo(source: GameDataSource, imagePath: string): Promise<Equi
     incMDD: scalarInt(map.get('incMDD')),
     incACC: scalarInt(map.get('incACC')),
     incEVA: scalarInt(map.get('incEVA')),
+    incSTR: scalarInt(map.get('incSTR')),
+    incDEX: scalarInt(map.get('incDEX')),
+    incINT: scalarInt(map.get('incINT')),
+    incLUK: scalarInt(map.get('incLUK')),
+    incMHP: scalarInt(map.get('incMHP')),
+    incMMP: scalarInt(map.get('incMMP')),
+    incSpeed: scalarInt(map.get('incSpeed')),
+    incJump: scalarInt(map.get('incJump')),
     tuc: scalarInt(map.get('tuc')),
     cash: scalarInt(map.get('cash')),
   };

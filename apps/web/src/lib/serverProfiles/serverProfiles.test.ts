@@ -49,6 +49,12 @@ function stats(partial: Partial<EquipBaseStats> = {}): EquipBaseStats {
     magicDefense: null,
     accuracy: null,
     avoidability: null,
+    incStr: null,
+    incDex: null,
+    incInt: null,
+    incLuk: null,
+    incHp: null,
+    incMp: null,
     ...partial,
   };
 }

@@ -2,10 +2,25 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ItemIcon } from '@/components/ItemIcon';
 import { EquipLink } from '@/components/entity-links';
 import type { EquipRecord } from '@/db';
+import { ABILITY_STAT_FIELDS } from '@/lib/abilityStats';
 import { labelForEquipType } from '@/lib/equipTypes';
 import { isAnyClass, parseReqJob } from '@/lib/equipJobs';
 
 const num = (v: number | null) => (v === null ? '—' : v.toLocaleString());
+
+/** Keys of `EquipRecord` whose value is a nullable number. */
+type NumericEquipKey = {
+  [K in keyof EquipRecord]: EquipRecord[K] extends number | null ? K : never;
+}[keyof EquipRecord];
+
+/** A right-aligned, number-filterable column for one numeric equip stat. */
+const statColumn = (id: NumericEquipKey, header: string): ColumnDef<EquipRecord> => ({
+  id,
+  accessorFn: (e) => e[id],
+  header,
+  meta: { filter: 'number' },
+  cell: ({ row }) => num(row.original[id]),
+});
 
 export const columns: ColumnDef<EquipRecord>[] = [
   {
@@ -56,6 +71,7 @@ export const columns: ColumnDef<EquipRecord>[] = [
     meta: { filter: 'number' },
     cell: ({ row }) => row.original.requiredLevel ?? '—',
   },
+  ...ABILITY_STAT_FIELDS.map((s) => statColumn(s.required, `Req ${s.label}`)),
   {
     id: 'requiredJob',
     accessorFn: (e) => e.requiredJob,
@@ -70,34 +86,17 @@ export const columns: ColumnDef<EquipRecord>[] = [
       return <span className="text-xs">{jobs.join(', ')}</span>;
     },
   },
-  {
-    id: 'attack',
-    accessorFn: (e) => e.attack,
-    header: 'Atk',
-    meta: { filter: 'number' },
-    cell: ({ row }) => num(row.original.attack),
-  },
-  {
-    id: 'magicAttack',
-    accessorFn: (e) => e.magicAttack,
-    header: 'M.Atk',
-    meta: { filter: 'number' },
-    cell: ({ row }) => num(row.original.magicAttack),
-  },
-  {
-    id: 'accuracy',
-    accessorFn: (e) => e.accuracy,
-    header: 'Acc',
-    meta: { filter: 'number' },
-    cell: ({ row }) => num(row.original.accuracy),
-  },
-  {
-    id: 'avoidability',
-    accessorFn: (e) => e.avoidability,
-    header: 'Avoid',
-    meta: { filter: 'number' },
-    cell: ({ row }) => num(row.original.avoidability),
-  },
+  statColumn('attack', 'Atk'),
+  statColumn('magicAttack', 'M.Atk'),
+  ...ABILITY_STAT_FIELDS.map((s) => statColumn(s.inc, s.label)),
+  statColumn('incHp', 'HP'),
+  statColumn('incMp', 'MP'),
+  statColumn('defense', 'Def'),
+  statColumn('magicDefense', 'M.Def'),
+  statColumn('accuracy', 'Acc'),
+  statColumn('avoidability', 'Avoid'),
+  statColumn('incSpeed', 'Speed'),
+  statColumn('incJump', 'Jump'),
   {
     id: 'upgradeSlots',
     accessorFn: (e) => e.upgradeSlots,
@@ -135,7 +134,7 @@ const PHYSICAL_DEFAULT = [
   'requiredLevel',
   'requiredJob',
   'attack',
-  'accuracy',
+  'requiredDex',
   'upgradeSlots',
 ] as const;
 
@@ -147,7 +146,6 @@ const MAGIC_DEFAULT = [
   'requiredLevel',
   'requiredJob',
   'magicAttack',
-  'attack',
   'upgradeSlots',
 ] as const;
 

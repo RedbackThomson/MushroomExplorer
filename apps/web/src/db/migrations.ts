@@ -444,4 +444,25 @@ export const MIGRATIONS: readonly Migration[] = [
       VALUES (1, 'vanilla-v83', strftime('%s','now')*1000);
     `,
   },
+  {
+    version: 14,
+    name: 'equip stat bonuses (str/dex/int/luk, hp/mp, speed/jump)',
+    sql: `
+      -- The WZ info block carries the full set of stat bonuses an equip
+      -- grants, but extraction only stored the combat stats. Add the
+      -- remaining bonuses (incSTR/DEX/INT/LUK, incMHP/MMP, incSpeed/Jump)
+      -- so the detail page can show everything the equip actually gives.
+      -- Nullable with no default: a NULL means "not yet re-extracted",
+      -- distinct from an extracted 0/absent property. Re-running extraction
+      -- backfills them.
+      ALTER TABLE equips ADD COLUMN inc_str   INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_dex   INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_int   INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_luk   INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_hp    INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_mp    INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_speed INTEGER;
+      ALTER TABLE equips ADD COLUMN inc_jump  INTEGER;
+    `,
+  },
 ];

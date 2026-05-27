@@ -19,6 +19,7 @@ import { useDetailPalette } from '@/components/command-palette/useDetailPalette'
 import type { CommandItem } from '@/components/command-palette/types';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
+import { ABILITY_STAT_FIELDS } from '@/lib/abilityStats';
 import { labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
 import { formatEquipJobs, parseReqJob } from '@/lib/equipJobs';
 import { useListSort } from '@/lib/useListSort';
@@ -91,7 +92,15 @@ export default function EquipDetail() {
     e.magicDefense !== null ||
     e.accuracy !== null ||
     e.avoidability !== null ||
-    e.upgradeSlots !== null;
+    e.upgradeSlots !== null ||
+    e.incStr !== null ||
+    e.incDex !== null ||
+    e.incInt !== null ||
+    e.incLuk !== null ||
+    e.incHp !== null ||
+    e.incMp !== null ||
+    e.incSpeed !== null ||
+    e.incJump !== null;
   const statRanges = serverProfile.equipRanges({
     attack: e.attack,
     magicAttack: e.magicAttack,
@@ -99,6 +108,12 @@ export default function EquipDetail() {
     magicDefense: e.magicDefense,
     accuracy: e.accuracy,
     avoidability: e.avoidability,
+    incStr: e.incStr,
+    incDex: e.incDex,
+    incInt: e.incInt,
+    incLuk: e.incLuk,
+    incHp: e.incHp,
+    incMp: e.incMp,
   });
 
   return (
@@ -136,10 +151,9 @@ export default function EquipDetail() {
           {hasAnyRequirement && (
             <InfoSection title="Requirements">
               <StatRow label="Level" value={e.requiredLevel} />
-              <StatRow label="STR" value={e.requiredStr} />
-              <StatRow label="DEX" value={e.requiredDex} />
-              <StatRow label="INT" value={e.requiredInt} />
-              <StatRow label="LUK" value={e.requiredLuk} />
+              {ABILITY_STAT_FIELDS.map((s) => (
+                <StatRow key={s.label} label={s.label} value={e[s.required]} />
+              ))}
               {e.requiredJob !== null && (
                 <InfoRow label="Class" value={formatEquipJobs(parseReqJob(e.requiredJob))} />
               )}
@@ -153,6 +167,16 @@ export default function EquipDetail() {
                 value={e.magicAttack}
                 range={statRanges.magicAttack}
               />
+              {ABILITY_STAT_FIELDS.map((s) => (
+                <StatRangeRow
+                  key={s.label}
+                  label={s.label}
+                  value={e[s.inc]}
+                  range={statRanges[s.inc]}
+                />
+              ))}
+              <StatRangeRow label="HP" value={e.incHp} range={statRanges.incHp} />
+              <StatRangeRow label="MP" value={e.incMp} range={statRanges.incMp} />
               <StatRangeRow label="Defense" value={e.defense} range={statRanges.defense} />
               <StatRangeRow
                 label="Magic def"
@@ -165,6 +189,8 @@ export default function EquipDetail() {
                 value={e.avoidability}
                 range={statRanges.avoidability}
               />
+              <StatRow label="Speed" value={e.incSpeed} />
+              <StatRow label="Jump" value={e.incJump} />
               <StatRow label="Upgrade slots" value={e.upgradeSlots} />
             </InfoSection>
           )}
