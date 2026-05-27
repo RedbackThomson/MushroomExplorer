@@ -186,7 +186,7 @@ export default function QuestDetail() {
             <Sparkles className="text-muted-foreground h-6 w-6 shrink-0" />
             <span className="flex-1">Experience</span>
             <span className="font-mono text-xs">
-              <ExpValue exp={expReward.amount ?? 0} showRate />
+              <ExpValue exp={expReward.amount ?? 0} />
             </span>
           </li>
         )}

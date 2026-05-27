@@ -1,27 +1,38 @@
+import { HoverPopover } from '@/components/HoverPopover';
 import { useServerProfile } from '@/lib/useServerProfile';
 
 /**
  * Renders an EXP value adjusted by the active server profile's EXP rate. Pass
- * the canonical (base) EXP from the WZ data; this applies the multiplier at
+ * the canonical (base) EXP from the WZ data; the multiplier is applied at
  * render time so every EXP display stays in sync with the selected profile.
+ *
+ * When the profile applies a non-1 rate, the shown value is the multiplied
+ * one and hovering/focusing it reveals the base value and where the multiplier
+ * comes from — so the adjustment is discoverable without cluttering the number.
  */
-export function ExpValue({
-  exp,
-  showRate = false,
-}: {
-  exp: number | null;
-  /** Append a muted `N×` badge when the effective rate isn't 1. */
-  showRate?: boolean;
-}) {
-  const { applyExp, expRate } = useServerProfile();
-  const adjusted = applyExp(exp);
-  if (adjusted === null) return <>—</>;
+export function ExpValue({ exp }: { exp: number | null }) {
+  const { applyExp, expRate, profile } = useServerProfile();
+  if (exp === null) return <>—</>;
+  const adjusted = applyExp(exp) ?? exp;
+
+  // No multiplier in play — the displayed value is the real value, nothing to
+  // disambiguate.
+  if (expRate === 1) return <>{adjusted.toLocaleString()}</>;
+
   return (
-    <span>
+    <HoverPopover
+      triggerClassName="decoration-muted-foreground/40 cursor-help underline decoration-dotted underline-offset-2"
+      triggerProps={{ tabIndex: '0' }}
+      content={
+        <div className="whitespace-nowrap text-xs">
+          <div className="font-medium">{exp.toLocaleString()} base EXP</div>
+          <div className="text-muted-foreground mt-0.5">
+            {profile.name} profile · {expRate}× server rate
+          </div>
+        </div>
+      }
+    >
       {adjusted.toLocaleString()}
-      {showRate && expRate !== 1 && (
-        <span className="text-muted-foreground ml-1.5 text-xs">{expRate}×</span>
-      )}
-    </span>
+    </HoverPopover>
   );
 }

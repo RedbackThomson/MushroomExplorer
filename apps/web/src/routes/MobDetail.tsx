@@ -123,7 +123,7 @@ export default function MobDetail() {
             <InfoRow label="Level" value={m.level !== null ? String(m.level) : '—'} />
             <InfoRow label="HP" value={m.hp !== null ? m.hp.toLocaleString() : '—'} />
             <InfoRow label="MP" value={m.mp !== null ? m.mp.toLocaleString() : '—'} />
-            <InfoRow label="EXP" value={<ExpValue exp={m.exp} showRate />} />
+            <InfoRow label="EXP" value={<ExpValue exp={m.exp} />} />
           </InfoSection>
           <ElementsSection element={m.elementAttack} />
           <SourceSection path={m.sourcePath} />
