@@ -1,7 +1,7 @@
 // Domain query helpers built on top of the thin `Sqlite` wrapper.
 
-import { EQUIP_CLASS_BIT, type EquipClass } from '@/lib/equipJobs';
-import { ELEMENT_CODE_BY_NAME, LEVEL_BY_STATUS, type ElementStatus } from '@/lib/mobElements';
+import { EQUIP_CLASS_BIT, type EquipClass } from '@/domain/equipJobs';
+import { ELEMENT_CODE_BY_NAME, LEVEL_BY_STATUS, type ElementStatus } from '@/domain/mobElements';
 import { CURRENT_DATA_REVISION, MINIMUM_SUPPORTED_DATA_REVISION } from './dataVersion';
 import type { Sqlite, Row, PreMigrateContext } from './sqlite';
 import type {
@@ -168,7 +168,7 @@ interface FilterSpec {
    * pairs (e.g. `F3I2`), so a "weak to Fire" filter resolves the element
    * to code "F" and the status to level "3", then matches the substring
    * `F3` anywhere in element_attack. Element-code lookup and the
-   * status→level mapping both come from `@/lib/mobElements`.
+   * status→level mapping both come from `@/domain/mobElements`.
    */
   elementStatus?: Exclude<ElementStatus, 'neutral'>;
 }

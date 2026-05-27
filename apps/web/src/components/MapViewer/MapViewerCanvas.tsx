@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DoorOpen, Repeat, Skull, Sparkles, Users, type LucideIcon } from 'lucide-react';
 import type { MapMobSpawnWithName, MapNpcWithName, MapPortalRecord, MapRecord } from '@/db';
 import { MapHoverCard, MobHoverCard, NpcHoverCard } from '@/components/entity-links';
-import { classifyPortal, gameToPixel, type PortalGraph } from '@/lib/portal-types';
+import { classifyPortal, gameToPixel, type PortalGraph } from '@/domain/portal-types';
 import type { LayerVisibility, MapViewerHighlight } from './types';
 import { MapViewerIcon } from './MapViewerIcon';
 

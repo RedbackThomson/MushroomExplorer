@@ -25,7 +25,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
-import { WEAPON_TYPE_ORDER, labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
+import { WEAPON_TYPE_ORDER, labelForEquipSlot, labelForEquipType } from '@/domain/equipTypes';
 import { useFeatures } from '@/lib/useFeatures';
 import { useDataState } from '@/lib/useDataState';
 import { useOnlineStatus } from '@/lib/useOnlineStatus';

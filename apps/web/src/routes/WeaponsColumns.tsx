@@ -2,9 +2,9 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ItemIcon } from '@/components/ItemIcon';
 import { EquipLink } from '@/components/entity-links';
 import type { EquipRecord } from '@/db';
-import { ABILITY_STAT_FIELDS } from '@/lib/abilityStats';
-import { labelForEquipType } from '@/lib/equipTypes';
-import { isAnyClass, parseReqJob } from '@/lib/equipJobs';
+import { ABILITY_STAT_FIELDS } from '@/domain/abilityStats';
+import { labelForEquipType } from '@/domain/equipTypes';
+import { isAnyClass, parseReqJob } from '@/domain/equipJobs';
 
 const num = (v: number | null) => (v === null ? '—' : v.toLocaleString());
 

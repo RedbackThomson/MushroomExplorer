@@ -27,7 +27,7 @@ import {
   ELEMENT_STATUS_CLASSES,
   ELEMENT_STATUS_LABELS,
   parseMobElements,
-} from '@/lib/mobElements';
+} from '@/domain/mobElements';
 import { cn } from '@/lib/utils';
 
 const BACK = { to: '/mobs', label: 'Back to mobs' };

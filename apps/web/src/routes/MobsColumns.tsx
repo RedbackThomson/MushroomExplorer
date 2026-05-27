@@ -10,7 +10,7 @@ import {
   ELEMENT_STATUS_CLASSES,
   elementsByStatus,
   type ElementStatus,
-} from '@/lib/mobElements';
+} from '@/domain/mobElements';
 
 export const ELEMENT_ENUM_OPTIONS: readonly string[] = ELEMENT_ORDER;
 

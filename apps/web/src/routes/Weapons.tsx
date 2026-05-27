@@ -4,8 +4,8 @@ import { DataTable, useColumnFilters, useTableUrlState } from '@/components/data
 import { CollectionsBulkAddMenu } from '@/components/collections';
 import { TablePageLayout } from '@/components/TablePageLayout';
 import { getDbClient } from '@/db';
-import { labelForEquipType } from '@/lib/equipTypes';
-import { ALL_EQUIP_CLASSES } from '@/lib/equipJobs';
+import { labelForEquipType } from '@/domain/equipTypes';
+import { ALL_EQUIP_CLASSES } from '@/domain/equipJobs';
 import { columns, defaultSort, defaultVisibleForType, pinnedColumns } from './WeaponsColumns';
 
 const DEFAULT_PAGE_SIZE = 50;

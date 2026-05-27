@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Modal } from '@/components/collections';
-import { buildPortalGraph, classifyPortal } from '@/lib/portal-types';
+import { buildPortalGraph, classifyPortal } from '@/domain/portal-types';
 import { MapViewerCanvas } from './MapViewerCanvas';
 import { MapViewerLayerControls } from './MapViewerLayerControls';
 import { MapViewerSidebar } from './MapViewerSidebar';

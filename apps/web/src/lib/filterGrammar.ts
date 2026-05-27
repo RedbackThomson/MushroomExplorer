@@ -18,7 +18,7 @@
 // Unknown keys fall back to free-text terms.
 
 import type { EntityKind } from '@/db';
-import { ELEMENT_ORDER } from './mobElements';
+import { ELEMENT_ORDER } from '@/domain/mobElements';
 
 type EntityScope = EntityKind;
 

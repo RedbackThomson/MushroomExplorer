@@ -21,9 +21,9 @@ import { useDetailPalette } from '@/components/command-palette/useDetailPalette'
 import type { CommandItem } from '@/components/command-palette/types';
 import { getDbClient } from '@/db';
 import { useFeatures } from '@/lib/useFeatures';
-import { ABILITY_STAT_FIELDS } from '@/lib/abilityStats';
-import { labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
-import { formatEquipJobs, parseReqJob } from '@/lib/equipJobs';
+import { ABILITY_STAT_FIELDS } from '@/domain/abilityStats';
+import { labelForEquipSlot, labelForEquipType } from '@/domain/equipTypes';
+import { formatEquipJobs, parseReqJob } from '@/domain/equipJobs';
 import { useListSort } from '@/lib/useListSort';
 import { useServerProfile } from '@/lib/useServerProfile';
 import type { EquipStatRange } from '@/serverProfiles';

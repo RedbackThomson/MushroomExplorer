@@ -5,7 +5,7 @@ import { getDbClient } from '@/db';
 import type { MapMobSpawnWithName, MapNpcWithName, MapPortalRecord } from '@/db';
 import { MapHoverCard, MobHoverCard, NpcHoverCard } from '@/components/entity-links';
 import { HoverPopover } from '@/components/HoverPopover';
-import { classifyPortal, type PortalGraph, type PortalLayer } from '@/lib/portal-types';
+import { classifyPortal, type PortalGraph, type PortalLayer } from '@/domain/portal-types';
 import { cn } from '@/lib/utils';
 import type { LayerVisibility, MapViewerHighlight } from './types';
 

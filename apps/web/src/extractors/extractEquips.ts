@@ -3,7 +3,7 @@ import type { EquipRecord } from '@/db';
 import { createLogger } from '@/lib/logger';
 import type { ProgressFn } from '@/lib/progress';
 import { unescapeWzString } from './wzText';
-import { normalizeEquipSlot, resolveEquipType } from '@/lib/equipTypes';
+import { normalizeEquipSlot, resolveEquipType } from '@/domain/equipTypes';
 
 const log = createLogger('extract-equips');
 

@@ -5,8 +5,8 @@ import { ItemIcon } from '@/components/ItemIcon';
 import { HoverPopover } from '@/components/HoverPopover';
 import { HoverCardSaveFooter } from '@/components/collections';
 import { getDbClient } from '@/db';
-import { labelForEquipSlot, labelForEquipType } from '@/lib/equipTypes';
-import { formatEquipJobs, isAnyClass, parseReqJob } from '@/lib/equipJobs';
+import { labelForEquipSlot, labelForEquipType } from '@/domain/equipTypes';
+import { formatEquipJobs, isAnyClass, parseReqJob } from '@/domain/equipJobs';
 
 interface EquipLinkProps {
   id: number;

@@ -5,7 +5,7 @@ import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/
 import { getDbClient, type EntityKind } from '@/db';
 import { getSearchIndex, querySearch, type SearchHit } from '@/search';
 import { iconForEntity, labelForEntityKind, routeForEntity } from '@/lib/entityRoutes';
-import { labelForEquipSlot } from '@/lib/equipTypes';
+import { labelForEquipSlot } from '@/domain/equipTypes';
 import { useRecentQueries } from '@/lib/recents';
 import { useCommandPalette } from '@/lib/useCommandPalette';
 import { useFeatures } from '@/lib/useFeatures';
