@@ -501,4 +501,26 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE equips ADD COLUMN not_sale          INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 17,
+    name: 'item tradability and inventory metadata flags',
+    sql: `
+      -- The metadata keys items share with equips (migration 16), minus
+      -- equip_trade_block (equip-only), plus two item-only flags: drop_block
+      -- and trade_available. Booleans default 0 (= flag absent in WZ); this
+      -- ships as a breaking data-revision bump, so the destructive reset
+      -- empties the table before this runs and re-extraction fills real values.
+      ALTER TABLE items ADD COLUMN cash              INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN trade_block       INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN account_sharable  INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN only_one          INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN quest_item        INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN time_limited      INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN expire_on_logout  INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN pickup_block      INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN not_sale          INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN drop_block        INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN trade_available   INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

@@ -334,6 +334,17 @@ interface ItemRow extends Row {
   price: number | null;
   stack_size: number | null;
   required_level: number | null;
+  cash: number;
+  trade_block: number;
+  account_sharable: number;
+  only_one: number;
+  quest_item: number;
+  time_limited: number;
+  expire_on_logout: number;
+  pickup_block: number;
+  not_sale: number;
+  drop_block: number;
+  trade_available: number;
   source_path: string;
 }
 
@@ -392,6 +403,17 @@ function rowToItem(r: ItemRow): ItemRecord {
     price: r.price,
     stackSize: r.stack_size,
     requiredLevel: r.required_level,
+    cash: r.cash === 1,
+    tradeBlock: r.trade_block === 1,
+    accountSharable: r.account_sharable === 1,
+    only: r.only_one === 1,
+    quest: r.quest_item === 1,
+    timeLimited: r.time_limited === 1,
+    expireOnLogout: r.expire_on_logout === 1,
+    pickupBlock: r.pickup_block === 1,
+    notSale: r.not_sale === 1,
+    dropBlock: r.drop_block === 1,
+    tradeAvailable: r.trade_available === 1,
     sourcePath: r.source_path,
   };
 }
@@ -686,7 +708,10 @@ export class DbApi implements GameDatabase {
       const rows = this.sql
         .selectObjects<ItemRow>(
           `SELECT id, name, description, category, subcategory, icon_path, NULL AS icon_data,
-                  price, stack_size, required_level, source_path
+                  price, stack_size, required_level,
+                  cash, trade_block, account_sharable, only_one, quest_item,
+                  time_limited, expire_on_logout, pickup_block, not_sale, drop_block, trade_available,
+                  source_path
            FROM items ${clause}
            ORDER BY ${order.col} ${order.dir === 'desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC
            LIMIT ? OFFSET ?`,
@@ -1825,8 +1850,11 @@ export class DbApi implements GameDatabase {
     this.sql.exec(
       `INSERT INTO items (
         id, name, description, category, subcategory, icon_path, icon_data,
-        price, stack_size, required_level, source_path
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        price, stack_size, required_level,
+        cash, trade_block, account_sharable, only_one, quest_item,
+        time_limited, expire_on_logout, pickup_block, not_sale, drop_block, trade_available,
+        source_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name           = excluded.name,
         description    = excluded.description,
@@ -1839,6 +1867,17 @@ export class DbApi implements GameDatabase {
         price          = excluded.price,
         stack_size     = excluded.stack_size,
         required_level = excluded.required_level,
+        cash              = excluded.cash,
+        trade_block       = excluded.trade_block,
+        account_sharable  = excluded.account_sharable,
+        only_one          = excluded.only_one,
+        quest_item        = excluded.quest_item,
+        time_limited      = excluded.time_limited,
+        expire_on_logout  = excluded.expire_on_logout,
+        pickup_block      = excluded.pickup_block,
+        not_sale          = excluded.not_sale,
+        drop_block        = excluded.drop_block,
+        trade_available   = excluded.trade_available,
         source_path    = excluded.source_path`,
       [
         item.id,
@@ -1851,6 +1890,17 @@ export class DbApi implements GameDatabase {
         item.price,
         item.stackSize,
         item.requiredLevel,
+        item.cash ? 1 : 0,
+        item.tradeBlock ? 1 : 0,
+        item.accountSharable ? 1 : 0,
+        item.only ? 1 : 0,
+        item.quest ? 1 : 0,
+        item.timeLimited ? 1 : 0,
+        item.expireOnLogout ? 1 : 0,
+        item.pickupBlock ? 1 : 0,
+        item.notSale ? 1 : 0,
+        item.dropBlock ? 1 : 0,
+        item.tradeAvailable ? 1 : 0,
         item.sourcePath,
       ],
     );

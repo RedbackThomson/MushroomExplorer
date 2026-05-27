@@ -247,6 +247,17 @@ function SaveItemPanel({ node }: { node: WzNodeInfo }) {
         price: null,
         stackSize: null,
         requiredLevel: null,
+        cash: false,
+        tradeBlock: false,
+        accountSharable: false,
+        only: false,
+        quest: false,
+        timeLimited: false,
+        expireOnLogout: false,
+        pickupBlock: false,
+        notSale: false,
+        dropBlock: false,
+        tradeAvailable: false,
         sourcePath: target.itemPath,
       });
       return { id: target.id, name };

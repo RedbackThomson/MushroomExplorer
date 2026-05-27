@@ -15,6 +15,21 @@ export interface ItemRecord {
   price: number | null;
   stackSize: number | null;
   requiredLevel: number | null;
+  /**
+   * Metadata flags from the WZ `info` block, each true when the key is
+   * present and non-zero. Surfaced as badges on the detail page.
+   */
+  cash: boolean;
+  tradeBlock: boolean;
+  accountSharable: boolean;
+  only: boolean;
+  quest: boolean;
+  timeLimited: boolean;
+  expireOnLogout: boolean;
+  pickupBlock: boolean;
+  notSale: boolean;
+  dropBlock: boolean;
+  tradeAvailable: boolean;
   sourcePath: string;
 }
 

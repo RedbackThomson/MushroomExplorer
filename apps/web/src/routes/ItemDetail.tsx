@@ -13,6 +13,8 @@ import {
 } from '@/components/DetailPageLayout';
 import { EntityRow } from '@/components/EntityRow';
 import { ItemIcon } from '@/components/ItemIcon';
+import { Badge } from '@/components/ui/badge';
+import { MetadataFlagBadges, ITEM_FLAG_ORDER } from '@/components/MetadataFlagBadges';
 import { ListSortControl } from '@/components/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
@@ -85,11 +87,8 @@ export default function ItemDetail() {
             <h1 className="text-3xl font-semibold tracking-tight">{item.name}</h1>
             <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-mono">{item.id}</span>
-              {item.subcategory && (
-                <span className="inline-flex items-center rounded bg-slate-500/15 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">
-                  {item.subcategory}
-                </span>
-              )}
+              {item.subcategory && <Badge tone="slate">{item.subcategory}</Badge>}
+              <MetadataFlagBadges flags={item} order={ITEM_FLAG_ORDER} />
             </div>
           </div>
         </header>

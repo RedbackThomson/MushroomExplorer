@@ -141,12 +141,10 @@ async function readItem(
 ): Promise<ItemRecord | null> {
   const itemPath = node.fullPath;
 
-  const info = {
-    price: await scalarNumber(source, `${itemPath}/info/price`),
-    slotMax: await scalarNumber(source, `${itemPath}/info/slotMax`),
-    reqLevel: await scalarNumber(source, `${itemPath}/info/reqLevel`),
-    icon: await source.getNode(`${itemPath}/info/icon`),
-  };
+  // One listChildren call pulls the whole `info` subtree (scalars included)
+  // in a single round-trip, rather than a getNode per property.
+  const info = new Map<string, WzNodeInfo>();
+  for (const child of await source.listChildren(`${itemPath}/info`)) info.set(child.name, child);
 
   let name: string | null = null;
   let description: string | null = null;
@@ -165,7 +163,7 @@ async function readItem(
     return null;
   }
 
-  const iconPath = info.icon ? `${itemPath}/info/icon` : null;
+  const iconPath = info.has('icon') ? `${itemPath}/info/icon` : null;
   const iconData = iconPath ? await source.getIconPng(iconPath) : null;
 
   return {
@@ -176,15 +174,25 @@ async function readItem(
     subcategory: null,
     iconPath,
     iconData,
-    price: info.price,
-    stackSize: info.slotMax,
-    requiredLevel: info.reqLevel,
+    price: scalarInt(info.get('price')),
+    stackSize: scalarInt(info.get('slotMax')),
+    requiredLevel: scalarInt(info.get('reqLevel')),
+    cash: scalarInt(info.get('cash')) === 1,
+    tradeBlock: scalarInt(info.get('tradeBlock')) === 1,
+    accountSharable: scalarInt(info.get('accountSharable')) === 1,
+    only: scalarInt(info.get('only')) === 1,
+    quest: scalarInt(info.get('quest')) === 1,
+    timeLimited: scalarInt(info.get('timeLimited')) === 1,
+    expireOnLogout: scalarInt(info.get('expireOnLogout')) === 1,
+    pickupBlock: scalarInt(info.get('pickupBlock')) === 1,
+    notSale: scalarInt(info.get('notSale')) === 1,
+    dropBlock: scalarInt(info.get('dropBlock')) === 1,
+    tradeAvailable: scalarInt(info.get('tradeAvailable')) === 1,
     sourcePath: itemPath,
   };
 }
 
-async function scalarNumber(source: GameDataSource, path: string): Promise<number | null> {
-  const node = await source.getNode(path);
+function scalarInt(node: WzNodeInfo | undefined): number | null {
   if (!node) return null;
   if (typeof node.scalar === 'number') return node.scalar;
   if (typeof node.scalar === 'string') {
