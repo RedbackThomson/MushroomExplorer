@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   AlertTriangle,
+  Archive,
   Bookmark,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Database,
   Download,
@@ -20,23 +22,16 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { downloadBytes, todayStamp } from '@/components/collections';
 import { getDbClient, type DatasetRecord } from '@/db';
-import {
-  useCollectionsList,
-  useExportUserDbBytes,
-  useImportUserDbBytes,
-} from '@/lib/useCollections';
+import { useCollectionsList } from '@/lib/useCollections';
+import { useExportBackup, useImportBackup, type BackupScope } from '@/lib/useBackup';
 import { useTheme } from '@/lib/theme';
 import { useServerProfile, useSetServerProfile } from '@/lib/useServerProfile';
 import { BUILTIN_PROFILES } from '@/lib/serverProfiles';
 import { isAnalyticsAvailable, isAnalyticsOptedOut, setAnalyticsOptOut } from '@/lib/analytics';
 import { shortHash } from '@/lib/hashFile';
-import { createLogger, describeError } from '@/lib/logger';
 import { acceptForDesktop } from '@/lib/filePickerAccept';
 import { cn } from '@/lib/utils';
-
-const log = createLogger('settings');
 
 export default function Settings() {
   const db = useMemo(() => getDbClient(), []);
@@ -67,58 +62,6 @@ export default function Settings() {
       clearM.mutate();
     }
   }, [clearM]);
-
-  const exportM = useMutation({
-    mutationFn: async () => {
-      const bytes = await db.exportBytes();
-      // TS's new BlobPart typing rejects `Uint8Array<ArrayBufferLike>` (it
-      // accepts only `ArrayBufferView<ArrayBuffer>`). The bytes are real
-      // backing-store ArrayBuffer at runtime; cast at the boundary.
-      const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], {
-        type: 'application/vnd.sqlite3',
-      });
-      const url = URL.createObjectURL(blob);
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `scrolled-${today}.sqlite3`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-      return { bytes: bytes.byteLength };
-    },
-    onError: (e) => log.error('export failed', describeError(e)),
-  });
-
-  const importInputRef = useRef<HTMLInputElement>(null);
-  const importM = useMutation({
-    mutationFn: async (file: File) => {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      return db.importBytes(bytes);
-    },
-    onSuccess: (result) => {
-      log.info('import complete', result);
-      queryClient.invalidateQueries({ queryKey: ['db'] });
-    },
-    onError: (e) => log.error('import failed', describeError(e)),
-  });
-
-  const onImportPicked = useCallback(
-    (file: File) => {
-      const sizeMb = (file.size / 1_000_000).toFixed(1);
-      const proceed = confirm(
-        `Replace the current database with ${file.name} (${sizeMb} MB)?\n\n` +
-          `This will discard everything currently in your local database. Your game files on disk are untouched.`,
-      );
-      if (!proceed) return;
-      importM.mutate(file);
-    },
-    [importM],
-  );
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -253,75 +196,10 @@ export default function Settings() {
           </p>
         </div>
 
-        <div className="border-border bg-card text-card-foreground rounded-md border p-4">
-          <h3 className="text-sm font-semibold">Database file</h3>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Save your library as a backup file, or restore from one. Useful for moving between
-            browsers or sharing a pre-built library. Importing replaces everything currently on this
-            device.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => exportM.mutate()}
-              disabled={
-                exportM.isPending ||
-                importM.isPending ||
-                (statusQ.data && statusQ.data.counts.datasets === 0)
-              }
-            >
-              {exportM.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Export database
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => importInputRef.current?.click()}
-              disabled={exportM.isPending || importM.isPending}
-            >
-              {importM.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              Import database
-            </Button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept={acceptForDesktop('.sqlite3,.sqlite,.db,application/vnd.sqlite3')}
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (file) onImportPicked(file);
-              }}
-            />
-            {exportM.data && !exportM.isPending && (
-              <span className="text-muted-foreground text-xs">
-                Exported {(exportM.data.bytes / 1_000_000).toFixed(1)} MB
-              </span>
-            )}
-            {importM.isSuccess && !importM.isPending && (
-              <span className="text-xs text-green-600 dark:text-green-400">
-                Import complete · schema v{importM.data.schemaVersion}
-              </span>
-            )}
-          </div>
-          {(exportM.error || importM.error) && (
-            <p className="text-destructive mt-3 text-xs">
-              {((exportM.error ?? importM.error) as Error).message}
-            </p>
-          )}
-        </div>
       </section>
+
+      {/* --- Backup --------------------------------------------------------- */}
+      <BackupSection />
 
       {/* --- Server profile ------------------------------------------------- */}
       <ServerProfileSection />
@@ -659,42 +537,187 @@ function RunCard({ dataset: d }: { dataset: DatasetRecord }) {
   );
 }
 
-/**
- * User-data section. Collections live in a separate OPFS SQLite file from
- * the game data, so they need their own export/import controls. JSON
- * import/export is offered on the /collections page (cleaner home for the
- * full-library flow); this panel handles the raw `.sqlite3` file form for
- * power users who want a literal bit-for-bit backup.
- */
-function UserDataSection() {
-  const collectionsQ = useCollectionsList();
-  const exportM = useExportUserDbBytes();
-  const importM = useImportUserDbBytes();
-  const importInputRef = useRef<HTMLInputElement>(null);
+const EXPORT_SCOPES: { scope: BackupScope; label: string; hint: string }[] = [
+  { scope: 'all', label: 'Everything', hint: 'Game data and collections' },
+  { scope: 'game', label: 'Game data only', hint: 'Items, mobs, maps, quests' },
+  { scope: 'user', label: 'Collections only', hint: 'Your saved collections' },
+];
 
-  const onExport = async () => {
-    const bytes = await exportM.mutateAsync();
-    downloadBytes(
-      `scrolled-collections-${todayStamp()}.sqlite3`,
-      bytes,
-      'application/vnd.sqlite3',
-    );
+/**
+ * Backup section. Exports the game and/or user databases into one
+ * `.scrolled-backup` file (a gzip tar with a manifest, see db/backup). The
+ * split button defaults to backing up everything; the dropdown narrows it to a
+ * single database. Import reads any `.scrolled-backup` and refuses data this
+ * build is too new to read, before the live databases are touched.
+ */
+function BackupSection() {
+  const exportM = useExportBackup();
+  const importM = useImportBackup();
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const busy = exportM.isPending || importM.isPending;
+
+  const runExport = (scope: BackupScope) => {
+    setMenuOpen(false);
+    exportM.mutate(scope);
   };
 
   const onImportPicked = useCallback(
-    async (file: File) => {
-      const sizeKb = (file.size / 1024).toFixed(0);
+    (file: File) => {
+      const sizeMb = (file.size / 1_000_000).toFixed(1);
       const proceed = confirm(
-        `Replace your collections with ${file.name} (${sizeKb} KB)?\n\n` +
-          `Every collection currently saved on this device will be discarded.`,
+        `Restore from ${file.name} (${sizeMb} MB)?\n\n` +
+          `This replaces the databases the backup contains with its contents. Your game files on disk are untouched.`,
       );
       if (!proceed) return;
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      importM.mutate(bytes);
+      importM.mutate(file);
     },
     [importM],
   );
 
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Archive className="h-4 w-4" />
+        <h2 className="text-lg font-semibold">Backup</h2>
+      </div>
+
+      <div className="border-border bg-card text-card-foreground rounded-md border p-4">
+        <h3 className="text-sm font-semibold">Backup file</h3>
+        <p className="text-muted-foreground mt-1 text-xs">
+          Save your library and collections as a single backup file, or restore from one. Useful for
+          moving between browsers or sharing a pre-built library. Importing replaces whatever the
+          backup contains.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="relative inline-flex" ref={menuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-r-none"
+              onClick={() => runExport('all')}
+              disabled={busy}
+            >
+              {exportM.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export backup
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-l-none border-l-0 px-2"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Choose what to export"
+              onClick={() => setMenuOpen((o) => !o)}
+              disabled={busy}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="border-border bg-card text-card-foreground absolute left-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-md border py-1 shadow-md"
+              >
+                {EXPORT_SCOPES.map(({ scope, label, hint }) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => runExport(scope)}
+                    className="hover:bg-accent flex w-full flex-col items-start px-3 py-1.5 text-left"
+                  >
+                    <span className="text-sm">{label}</span>
+                    <span className="text-muted-foreground text-xs">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => importInputRef.current?.click()}
+            disabled={busy}
+          >
+            {importM.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Import backup
+          </Button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept={acceptForDesktop('.scrolled-backup,.sqlite3,.sqlite,.db,application/gzip')}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) onImportPicked(file);
+            }}
+          />
+          {exportM.data && !exportM.isPending && (
+            <span className="text-muted-foreground text-xs">
+              Saved {exportM.data.filename} ({(exportM.data.byteLength / 1_000_000).toFixed(1)} MB)
+            </span>
+          )}
+          {importM.isSuccess && !importM.isPending && (
+            <span className="text-xs text-green-600 dark:text-green-400">
+              Restored {importM.data.imported.join(' + ') || 'nothing'}
+              {importM.data.legacy ? ' (legacy file)' : ''}
+            </span>
+          )}
+        </div>
+        {importM.isSuccess &&
+          importM.data.warnings.map((w) => (
+            <p key={w} className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              {w}
+            </p>
+          ))}
+        {(exportM.error || importM.error) && (
+          <p className="text-destructive mt-3 text-xs">
+            {((exportM.error ?? importM.error) as Error).message}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * User-data section. Collections live in a separate OPFS SQLite file from the
+ * game data; the full-library JSON import/export lives on the /collections
+ * page, and the raw-file backup is folded into the Backup section above. This
+ * panel just points there.
+ */
+function UserDataSection() {
+  const collectionsQ = useCollectionsList();
   const collectionCount = collectionsQ.data?.length ?? 0;
 
   return (
@@ -714,71 +737,6 @@ function UserDataSection() {
           </Link>
           .
         </p>
-      </div>
-
-      <div className="border-border bg-card text-card-foreground rounded-md border p-4">
-        <h3 className="text-sm font-semibold">Collections backup</h3>
-        <p className="text-muted-foreground mt-1 text-xs">
-          Back up your collections as a single file, or restore from one. Importing replaces every
-          collection currently on this device.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onExport}
-            disabled={exportM.isPending || importM.isPending || collectionCount === 0}
-            title={collectionCount === 0 ? 'No collections to export yet' : undefined}
-          >
-            {exportM.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Export user database
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => importInputRef.current?.click()}
-            disabled={exportM.isPending || importM.isPending}
-          >
-            {importM.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            Import user database
-          </Button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept={acceptForDesktop('.sqlite3,.sqlite,.db,application/vnd.sqlite3')}
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (file) void onImportPicked(file);
-            }}
-          />
-          {exportM.data && !exportM.isPending && (
-            <span className="text-muted-foreground text-xs">
-              Exported {(exportM.data.byteLength / 1024).toFixed(0)} KB
-            </span>
-          )}
-          {importM.isSuccess && !importM.isPending && (
-            <span className="text-xs text-green-600 dark:text-green-400">
-              Import complete · schema v{importM.data.schemaVersion}
-            </span>
-          )}
-        </div>
-        {(exportM.error || importM.error) && (
-          <p className="text-destructive mt-3 text-xs">
-            {((exportM.error ?? importM.error) as Error).message}
-          </p>
-        )}
       </div>
     </section>
   );

@@ -4,8 +4,21 @@ import { Button } from '@/components/ui/button';
 
 export type RestoreState =
   | { phase: 'pending' }
-  | { phase: 'success'; backend: 'opfs' | 'memory'; schemaVersion: number }
+  | {
+      phase: 'success';
+      backend: 'opfs' | 'memory';
+      schemaVersion: number;
+      /** Which databases the backup restored. */
+      imported: ('game' | 'user')[];
+      /** Non-blocking notices (e.g. an older-but-readable data revision). */
+      warnings: string[];
+    }
   | { phase: 'error'; error: Error };
+
+const RESTORED_LABELS: Record<'game' | 'user', string> = {
+  game: 'game data',
+  user: 'collections',
+};
 
 interface Props {
   file: File;
@@ -28,6 +41,8 @@ export function StepRestore({ file, state, onPickAgain, onSwitchBack, parentMode
   const sizeMb = (file.size / 1_000_000).toFixed(1);
 
   if (state.phase === 'success') {
+    const restored =
+      state.imported.map((k) => RESTORED_LABELS[k]).join(' and ') || 'your library';
     return (
       <section className="space-y-4">
         <div className="flex items-center gap-3">
@@ -35,10 +50,15 @@ export function StepRestore({ file, state, onPickAgain, onSwitchBack, parentMode
           <div>
             <h2 className="text-lg font-semibold">Backup restored</h2>
             <p className="text-muted-foreground text-sm">
-              Loaded {file.name} ({sizeMb} MB) · schema v{state.schemaVersion}. Your wiki is ready.
+              Restored {restored} from {file.name} ({sizeMb} MB). Your wiki is ready.
             </p>
           </div>
         </div>
+        {state.warnings.map((w) => (
+          <p key={w} className="text-xs text-amber-700 dark:text-amber-300">
+            {w}
+          </p>
+        ))}
         <div>
           <Link
             to="/"
@@ -61,8 +81,9 @@ export function StepRestore({ file, state, onPickAgain, onSwitchBack, parentMode
           </div>
           <p className="text-sm">{state.error.message ?? 'Unknown error during restore.'}</p>
           <p className="mt-2 text-xs">
-            Make sure the file is a database export from this app — it should end in{' '}
-            <code className="font-mono">.sqlite3</code> and look like a regular database file.
+            Make sure the file is a backup exported from this app — a{' '}
+            <code className="font-mono">.scrolled-backup</code> file. Older{' '}
+            <code className="font-mono">.sqlite3</code> exports still work too.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

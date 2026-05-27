@@ -15,6 +15,7 @@ import { StepRun } from '@/components/wizard/StepRun';
 import { StepRestore, type RestoreState } from '@/components/wizard/StepRestore';
 import { buildPlan } from '@/components/wizard/plan';
 import { getDbClient } from '@/db';
+import { importBackupBytes } from '@/lib/useBackup';
 import { createLogger, describeError } from '@/lib/logger';
 import { cn } from '@/lib/utils';
 import { useWizardMode } from '@/lib/useWizardMode';
@@ -268,15 +269,18 @@ export default function Setup() {
       (async () => {
         try {
           const bytes = new Uint8Array(await file.arrayBuffer());
-          const result = await db.importBytes(bytes);
+          const result = await importBackupBytes(bytes);
           if (activeRestoreFileRef.current !== file) return;
           log.info('restore complete', result);
           setRestoreState({
             phase: 'success',
-            backend: result.backend,
-            schemaVersion: result.schemaVersion,
+            backend: result.backend ?? 'opfs',
+            schemaVersion: result.schemaVersion ?? 0,
+            imported: result.imported,
+            warnings: result.warnings,
           });
           queryClient.invalidateQueries({ queryKey: ['db'] });
+          queryClient.invalidateQueries({ queryKey: ['user', 'collections'] });
         } catch (e) {
           if (activeRestoreFileRef.current !== file) return;
           log.error('restore failed', describeError(e));
@@ -284,7 +288,7 @@ export default function Setup() {
         }
       })();
     },
-    [features.hasAny, features.counts, setRestore, db, queryClient],
+    [features.hasAny, features.counts, setRestore, queryClient],
   );
 
   const onSwitchBackFromRestore = useCallback(() => {
@@ -552,8 +556,8 @@ function RestoreDropZone({
 
   const accept = (file: File | undefined) => {
     if (!file) return;
-    if (!/\.(sqlite3?|db)$/i.test(file.name)) {
-      alert("That doesn't look like a database backup. Pick a .sqlite, .sqlite3, or .db file.");
+    if (!/\.scrolled-backup$/i.test(file.name) && !/\.(sqlite3?|db)$/i.test(file.name)) {
+      alert("That doesn't look like a backup. Pick a .scrolled-backup file (or a legacy .sqlite export).");
       return;
     }
     onPick(file);
@@ -577,10 +581,10 @@ function RestoreDropZone({
           dragging && 'border-primary bg-primary/5',
         )}
       >
-        <p className="text-sm font-medium">Drop a database backup here</p>
+        <p className="text-sm font-medium">Drop a backup here</p>
         <p className="text-muted-foreground mt-1 text-xs">
-          <code className="font-mono">.sqlite</code>, <code className="font-mono">.sqlite3</code>,
-          or <code className="font-mono">.db</code>
+          a <code className="font-mono">.scrolled-backup</code> file, or a legacy{' '}
+          <code className="font-mono">.sqlite</code> / <code className="font-mono">.db</code> export
         </p>
         <Button
           type="button"
@@ -594,7 +598,7 @@ function RestoreDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept={acceptForDesktop('.sqlite,.sqlite3,.db,application/vnd.sqlite3')}
+          accept={acceptForDesktop('.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip')}
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

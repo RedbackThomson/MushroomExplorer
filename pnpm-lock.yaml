@@ -74,6 +74,9 @@ importers:
       comlink:
         specifier: ^4.4.2
         version: 4.4.2
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.3
       idb-keyval:
         specifier: ^6.2.4
         version: 6.2.4

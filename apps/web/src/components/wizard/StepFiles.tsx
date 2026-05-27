@@ -76,8 +76,9 @@ interface Props {
   mode: 'first-run' | 'update';
   features: Features;
   /**
-   * Called when the user drops a `.sqlite` / `.db` file. The parent owns the
-   * confirm-before-replace dialog and the actual mode switch.
+   * Called when the user drops a backup file (`.scrolled-backup`, or a legacy
+   * `.sqlite`/`.db`). The parent owns the confirm-before-replace dialog and the
+   * actual mode switch.
    */
   onRestoreFile: (file: File, ignoredOthers: number) => void;
 }
@@ -118,11 +119,11 @@ export function StepFiles({
   const addFiles = useCallback(
     (list: FileList | File[]) => {
       const split = splitByKind(Array.from(list));
-      if (split.sqlite.length > 0) {
-        // SQLite drop wins. Restore is destructive and explicit; mixing in
+      if (split.backup.length > 0) {
+        // A backup drop wins. Restore is destructive and explicit; mixing in
         // fresh-import would be ambiguous.
-        const ignored = split.wz.length + split.other.length + (split.sqlite.length - 1);
-        onRestoreFile(split.sqlite[0], ignored);
+        const ignored = split.wz.length + split.other.length + (split.backup.length - 1);
+        onRestoreFile(split.backup[0], ignored);
         return;
       }
       for (const f of split.other) {
@@ -215,8 +216,8 @@ export function StepFiles({
           <h2 className="text-lg font-semibold">Add your files</h2>
           <p className="text-muted-foreground mt-1 text-sm">
             Drop your <code className="font-mono text-xs">.wz</code> files to enable categories, or
-            drop a <code className="font-mono text-xs">.sqlite</code> backup to restore a previously
-            exported wiki. Everything stays on this device.
+            drop a <code className="font-mono text-xs">.scrolled-backup</code> file to restore a
+            previously exported wiki. Everything stays on this device.
           </p>
         </div>
 
@@ -236,7 +237,7 @@ export function StepFiles({
           <p className="text-sm font-medium">Drag and drop files here</p>
           <p className="text-muted-foreground mt-1 text-xs">
             <code className="font-mono">.wz</code> game files, or a{' '}
-            <code className="font-mono">.sqlite</code> backup
+            <code className="font-mono">.scrolled-backup</code> file
           </p>
           <Button
             type="button"
@@ -250,7 +251,7 @@ export function StepFiles({
           <input
             ref={inputRef}
             type="file"
-            accept={acceptForDesktop('.wz,.sqlite,.sqlite3,.db,application/vnd.sqlite3')}
+            accept={acceptForDesktop('.wz,.scrolled-backup,.sqlite,.sqlite3,.db,application/gzip')}
             multiple
             className="hidden"
             onChange={(e) => {
