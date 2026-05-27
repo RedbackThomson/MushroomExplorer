@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { useFeatures } from '@/lib/useFeatures';
 import { useDataState } from '@/lib/useDataState';
-import { useSidebarLayout } from '@/lib/sidebarState';
+import { useSidebarLayout } from '@/stores/sidebarState';
 
 export function AppShell() {
   useSetupRedirect();

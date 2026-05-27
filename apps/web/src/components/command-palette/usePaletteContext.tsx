@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import type { CommandItem, PalettePageContext } from './types';
 
 interface RegistrationInput extends PalettePageContext {

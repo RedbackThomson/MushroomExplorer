@@ -8,7 +8,7 @@ import {
   labelForEntityKind,
   listingRouteForEntity,
 } from '@/lib/entityRoutes';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import { useFeatures } from '@/lib/useFeatures';
 
 interface NavEntry {

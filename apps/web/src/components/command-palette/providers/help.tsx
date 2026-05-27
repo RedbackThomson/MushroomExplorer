@@ -1,4 +1,4 @@
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 
 interface Row {
   keys: string[];

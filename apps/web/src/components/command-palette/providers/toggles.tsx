@@ -8,9 +8,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/ui/command';
-import { useCommandPalette } from '@/lib/useCommandPalette';
-import { useTheme, type ThemeMode } from '@/lib/theme';
-import { useSidebarLayout } from '@/lib/sidebarState';
+import { useCommandPalette } from '@/stores/useCommandPalette';
+import { useTheme, type ThemeMode } from '@/stores/theme';
+import { useSidebarLayout } from '@/stores/sidebarState';
 
 function fuzzy(q: string, hay: string): boolean {
   const t = q.trim().toLowerCase();

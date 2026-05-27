@@ -3,7 +3,7 @@ import { Clock, History } from 'lucide-react';
 import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/ui/command';
 import { iconForEntity, labelForEntityKind, routeForEntity } from '@/lib/entityRoutes';
 import { useRecentEntities, useRecentQueries } from '@/lib/recents';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 
 function fuzzy(q: string, hay: string): boolean {
   const t = q.trim().toLowerCase();

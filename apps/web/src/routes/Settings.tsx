@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { getDbClient, type DatasetRecord } from '@/db';
 import { useCollectionsList } from '@/lib/useCollections';
 import { useExportBackup, useImportBackup, type BackupScope } from '@/lib/useBackup';
-import { useTheme } from '@/lib/theme';
+import { useTheme } from '@/stores/theme';
 import { useServerProfile, useSetServerProfile } from '@/lib/useServerProfile';
 import { BUILTIN_PROFILES } from '@/serverProfiles';
 import { isAnalyticsAvailable, isAnalyticsOptedOut, setAnalyticsOptOut } from '@/analytics';

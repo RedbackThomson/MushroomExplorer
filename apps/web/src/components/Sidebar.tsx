@@ -29,7 +29,7 @@ import { WEAPON_TYPE_ORDER, labelForEquipSlot, labelForEquipType } from '@/domai
 import { useFeatures } from '@/lib/useFeatures';
 import { useDataState } from '@/lib/useDataState';
 import { useOnlineStatus } from '@/lib/useOnlineStatus';
-import { useSidebarLayout, useSidebarSections } from '@/lib/sidebarState';
+import { useSidebarLayout, useSidebarSections } from '@/stores/sidebarState';
 import { getDbClient } from '@/db';
 import { getUserDbClient } from '@/db/user';
 import { resolveCollectionColor, resolveCollectionIcon } from '@/components/collections';

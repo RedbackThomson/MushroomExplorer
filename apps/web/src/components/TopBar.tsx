@@ -2,7 +2,7 @@ import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PaletteTrigger } from '@/components/command-palette/PaletteTrigger';
 import { Button } from '@/components/ui/button';
-import { useSidebarLayout } from '@/lib/sidebarState';
+import { useSidebarLayout } from '@/stores/sidebarState';
 
 export function TopBar() {
   const setMobileOpen = useSidebarLayout((s) => s.setMobileOpen);

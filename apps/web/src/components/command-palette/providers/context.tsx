@@ -1,5 +1,5 @@
 import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/ui/command';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import type { CommandItem } from '../types';
 
 function matches(query: string, item: CommandItem): boolean {

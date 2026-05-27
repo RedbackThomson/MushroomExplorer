@@ -7,7 +7,7 @@ import { getSearchIndex, querySearch, type SearchHit } from '@/search';
 import { iconForEntity, labelForEntityKind, routeForEntity } from '@/lib/entityRoutes';
 import { labelForEquipSlot } from '@/domain/equipTypes';
 import { useRecentQueries } from '@/lib/recents';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import { useFeatures } from '@/lib/useFeatures';
 
 const PREFIX_TO_ENTITY: Record<string, EntityKind> = {

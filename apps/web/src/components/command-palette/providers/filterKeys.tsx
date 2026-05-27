@@ -1,6 +1,6 @@
 import { iconForEntity, labelForEntityKind } from '@/lib/entityRoutes';
 import { filterKeyHintsFor, parseFilterQuery, type FilterKeyHint } from '@/lib/filterGrammar';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 
 const VALUE_HINT: Record<FilterKeyHint['kind'], string> = {
   number: 'N',

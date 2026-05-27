@@ -2,7 +2,7 @@ import { BookmarkPlus, FolderPlus, Folder } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/ui/command';
 import { useCollectionsList, useCreateCollection, useToggleMembership } from '@/lib/useCollections';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import type { CollectionEntityType } from '@/db/user';
 
 function fuzzy(q: string, hay: string): boolean {

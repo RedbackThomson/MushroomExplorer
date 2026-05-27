@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CommandGroup, CommandItem as CommandItemPrimitive } from '@/components/ui/command';
 import { iconForEntity, labelForEntityKind } from '@/lib/entityRoutes';
 import { buildFilterUrl, parseFilterQuery } from '@/lib/filterGrammar';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 
 function describeParams(params: Record<string, string>): string {
   const parts: string[] = [];

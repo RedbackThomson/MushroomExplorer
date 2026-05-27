@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import { CommandDialog, CommandEmpty, CommandInput, CommandList } from '@/components/ui/command';
-import { useCommandPalette } from '@/lib/useCommandPalette';
+import { useCommandPalette } from '@/stores/useCommandPalette';
 import {
   CollectionsContextProvider,
   CollectionsCreateProvider,
