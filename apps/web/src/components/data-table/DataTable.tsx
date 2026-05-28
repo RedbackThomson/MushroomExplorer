@@ -263,7 +263,7 @@ export function DataTable<TData>({
                     }}
                     onChange={toggleAllOnPage}
                     aria-label={allOnPageSelected ? 'Deselect all on page' : 'Select all on page'}
-                    className="border-input h-3.5 w-3.5 cursor-pointer rounded-sm"
+                    className="accent-primary h-3.5 w-3.5 cursor-pointer rounded-sm"
                   />
                 </TableHead>
               )}
@@ -352,7 +352,7 @@ export function DataTable<TData>({
                           onChange={() => toggleRow(rowId)}
                           onClick={(e) => e.stopPropagation()}
                           aria-label={isSelected ? 'Deselect row' : 'Select row'}
-                          className="border-input h-3.5 w-3.5 cursor-pointer rounded-sm"
+                          className="accent-primary h-3.5 w-3.5 cursor-pointer rounded-sm"
                         />
                       </span>
                     </TableCell>
