@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { DEFAULT_ACCENT, isAccentName, type AccentName } from '@/lib/accents';
+import { syncThemeColorMeta } from '@/lib/themeColorMeta';
 
 interface AccentStore {
   accent: AccentName;
@@ -21,12 +22,14 @@ function apply(accent: AccentName): AccentName {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(STORAGE_KEY, accent);
   }
+  syncThemeColorMeta();
   return accent;
 }
 
 const initialAccent = readInitial();
 if (typeof document !== 'undefined') {
   document.documentElement.dataset.accent = initialAccent;
+  syncThemeColorMeta();
 }
 
 export const useAccent = create<AccentStore>((set) => ({

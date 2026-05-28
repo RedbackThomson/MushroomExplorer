@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { syncThemeColorMeta } from '@/lib/themeColorMeta';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ThemeResolved = 'light' | 'dark';
@@ -45,6 +46,7 @@ function apply(mode: ThemeMode): ThemeResolved {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(STORAGE_KEY, mode);
   }
+  syncThemeColorMeta();
   return resolved;
 }
 
@@ -52,6 +54,7 @@ const initialMode = readInitial();
 const initialTheme = resolve(initialMode);
 if (typeof document !== 'undefined') {
   document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+  syncThemeColorMeta();
 }
 
 export const useTheme = create<ThemeStore>((set, get) => ({
@@ -79,6 +82,7 @@ if (typeof window !== 'undefined') {
     if (typeof document !== 'undefined') {
       document.documentElement.classList.toggle('dark', next === 'dark');
     }
+    syncThemeColorMeta();
     useTheme.setState({ theme: next });
   };
   if (typeof mql.addEventListener === 'function') {

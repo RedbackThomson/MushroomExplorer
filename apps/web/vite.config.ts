@@ -34,8 +34,8 @@ export default defineConfig({
         short_name: 'Scrolled',
         description:
           'Browse items, mobs, NPCs, maps, and quests from your game data, fully on-device.',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#18181b',
+        background_color: '#18181b',
         display: 'standalone',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

@@ -7,13 +7,34 @@ async function loadStore() {
   return import('./accent');
 }
 
+function setMeta(content: string) {
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.appendChild(meta);
+  }
+  meta.content = content;
+  return meta;
+}
+
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute('data-accent');
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+    const accent =
+      el === document.documentElement ? document.documentElement.dataset.accent ?? '' : '';
+    return {
+      getPropertyValue: (name: string) =>
+        name === '--background' && accent ? `bg-${accent}` : '',
+    } as CSSStyleDeclaration;
+  });
 });
 
 afterEach(() => {
   localStorage.clear();
+  document.querySelector('meta[name="theme-color"]')?.remove();
+  vi.restoreAllMocks();
 });
 
 describe('accent store', () => {
@@ -42,5 +63,14 @@ describe('accent store', () => {
     expect(useAccent.getState().accent).toBe('teal');
     expect(document.documentElement.dataset.accent).toBe('teal');
     expect(localStorage.getItem(STORAGE_KEY)).toBe('teal');
+  });
+
+  it('syncs <meta name="theme-color"> on initial load and on accent change', async () => {
+    const meta = setMeta('#000000');
+    localStorage.setItem(STORAGE_KEY, 'rose');
+    const { useAccent } = await loadStore();
+    expect(meta.content).toBe('hsl(bg-rose)');
+    useAccent.getState().setAccent('amber');
+    expect(meta.content).toBe('hsl(bg-amber)');
   });
 });
