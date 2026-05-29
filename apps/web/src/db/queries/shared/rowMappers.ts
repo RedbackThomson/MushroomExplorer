@@ -127,6 +127,7 @@ export interface QuestRow extends Row {
   end_npc_id: number | null;
   required_level: number | null;
   required_job: number | null;
+  repeat_wait: number | null;
   source_path: string;
 }
 
@@ -215,6 +216,7 @@ export function rowToQuest(r: QuestRow): QuestRecord {
     endNpcId: r.end_npc_id,
     requiredLevel: r.required_level,
     requiredJob: r.required_job,
+    repeatWait: r.repeat_wait,
     sourcePath: r.source_path,
   };
 }

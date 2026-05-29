@@ -32,6 +32,7 @@ import { useDetailPalette } from '@/components/command-palette/useDetailPalette'
 import type { CommandItem } from '@/components/command-palette/types';
 import { useFeatures } from '@/hooks/useFeatures';
 import { useShowEntityIds } from '@/stores/showEntityIds';
+import { formatDurationSeconds } from '@/lib/duration';
 
 export default function QuestDetail() {
   const params = useParams<{ id: string }>();
@@ -125,6 +126,12 @@ export default function QuestDetail() {
           <InfoSection title="Info">
             {showIds && <InfoRow label="ID" value={String(q.id)} mono />}
             <InfoRow label="Area" value={q.parent ?? '—'} />
+            {q.repeatWait !== null && (
+              <InfoRow
+                label="Repeatable"
+                value={`every ${formatDurationSeconds(q.repeatWait)}`}
+              />
+            )}
           </InfoSection>
           {(q.requiredLevel !== null || q.requiredJob !== null) && (
             <InfoSection title="Requirements">

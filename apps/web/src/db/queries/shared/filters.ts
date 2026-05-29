@@ -14,7 +14,7 @@ import type { ColumnFilter } from '../../types';
  */
 export interface FilterSpec {
   col: string;
-  type: 'string' | 'number' | 'classMask' | 'elementStatus';
+  type: 'string' | 'number' | 'classMask' | 'elementStatus' | 'presence';
   /**
    * For `elementStatus` columns: which status against the chosen element
    * the filter should match (`weak` / `resistant` / `immune`). The DB
@@ -100,6 +100,7 @@ export const QUEST_FILTER: Record<string, FilterSpec> = {
   name: { col: 'name', type: 'string' },
   parent: { col: 'parent', type: 'string' },
   requiredLevel: { col: 'required_level', type: 'number' },
+  repeatable: { col: 'repeat_wait', type: 'presence' },
   id: { col: 'id', type: 'string' },
 };
 
@@ -160,6 +161,13 @@ export function applyFilters(
       if (filter.max !== undefined && Number.isFinite(filter.max)) {
         where.push(`${spec.col} <= ?`);
         params.push(filter.max);
+      }
+    } else if (spec.type === 'presence' && filter.kind === 'range') {
+      // Boolean picker writes {min:max:1} for present, {min:max:0} for absent.
+      if (filter.min === 1 && filter.max === 1) {
+        where.push(`${spec.col} IS NOT NULL`);
+      } else if (filter.min === 0 && filter.max === 0) {
+        where.push(`${spec.col} IS NULL`);
       }
     } else if (
       spec.type === 'elementStatus' &&

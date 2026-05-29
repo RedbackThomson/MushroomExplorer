@@ -1,7 +1,8 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { Folder, Gauge, Hash, ScrollText } from 'lucide-react';
+import { Folder, Gauge, Hash, RotateCw, ScrollText } from 'lucide-react';
 import { QuestLink } from '@/components/entity-links';
 import type { QuestRecord } from '@/db';
+import { formatDurationSeconds } from '@/lib/duration';
 
 export const columns: ColumnDef<QuestRecord>[] = [
   {
@@ -35,6 +36,30 @@ export const columns: ColumnDef<QuestRecord>[] = [
     header: 'Req Lvl',
     meta: { filter: 'number', icon: Gauge },
     cell: ({ row }) => row.original.requiredLevel ?? '—',
+  },
+  {
+    id: 'repeatable',
+    accessorFn: (q) => q.repeatWait,
+    header: 'Repeatable',
+    enableSorting: false,
+    meta: {
+      filter: 'boolean',
+      booleanLabels: { trueLabel: 'Repeatable', falseLabel: 'Not Repeatable' },
+      icon: RotateCw,
+      card: {
+        label: 'Repeatable',
+        render: (row) =>
+          row.repeatWait !== null ? `every ${formatDurationSeconds(row.repeatWait)}` : '—',
+      },
+    },
+    cell: ({ row }) =>
+      row.original.repeatWait !== null ? (
+        <span className="text-muted-foreground text-xs">
+          every {formatDurationSeconds(row.original.repeatWait)}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
   },
   {
     id: 'id',

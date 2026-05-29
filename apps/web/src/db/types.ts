@@ -246,6 +246,8 @@ export interface QuestRecord {
   requiredLevel: number | null;
   /** Job bitfield from `Check.img/<id>/0/job`. Stored verbatim; UI decodes. */
   requiredJob: number | null;
+  /** Cooldown seconds between repeats; null when the quest is not repeatable. */
+  repeatWait: number | null;
   sourcePath: string;
 }
 

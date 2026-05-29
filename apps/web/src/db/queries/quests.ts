@@ -26,8 +26,8 @@ export function upsertQuests(sql: Sqlite, quests: QuestRecord[]): number {
       sql.exec(
         `INSERT INTO quests (
           id, name, parent, description, start_npc_id, end_npc_id,
-          required_level, required_job, source_path
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          required_level, required_job, repeat_wait, source_path
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name           = excluded.name,
           parent         = excluded.parent,
@@ -36,6 +36,7 @@ export function upsertQuests(sql: Sqlite, quests: QuestRecord[]): number {
           end_npc_id     = excluded.end_npc_id,
           required_level = excluded.required_level,
           required_job   = excluded.required_job,
+          repeat_wait    = excluded.repeat_wait,
           source_path    = excluded.source_path`,
         [
           q.id,
@@ -46,6 +47,7 @@ export function upsertQuests(sql: Sqlite, quests: QuestRecord[]): number {
           q.endNpcId,
           q.requiredLevel,
           q.requiredJob,
+          q.repeatWait,
           q.sourcePath,
         ],
       );

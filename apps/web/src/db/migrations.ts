@@ -648,4 +648,12 @@ export const MIGRATIONS: readonly Migration[] = [
         ON quest_chain_external_edges (external_chain_id);
     `,
   },
+  {
+    version: 22,
+    name: 'quest repeat interval',
+    sql: `
+      -- NULL = not repeatable. Non-null = cooldown in seconds.
+      ALTER TABLE quests ADD COLUMN repeat_wait INTEGER;
+    `,
+  },
 ];

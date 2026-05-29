@@ -173,6 +173,9 @@ export async function extractQuests(
     await collectItemReqs(source, `${endPath}/item`, id, requirements);
     await collectMobReqs(source, `${endPath}/mob`, id, requirements);
 
+    // Absence of the attribute is what marks the quest as not repeatable.
+    const repeatWait = await pathToNumber(source, `Quest.wz/QuestInfo.img/${id}/repeatWait`);
+
     // -- Act.img/<id>/1 (completion rewards) ----------------------------
     const actEndPath = `Quest.wz/Act.img/${id}/1`;
     const [expN, mesoN] = await Promise.all([
@@ -197,6 +200,7 @@ export async function extractQuests(
       endNpcId: endNpcN,
       requiredLevel: lvMinN,
       requiredJob: jobN !== null && jobN > 0 ? jobN : null,
+      repeatWait,
       sourcePath: entry.fullPath,
     });
     processed += 1;
