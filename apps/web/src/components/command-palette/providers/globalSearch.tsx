@@ -25,7 +25,7 @@ interface ParsedQuery {
   rest: string;
 }
 
-export function parseScopedQuery(raw: string): ParsedQuery {
+function parseScopedQuery(raw: string): ParsedQuery {
   const trimmed = raw.trimStart();
   const space = trimmed.indexOf(' ');
   if (space === -1) return { scope: null, rest: trimmed };

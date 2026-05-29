@@ -5,14 +5,10 @@ import { CollectionsBulkAddMenu } from '@/components/collections';
 import { PinnedSearchesMenu } from '@/components/pinned-searches';
 import { TablePageLayout } from '@/components/layout/TablePageLayout';
 import { getDbClient } from '@/db';
-import {
-  columns,
-  defaultSort,
-  defaultVisible,
-  ELEMENT_ENUM_OPTIONS,
-  mobileCard,
-  pinnedColumns,
-} from './MobsColumns';
+import { ELEMENT_ORDER } from '@/domain/mobElements';
+import { columns, defaultSort, defaultVisible, mobileCard, pinnedColumns } from './MobsColumns';
+
+const ELEMENT_ENUM_OPTIONS: readonly string[] = ELEMENT_ORDER;
 
 const DEFAULT_PAGE_SIZE = 50;
 

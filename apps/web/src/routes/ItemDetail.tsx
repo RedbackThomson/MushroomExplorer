@@ -14,10 +14,8 @@ import {
 import { EntityRow } from '@/components/entity-display/EntityRow';
 import { ItemIcon } from '@/components/entity-display/ItemIcon';
 import { Badge } from '@/components/ui/badge';
-import {
-  MetadataFlagBadges,
-  ITEM_FLAG_ORDER,
-} from '@/components/entity-display/MetadataFlagBadges';
+import { MetadataFlagBadges } from '@/components/entity-display/MetadataFlagBadges';
+import { ITEM_FLAG_ORDER } from '@/components/entity-display/metadataFlags';
 import { ListSortControl } from '@/components/common/ListSortControl';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
