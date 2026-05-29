@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DoorOpen, Repeat, Skull, Sparkles, Users, type LucideIcon } from 'lucide-react';
 import type { MapMobSpawnWithName, MapNpcWithName, MapPortalRecord, MapRecord } from '@/db';
 import { MapHoverCard, MobHoverCard, NpcHoverCard } from '@/components/entity-links';
@@ -108,6 +108,45 @@ export function MapViewerCanvas({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Touch pinch-zoom state. Native overflow scroll handles one-finger pan;
+  // when a second finger touches down we intercept and drive a userZoom
+  // multiplier so the user can scale the minimap. Origin stays top-left so
+  // scroll bounds line up — the user pans with one finger if they need to
+  // recenter after a pinch.
+  const [userZoom, setUserZoom] = useState(1);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStart = useRef<{ distance: number; zoom: number } | null>(null);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType !== 'touch') return;
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.current.size === 2) {
+        const [a, b] = [...pointers.current.values()];
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        pinchStart.current = { distance, zoom: userZoom };
+      }
+    },
+    [userZoom],
+  );
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'touch') return;
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size !== 2 || !pinchStart.current) return;
+    const [a, b] = [...pointers.current.values()];
+    const distance = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinchStart.current.distance === 0) return;
+    const ratio = distance / pinchStart.current.distance;
+    setUserZoom(clamp(pinchStart.current.zoom * ratio, 0.5, 4));
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinchStart.current = null;
+  }, []);
+
   // Scroll the first highlighted icon into the center of the scroll container
   // when the selection changes.
   useLayoutEffect(() => {
@@ -172,23 +211,36 @@ export function MapViewerCanvas({
   const portalMatches = (p: MapPortalRecord) =>
     effective?.kind === 'portal' && effective.key === String(p.idx);
 
+  const effectiveScale = scale * userZoom;
+
   return (
     <div
       ref={scrollRef}
       className="bg-muted/30 relative flex-1 overflow-auto"
       role="img"
       aria-label={`Map of ${map.name ?? `Map ${map.id}`}`}
+      // `pan-x pan-y` lets the browser handle one-finger pan via native
+      // overflow scroll; two-finger gestures fall through to our pointer
+      // handlers which drive the pinch-zoom below.
+      style={{ touchAction: 'pan-x pan-y' }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       {/* `grid place-content-center` keeps the minimap centred when it's
           smaller than the scroll viewport, while still letting the grid track
           grow past `min-h/w-full` (triggering scroll) for larger maps. */}
       <div className="grid min-h-full min-w-full place-content-center p-6">
-        <div style={{ width: width * scale, height: height * scale }} className="relative">
+        <div
+          style={{ width: width * effectiveScale, height: height * effectiveScale }}
+          className="relative"
+        >
           <div
             style={{
               width,
               height,
-              transform: `scale(${scale})`,
+              transform: `scale(${effectiveScale})`,
               transformOrigin: 'top left',
               position: 'relative',
             }}
@@ -217,7 +269,7 @@ export function MapViewerCanvas({
                     key={`mob-${i}`}
                     pixelX={p.x}
                     pixelY={p.y}
-                    parentScale={scale}
+                    parentScale={effectiveScale}
                     Icon={Skull}
                     colorClass="text-rose-500"
                     ariaLabel={m.name ?? `Mob ${m.mobId}`}
@@ -239,7 +291,7 @@ export function MapViewerCanvas({
                     key={`npc-${i}`}
                     pixelX={p.x}
                     pixelY={p.y}
-                    parentScale={scale}
+                    parentScale={effectiveScale}
                     Icon={Users}
                     colorClass="text-amber-500"
                     ariaLabel={n.name ?? `NPC ${n.npcId}`}
@@ -285,7 +337,7 @@ export function MapViewerCanvas({
                   key={`portal-${p.idx}`}
                   pixelX={projected.x}
                   pixelY={projected.y}
-                  parentScale={scale}
+                  parentScale={effectiveScale}
                   Icon={meta.Icon}
                   colorClass={meta.color}
                   ariaLabel={`${meta.label} ${p.portalName}`}
