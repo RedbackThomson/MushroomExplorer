@@ -10,6 +10,7 @@ import {
   defaultSort,
   defaultVisible,
   ELEMENT_ENUM_OPTIONS,
+  mobileCard,
   pinnedColumns,
 } from './MobsColumns';
 
@@ -66,6 +67,7 @@ export default function Mobs() {
         pinnedColumns={pinnedColumns}
         rowLinkTo={(m) => `/mobs/${m.id}`}
         getRowId={(m) => String(m.id)}
+        mobileCard={mobileCard}
         emptyMessage="No mobs found."
         loading={mobsQ.isLoading}
         fetching={mobsQ.isFetching && !mobsQ.isLoading}

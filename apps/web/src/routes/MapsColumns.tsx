@@ -72,3 +72,23 @@ export const defaultSort = { id: 'name', dir: 'asc' } as const satisfies {
   id: string;
   dir: 'asc' | 'desc';
 };
+
+export function mobileCard(row: MapRecord) {
+  return (
+    <div className="flex items-center gap-3">
+      <EntityIcon
+        entity="map-mini"
+        id={row.id}
+        placeholder={MapIcon}
+        fit={{ maxWidth: 56, maxHeight: 40 }}
+        alt={row.name ?? `Map ${row.id}`}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{row.name ?? `Map ${row.id}`}</div>
+        {row.streetName && (
+          <div className="text-muted-foreground truncate text-xs">{row.streetName}</div>
+        )}
+      </div>
+    </div>
+  );
+}

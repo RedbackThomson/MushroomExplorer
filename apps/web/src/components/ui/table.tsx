@@ -9,7 +9,15 @@ import { cn } from '@/lib/utils';
 export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     <div className="border-border bg-card text-card-foreground w-full overflow-x-auto rounded-md border">
-      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+      {/* `min-w-[640px]` forces the table to overflow on narrow viewports so
+       *  the wrapper's `overflow-x-auto` actually has content to scroll. On
+       *  desktop the container is wider than this, so the table sizes
+       *  naturally and the min-width is inert. */}
+      <table
+        ref={ref}
+        className={cn('w-full min-w-[640px] caption-bottom text-sm', className)}
+        {...props}
+      />
     </div>
   ),
 );

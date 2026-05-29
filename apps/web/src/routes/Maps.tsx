@@ -5,7 +5,7 @@ import { CollectionsBulkAddMenu } from '@/components/collections';
 import { PinnedSearchesMenu } from '@/components/pinned-searches';
 import { TablePageLayout } from '@/components/layout/TablePageLayout';
 import { getDbClient } from '@/db';
-import { columns, defaultSort, defaultVisible, pinnedColumns } from './MapsColumns';
+import { columns, defaultSort, defaultVisible, mobileCard, pinnedColumns } from './MapsColumns';
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -53,6 +53,7 @@ export default function Maps() {
         pinnedColumns={pinnedColumns}
         rowLinkTo={(m) => `/maps/${m.id}`}
         getRowId={(m) => String(m.id)}
+        mobileCard={mobileCard}
         emptyMessage="No maps found."
         loading={mapsQ.isLoading}
         fetching={mapsQ.isFetching && !mapsQ.isLoading}

@@ -5,7 +5,7 @@ import { CollectionsBulkAddMenu } from '@/components/collections';
 import { PinnedSearchesMenu } from '@/components/pinned-searches';
 import { TablePageLayout } from '@/components/layout/TablePageLayout';
 import { getDbClient } from '@/db';
-import { columns, defaultSort, defaultVisible, pinnedColumns } from './ItemsColumns';
+import { columns, defaultSort, defaultVisible, mobileCard, pinnedColumns } from './ItemsColumns';
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -70,6 +70,7 @@ export default function Items() {
         pinnedColumns={pinnedColumns}
         rowLinkTo={(i) => `/items/${i.id}`}
         getRowId={(i) => String(i.id)}
+        mobileCard={mobileCard}
         emptyMessage="No items found."
         loading={itemsQ.isLoading}
         fetching={itemsQ.isFetching && !itemsQ.isLoading}

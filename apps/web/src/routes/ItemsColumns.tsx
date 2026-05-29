@@ -67,3 +67,21 @@ export const defaultSort = { id: 'name', dir: 'asc' } as const satisfies {
   id: string;
   dir: 'asc' | 'desc';
 };
+
+export function mobileCard(row: ItemRecord) {
+  const meta: string[] = [];
+  if (row.subcategory) meta.push(row.subcategory);
+  else if (row.category) meta.push(row.category);
+  if (row.requiredLevel !== null) meta.push(`req Lv ${row.requiredLevel}`);
+  return (
+    <div className="flex items-center gap-3">
+      <ItemIcon entity="item" id={row.id} size={40} alt={row.name} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{row.name}</div>
+        {meta.length > 0 && (
+          <div className="text-muted-foreground truncate text-xs capitalize">{meta.join(' · ')}</div>
+        )}
+      </div>
+    </div>
+  );
+}
