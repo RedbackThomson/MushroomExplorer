@@ -283,7 +283,7 @@ export function DataTable<TData>({
               // and uses the OS chrome rather than our token palette —
               // override it with `appearance-none` is overkill; the
               // explicit button below is what the user sees.
-              className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-9 pr-8 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
+              className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border pl-9 pr-8 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
             />
             {(searchValue ?? '').length > 0 && (
               <button
@@ -310,7 +310,7 @@ export function DataTable<TData>({
               title={
                 mobileLayout === 'cards' ? 'Switch to table layout' : 'Switch to card layout'
               }
-              className="border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 w-9 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2"
+              className="border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 w-8 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2"
             >
               {mobileLayout === 'cards' ? (
                 <Rows3 className="h-4 w-4" />

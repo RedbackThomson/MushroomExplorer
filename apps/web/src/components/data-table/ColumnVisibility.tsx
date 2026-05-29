@@ -17,7 +17,7 @@ export function ColumnVisibility<TData>({ table }: ColumnVisibilityProps<TData>)
   return (
     <details className="relative">
       <summary
-        className="border-input bg-background hover:bg-accent inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md border px-3 text-sm font-medium"
+        className="border-input bg-background hover:bg-accent inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border px-3 text-sm font-medium"
         // Prevent the summary marker on browsers that ignore list-style:none on summary.
         style={{ listStyle: 'none' }}
       >
