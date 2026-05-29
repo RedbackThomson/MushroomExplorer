@@ -26,6 +26,7 @@ import { FilterMenu } from './FilterMenu';
 import { FilterBadges } from './FilterBadges';
 import { MobileCards } from './MobileCards';
 import type { TableUrlState, TableUrlStatePatch, TableSortDir } from './useTableUrlState';
+import { useTableStatePersistence } from './useTableStatePersistence';
 import type { ColumnFilter } from '@/db';
 import type { CollectionEntityType } from '@/db/user';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -130,6 +131,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const isMobile = useIsMobile();
   const showCards = isMobile && !!mobileCard;
+  useTableStatePersistence(entity);
 
   const pinned = useMemo(() => new Set(pinnedColumns ?? []), [pinnedColumns]);
   const defaultVisibleKey = useMemo(() => [...defaultVisible].sort().join(','), [defaultVisible]);
