@@ -36,6 +36,8 @@ export type {
   PageResult,
   QuestChainDetail,
   QuestChainEdgeRecord,
+  QuestChainExternalEdgeRecord,
+  QuestChainExternalEdgeWithName,
   QuestChainListRow,
   QuestChainMemberRecord,
   QuestChainMemberWithName,

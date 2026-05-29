@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  ArrowLeftFromLine,
+  ArrowRightToLine,
   Copy,
   Eye,
   GitBranch,
@@ -20,12 +22,12 @@ import {
   InfoRow,
   InfoSection,
 } from '@/components/layout/DetailPageLayout';
-import { QuestLink } from '@/components/entity-links';
+import { QuestChainLink, QuestLink } from '@/components/entity-links';
 import { CollectionBadgeStrip } from '@/components/collections';
 import { useDetailPalette } from '@/components/command-palette/useDetailPalette';
 import type { CommandItem } from '@/components/command-palette/types';
 import { getDbClient } from '@/db';
-import type { QuestChainMemberWithName } from '@/db';
+import type { QuestChainExternalEdgeWithName, QuestChainMemberWithName } from '@/db';
 import { useShowEntityIds } from '@/stores/showEntityIds';
 import { QuestChainGraphModal } from '@/components/QuestChainGraph';
 
@@ -77,10 +79,13 @@ export default function QuestChainDetail() {
   if (chainQ.isLoading) return <DetailPageLoading entity="Quest Chain" id={id} />;
   if (!chainQ.data) return <DetailPageNotFound entity="Quest Chain" id={id} />;
 
-  const { chain, members, edges } = chainQ.data;
+  const { chain, members, edges, externalEdges } = chainQ.data;
   const roots = members.filter((m) => m.isRoot);
   const criticalCount = members.filter((m) => m.isCritical).length;
   const optionalCount = members.length - criticalCount;
+  const incomingExternal = externalEdges.filter((e) => e.direction === 'in');
+  const outgoingExternal = externalEdges.filter((e) => e.direction === 'out');
+  const internalNames = new Map(members.map((m) => [m.questId, m.questName]));
 
   // Level barriers for the aside's Requirements section.
   //   * Start = the lowest required_level across the chain's starting
@@ -116,6 +121,14 @@ export default function QuestChainDetail() {
         return from?.isCritical && to?.isCritical;
       })
     : edges;
+  // External edges attach to the chain via their `internalQuestId`. With
+  // critical-only on, drop any whose internal endpoint is being hidden so
+  // the ghost nodes don't dangle.
+  const visibleExternalEdges = criticalOnly
+    ? externalEdges.filter(
+        (e) => members.find((m) => m.questId === e.internalQuestId)?.isCritical,
+      )
+    : externalEdges;
 
   // Group visible members by depth. Within a depth, critical first, then
   // roots, then by name. Quests inside a cyclic SCC stay with their depth
@@ -236,6 +249,22 @@ export default function QuestChainDetail() {
         </p>
       )}
 
+      {incomingExternal.length > 0 && (
+        <DetailListSection
+          icon={ArrowLeftFromLine}
+          title="Unlocked by"
+          count={incomingExternal.length}
+        >
+          {incomingExternal.map((e) => (
+            <ExternalEdgeRow
+              key={`in-${e.internalQuestId}-${e.externalQuestId}`}
+              edge={e}
+              localQuestName={internalNames.get(e.internalQuestId) ?? `Quest ${e.internalQuestId}`}
+            />
+          ))}
+        </DetailListSection>
+      )}
+
       {depths.map((d) => {
         const group = byDepth.get(d)!;
         return (
@@ -251,12 +280,29 @@ export default function QuestChainDetail() {
         );
       })}
 
+      {outgoingExternal.length > 0 && (
+        <DetailListSection
+          icon={ArrowRightToLine}
+          title="Unlocks"
+          count={outgoingExternal.length}
+        >
+          {outgoingExternal.map((e) => (
+            <ExternalEdgeRow
+              key={`out-${e.internalQuestId}-${e.externalQuestId}`}
+              edge={e}
+              localQuestName={internalNames.get(e.internalQuestId) ?? `Quest ${e.internalQuestId}`}
+            />
+          ))}
+        </DetailListSection>
+      )}
+
       <QuestChainGraphModal
         open={graphOpen}
         onClose={() => setGraphOpen(false)}
         chain={chain}
         members={visibleMembers}
         edges={visibleEdges}
+        externalEdges={visibleExternalEdges}
       />
     </DetailPageLayout>
   );
@@ -316,6 +362,66 @@ function MemberRow({
           <span className="text-muted-foreground shrink-0 font-mono text-xs">{member.questId}</span>
         )}
       </QuestLink>
+    </li>
+  );
+}
+
+/**
+ * One row in the "Unlocked by" / "Unlocks" sections.
+ *
+ * Two-line layout:
+ *   - Top line is the *external* quest (the unfamiliar one) as a prominent
+ *     `<QuestLink>`, with a chain badge on the right when the external
+ *     quest is itself in a chain.
+ *   - Bottom line is a muted description that ties the edge back to THIS
+ *     chain: an explicit verb (`Unlocks` for incoming, `Unlocked by` for
+ *     outgoing) plus a `<QuestLink>` to the local quest with a "in this
+ *     chain" suffix, so it's never ambiguous which side is which.
+ */
+function ExternalEdgeRow({
+  edge,
+  localQuestName,
+}: {
+  edge: QuestChainExternalEdgeWithName;
+  localQuestName: string;
+}) {
+  const showIds = useShowEntityIds((s) => s.enabled);
+  const externalName = edge.externalQuestName ?? `Quest ${edge.externalQuestId}`;
+  const verb = edge.direction === 'in' ? 'Unlocks' : 'Unlocked by';
+  return (
+    <li className="space-y-0.5 px-3 py-2 text-sm">
+      <div className="flex items-center gap-2">
+        <ScrollText className="text-muted-foreground h-5 w-5 shrink-0" />
+        <QuestLink
+          id={edge.externalQuestId}
+          className="min-w-0 flex-1 truncate font-medium hover:underline"
+        >
+          {externalName}
+        </QuestLink>
+        {showIds && (
+          <span className="text-muted-foreground shrink-0 font-mono text-xs">
+            {edge.externalQuestId}
+          </span>
+        )}
+        {edge.externalChainId !== null && (
+          <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs">
+            <GitBranch className="h-3 w-3" aria-hidden />
+            <QuestChainLink id={edge.externalChainId} className="hover:underline">
+              {edge.externalChainName ?? `Chain ${edge.externalChainId}`}
+            </QuestChainLink>
+          </span>
+        )}
+      </div>
+      <p className="text-muted-foreground ml-7 text-xs">
+        {verb}{' '}
+        <QuestLink
+          id={edge.internalQuestId}
+          className="text-foreground italic hover:underline"
+        >
+          {localQuestName}
+        </QuestLink>{' '}
+        in this chain
+      </p>
     </li>
   );
 }

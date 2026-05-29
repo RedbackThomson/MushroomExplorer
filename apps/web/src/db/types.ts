@@ -348,11 +348,33 @@ export interface QuestChainEdgeRecord {
   inCycle: boolean;
 }
 
+/** One row of `quest_chain_external_edges` — a prereq edge that crosses
+ *  the parent-bounded chain boundary. `direction` is from the row's
+ *  `chainId` perspective: `'in'` = the external quest gates one of this
+ *  chain's quests; `'out'` = one of this chain's quests gates an external
+ *  quest. `externalChainId` is nullable when the external quest isn't in
+ *  any chain (size-1 WCC). */
+export interface QuestChainExternalEdgeRecord {
+  chainId: number;
+  direction: 'in' | 'out';
+  internalQuestId: number;
+  externalQuestId: number;
+  externalChainId: number | null;
+}
+
+/** External edge joined to the external quest's display name and the
+ *  external chain's name (when the chain exists). */
+export interface QuestChainExternalEdgeWithName extends QuestChainExternalEdgeRecord {
+  externalQuestName: string | null;
+  externalChainName: string | null;
+}
+
 /** Hydrated chain shape used by the detail route + graph viewer. */
 export interface QuestChainDetail {
   chain: QuestChainRecord;
   members: QuestChainMemberWithName[];
   edges: QuestChainEdgeRecord[];
+  externalEdges: QuestChainExternalEdgeWithName[];
 }
 
 /** Listing row + a small preview of members for the index. */

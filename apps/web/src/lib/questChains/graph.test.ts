@@ -115,7 +115,10 @@ describe('computeQuestChains', () => {
           [2, 3],
         ],
         names: { 1: 'A', 2: 'B', 3: 'C' },
-        parents: { 1: 'Tutorial' },
+        // Same parent across all members — under the parent-bounded
+        // grouping, mixing parents would split the chain at the boundary.
+        // This test focuses on the structural pass, so keep them together.
+        parents: { 1: 'Tutorial', 2: 'Tutorial', 3: 'Tutorial' },
       }),
     );
     expect(r).toHaveLength(1);
@@ -198,7 +201,9 @@ describe('computeQuestChains', () => {
     expect(c.rootCount).toBe(0);
     expect(c.hasCycles).toBe(true);
     expect(c.cycleCount).toBe(1);
-    expect(c.name).toBe('Loop containing A');
+    // Chain name is just the representative quest's name; cyclicity is an
+    // attribute surfaced via `hasCycles`, not part of the identifier.
+    expect(c.name).toBe('A');
     // Every quest at depth 0 (the lone condensation root SCC contains all of them).
     expect(c.members.every((m) => m.depth === 0)).toBe(true);
     // Every member has a non-null sccId pointing at the same cycle.
@@ -273,10 +278,11 @@ describe('computeQuestChains', () => {
     expect(c.hasCycles).toBe(true);
     expect(c.cycleCount).toBe(1);
     // A's self-loop makes it have incoming → not a "root" in the user sense.
-    // Same for B (has incoming from A). So the chain reads as fully cyclic
-    // from a naming perspective, even though only A is in a cycle.
+    // Same for B (has incoming from A). So the chain has no strict roots,
+    // but the name still falls through to the representative quest's name
+    // — cyclicity is conveyed by `hasCycles`, not the chain name.
     expect(c.rootCount).toBe(0);
-    expect(c.name).toBe('Loop containing A');
+    expect(c.name).toBe('A');
     const m = memberMap(c);
     expect(m.get(1)?.sccId).not.toBeNull();
     expect(m.get(2)?.sccId).toBeNull();
@@ -302,5 +308,137 @@ describe('computeQuestChains', () => {
     );
     expect(r).toHaveLength(1);
     expect(r[0].edges).toHaveLength(1);
+  });
+
+  describe('parent boundary', () => {
+    it('splits chains at parent boundaries — hub edge becomes external', () => {
+      // Hub quest A (parent="Hub") gates two unrelated storylines:
+      //   * Maya's Concerns: M1 → M2 (parent="MayaC")
+      //   * Maya's Collection: K1 → K2 (parent="MayaK")
+      // Under pure-WCC grouping these would all merge into one mega-chain.
+      // With parent-bounded grouping each storyline is its own chain, and
+      // A→M1 / A→K1 surface as external prereqs on those chains.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 10, 11, 20, 21],
+          edges: [
+            [1, 10],
+            [10, 11],
+            [1, 20],
+            [20, 21],
+          ],
+          names: {
+            1: 'Hub',
+            10: 'Maya Concerns 1',
+            11: 'Maya Concerns 2',
+            20: 'Maya Collection 1',
+            21: 'Maya Collection 2',
+          },
+          parents: { 1: 'Hub', 10: 'MayaC', 11: 'MayaC', 20: 'MayaK', 21: 'MayaK' },
+        }),
+      );
+      // Two real chains: MayaC and MayaK. The hub quest is alone in its
+      // parent so it doesn't form a chain on its own.
+      expect(r).toHaveLength(2);
+      const byId = new Map(r.map((c) => [c.id, c]));
+      const mayaC = byId.get(10)!;
+      const mayaK = byId.get(20)!;
+      expect(mayaC.size).toBe(2);
+      expect(mayaK.size).toBe(2);
+
+      // M1 has no in-chain prereq, so it's a root for its chain. But it
+      // DOES have incoming from the hub, so it's not isRoot.
+      expect(mayaC.members.find((m) => m.questId === 10)!.isRoot).toBe(false);
+      expect(mayaK.members.find((m) => m.questId === 20)!.isRoot).toBe(false);
+      // Each chain has zero starts because the hub gates entry.
+      expect(mayaC.rootCount).toBe(0);
+      expect(mayaK.rootCount).toBe(0);
+
+      // External prereqs: each chain's first quest is "Unlocked by" the
+      // hub. The hub isn't in any chain, so externalChainId is null.
+      const mayaCIn = mayaC.externalEdges.filter((e) => e.direction === 'in');
+      expect(mayaCIn).toEqual([
+        { direction: 'in', internalQuestId: 10, externalQuestId: 1, externalChainId: null },
+      ]);
+      const mayaKIn = mayaK.externalEdges.filter((e) => e.direction === 'in');
+      expect(mayaKIn).toEqual([
+        { direction: 'in', internalQuestId: 20, externalQuestId: 1, externalChainId: null },
+      ]);
+    });
+
+    it('cross-chain prereqs link both chains when both sides form chains', () => {
+      // Chain A (parent="P1"): A1 → A2.
+      // Chain B (parent="P2"): B1 → B2.
+      // Cross-parent edge A2 → B1 — should NOT merge, but should appear
+      // as "Unlocks" on chain A and "Unlocked by" on chain B with the
+      // other chain's id filled in on both sides.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3, 4],
+          edges: [
+            [1, 2],
+            [2, 3],
+            [3, 4],
+          ],
+          parents: { 1: 'P1', 2: 'P1', 3: 'P2', 4: 'P2' },
+        }),
+      );
+      expect(r).toHaveLength(2);
+      const a = r.find((c) => c.id === 1)!;
+      const b = r.find((c) => c.id === 3)!;
+      expect(a.externalEdges).toContainEqual({
+        direction: 'out',
+        internalQuestId: 2,
+        externalQuestId: 3,
+        externalChainId: 3,
+      });
+      expect(b.externalEdges).toContainEqual({
+        direction: 'in',
+        internalQuestId: 3,
+        externalQuestId: 2,
+        externalChainId: 1,
+      });
+    });
+
+    it('NULL-parent quests still group by WCC (fallback)', () => {
+      // No parents set anywhere → behaves like pre-boundary WCC grouping.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3],
+          edges: [
+            [1, 2],
+            [2, 3],
+          ],
+        }),
+      );
+      expect(r).toHaveLength(1);
+      expect(r[0].size).toBe(3);
+      expect(r[0].externalEdges).toEqual([]);
+    });
+
+    it('NULL parent does not merge with a named parent', () => {
+      // Quest 1 has no parent; Quest 2 has parent="P1". Edge 1→2 must
+      // stay external (different parent values, one null one not).
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3],
+          edges: [
+            [1, 2],
+            [2, 3],
+          ],
+          parents: { 2: 'P1', 3: 'P1' },
+        }),
+      );
+      // Chain {2,3} with external prereq from quest 1.
+      expect(r).toHaveLength(1);
+      expect(r[0].id).toBe(2);
+      expect(r[0].size).toBe(2);
+      expect(r[0].externalEdges).toContainEqual({
+        direction: 'in',
+        internalQuestId: 2,
+        externalQuestId: 1,
+        externalChainId: null,
+      });
+    });
   });
 });

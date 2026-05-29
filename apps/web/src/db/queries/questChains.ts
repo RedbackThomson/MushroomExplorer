@@ -4,6 +4,7 @@ import type {
   PageResult,
   QuestChainDetail,
   QuestChainEdgeRecord,
+  QuestChainExternalEdgeWithName,
   QuestChainListRow,
   QuestChainMemberWithName,
   QuestChainRecord,
@@ -73,6 +74,7 @@ export function computeAndStoreQuestChains(sql: Sqlite): number {
   const chains = computeQuestChains({ questIds, edges, questNames, questParents });
 
   sql.transaction(() => {
+    sql.exec(`DELETE FROM quest_chain_external_edges`);
     sql.exec(`DELETE FROM quest_chain_edges`);
     sql.exec(`DELETE FROM quest_chain_members`);
     sql.exec(`DELETE FROM quest_chains`);
@@ -108,6 +110,14 @@ export function computeAndStoreQuestChains(sql: Sqlite): number {
             (chain_id, from_quest_id, to_quest_id, in_cycle)
            VALUES (?, ?, ?, ?)`,
           [c.id, e.fromQuestId, e.toQuestId, e.inCycle ? 1 : 0],
+        );
+      }
+      for (const e of c.externalEdges) {
+        sql.exec(
+          `INSERT INTO quest_chain_external_edges
+            (chain_id, direction, internal_quest_id, external_quest_id, external_chain_id)
+           VALUES (?, ?, ?, ?, ?)`,
+          [c.id, e.direction, e.internalQuestId, e.externalQuestId, e.externalChainId],
         );
       }
     }
@@ -174,7 +184,41 @@ export function getQuestChain(sql: Sqlite, id: number): QuestChainDetail | null 
       toQuestId: r.to_quest_id,
       inCycle: r.in_cycle === 1,
     }));
-  return { chain, members, edges };
+  // Cross-chain prereqs joined to the external quest's name and (when
+  // applicable) the external chain's name. Both LEFT JOINs because either
+  // can be missing — the quest might not be loaded into the library, and
+  // the external chain is genuinely null when the external quest sits in
+  // a size-1 WCC.
+  const externalEdges = sql
+    .selectObjects<{
+      chain_id: number;
+      direction: 'in' | 'out';
+      internal_quest_id: number;
+      external_quest_id: number;
+      external_chain_id: number | null;
+      external_quest_name: string | null;
+      external_chain_name: string | null;
+    }>(
+      `SELECT x.chain_id, x.direction, x.internal_quest_id, x.external_quest_id, x.external_chain_id,
+              q.name AS external_quest_name,
+              c.name AS external_chain_name
+         FROM quest_chain_external_edges x
+         LEFT JOIN quests       q ON q.id = x.external_quest_id
+         LEFT JOIN quest_chains c ON c.id = x.external_chain_id
+        WHERE x.chain_id = ?
+        ORDER BY x.direction ASC, x.internal_quest_id ASC, x.external_quest_id ASC`,
+      [id],
+    )
+    .map<QuestChainExternalEdgeWithName>((r) => ({
+      chainId: r.chain_id,
+      direction: r.direction,
+      internalQuestId: r.internal_quest_id,
+      externalQuestId: r.external_quest_id,
+      externalChainId: r.external_chain_id,
+      externalQuestName: r.external_quest_name,
+      externalChainName: r.external_chain_name,
+    }));
+  return { chain, members, edges, externalEdges };
 }
 
 export function listQuestChains(

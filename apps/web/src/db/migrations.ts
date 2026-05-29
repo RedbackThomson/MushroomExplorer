@@ -615,4 +615,37 @@ export const MIGRATIONS: readonly Migration[] = [
         ON quest_chain_members (chain_id, is_critical);
     `,
   },
+  {
+    version: 21,
+    name: 'quest chain external prereq edges',
+    sql: `
+      -- Cross-chain prereq edges. Populated by the chain-derivation pass
+      -- alongside quest_chain_edges (see lib/questChains/graph.ts) once
+      -- chains became parent-bounded — any prereq edge whose endpoints
+      -- sit in different chains (or one endpoint is unaffiliated) lands
+      -- here so the detail page can render an "Unlocked by" / "Unlocks"
+      -- section without merging the two storylines into one chain.
+      --
+      -- One row per (chain, direction, edge): the same source-graph edge
+      -- is recorded twice when both endpoints are in chains, once from
+      -- each chain's perspective, so a SELECT WHERE chain_id = ? returns
+      -- everything the detail page needs in one query.
+      --
+      -- direction:
+      --   'in'  — external quest is a prereq of an internal quest
+      --   'out' — internal quest is a prereq of an external quest
+      -- external_chain_id is nullable for cases where the external quest
+      -- isn't itself in a chain (size-1 WCC or no prereq edges at all).
+      CREATE TABLE quest_chain_external_edges (
+        chain_id           INTEGER NOT NULL,
+        direction          TEXT    NOT NULL,
+        internal_quest_id  INTEGER NOT NULL,
+        external_quest_id  INTEGER NOT NULL,
+        external_chain_id  INTEGER,
+        PRIMARY KEY (chain_id, direction, internal_quest_id, external_quest_id)
+      );
+      CREATE INDEX quest_chain_external_edges_external_idx
+        ON quest_chain_external_edges (external_chain_id);
+    `,
+  },
 ];

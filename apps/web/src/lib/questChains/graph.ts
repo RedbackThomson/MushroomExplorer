@@ -1,14 +1,23 @@
 // Pure (no React, no SQLite) derivation of quest "chains" from a directed
-// graph of quest prerequisites. A chain is one weakly-connected component
-// of the graph — the set of quests transitively related by prerequisite
-// edges walked in either direction. Chains of size 1 (isolated quests) are
-// discarded; the smallest persisted chain has two quests.
+// graph of quest prerequisites.
 //
-// The directed graph is not assumed acyclic. Tarjan's SCC algorithm finds
-// any cycles, the condensation gives a DAG over super-nodes, and chain
-// members in a cyclic SCC are flagged so the UI can render them as a
-// grouped block with a cycle indicator. Edge direction is "prereq →
-// dependent".
+// A chain is a *parent-bounded* weakly-connected component: two quests are
+// in the same chain when they share the same `parent` value AND there is an
+// undirected path of prereq edges between them. Edges that cross parent
+// boundaries (e.g. one "hub" quest unlocking several unrelated storylines)
+// do NOT merge the chains — they are surfaced as external prereqs so the
+// detail page can render an "Unlocked by" / "Unlocks" section without
+// melting two storylines into one. NULL-parent quests fall back to plain
+// WCC grouping among themselves so unlabelled data still produces chains.
+//
+// Chains of size 1 (an isolated quest with no in-chain edges) are not
+// persisted; the smallest persisted chain has two quests.
+//
+// The directed graph is not assumed acyclic. Tarjan's SCC algorithm, run
+// per-chain on the within-chain adjacency, finds cycles; the condensation
+// gives a DAG over super-nodes; chain members in a cyclic SCC are flagged
+// so the UI can render them as a grouped block with a cycle indicator.
+// Edge direction is "prereq → dependent".
 
 export interface PrereqEdge {
   /** Prerequisite quest id. */
@@ -25,7 +34,9 @@ export interface QuestChainGraphInput {
   edges: readonly PrereqEdge[];
   /** Display name per quest. Missing entries fall back to "Quest <id>". */
   questNames: ReadonlyMap<number, string>;
-  /** `parent` (area / storyline) per quest, when known. */
+  /** `parent` (area / storyline) per quest, when known. Two quests sharing
+   *  the same value (including both NULL) may be merged into one chain
+   *  by their prereq edges; quests with differing parents never merge. */
   questParents: ReadonlyMap<number, string | null>;
 }
 
@@ -37,7 +48,9 @@ export interface ComputedQuestChainMember {
    *  for acyclic singletons — the schema persists it as NULL. */
   sccId: number | null;
   /** True iff this quest has no incoming prereq edges (strict). Multi-root
-   *  chains have `> 1` of these; fully-cyclic chains have none. */
+   *  chains have `> 1` of these; fully-cyclic chains have none. Cross-chain
+   *  prereqs DO count as incoming edges — a quest unlocked only by a quest
+   *  in another chain is not a "start" of this chain. */
   isRoot: boolean;
   /** True iff this quest sits on a path from any starting quest to the
    *  chain's "final" quest (the deepest leaf, tiebroken by lowest id).
@@ -54,6 +67,21 @@ export interface ComputedQuestChainEdge {
   inCycle: boolean;
 }
 
+export interface ComputedExternalEdge {
+  /** `'in'`  — an external quest is a prerequisite of one of this chain's
+   *           quests. The UI renders these as "Unlocked by".
+   *  `'out'` — one of this chain's quests is a prerequisite of an external
+   *           quest. The UI renders these as "Unlocks". */
+  direction: 'in' | 'out';
+  /** The quest in THIS chain that participates in the cross-chain edge. */
+  internalQuestId: number;
+  /** The quest in the OTHER chain (or unaffiliated) at the other end. */
+  externalQuestId: number;
+  /** The external quest's chain id, or null when that quest isn't itself
+   *  in any chain (size-1 WCC or unknown). */
+  externalChainId: number | null;
+}
+
 export interface ComputedQuestChain {
   id: number;
   name: string;
@@ -66,14 +94,18 @@ export interface ComputedQuestChain {
   parent: string | null;
   members: ComputedQuestChainMember[];
   edges: ComputedQuestChainEdge[];
+  externalEdges: ComputedExternalEdge[];
 }
 
 export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestChain[] {
   const { questIds, edges, questNames, questParents } = input;
   if (questIds.length === 0) return [];
 
-  // Directed adjacency + per-node incoming count for root detection.
-  // `out` keys also serve as the "known quest" set.
+  // Directed adjacency + per-node incoming count for root detection. `out`
+  // keys also serve as the "known quest" set. `incomingCount` includes
+  // cross-chain edges by design (a quest gated by an external quest isn't
+  // a chain start), matching the user-facing definition of "a quest you
+  // can start with".
   const out = new Map<number, number[]>();
   const incomingCount = new Map<number, number>();
   for (const id of questIds) {
@@ -98,7 +130,13 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     if (e.from === e.to) selfLoops.add(e.from);
   }
 
-  // Union-find over the undirected projection — yields WCCs.
+  // Union-find over the undirected projection, restricted to edges whose
+  // endpoints share a parent. Two quests with the same non-null parent
+  // can be merged; two NULL-parent quests can be merged via the fallback;
+  // a NULL-parent quest never merges with a non-NULL one (since their
+  // parent values differ). `parentOf` normalises undefined → null so the
+  // comparison is consistent.
+  const parentOf = (id: number): string | null => questParents.get(id) ?? null;
   const ufParent = new Map<number, number>();
   for (const id of questIds) ufParent.set(id, id);
   const find = (x: number): number => {
@@ -115,7 +153,9 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     const rb = find(b);
     if (ra !== rb) ufParent.set(ra, rb);
   };
-  for (const e of dedupedEdges) union(e.from, e.to);
+  for (const e of dedupedEdges) {
+    if (parentOf(e.from) === parentOf(e.to)) union(e.from, e.to);
+  }
 
   const wccs = new Map<number, number[]>();
   for (const id of questIds) {
@@ -125,46 +165,57 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     else wccs.set(r, [id]);
   }
 
-  // Tarjan SCC over the whole directed graph. `sccIndexOf[q]` then gives
-  // each quest its SCC index, shared across the run.
-  const sccs = tarjanScc(questIds, out);
-  const sccIndexOf = new Map<number, number>();
-  for (let i = 0; i < sccs.length; i++) {
-    for (const q of sccs[i]) sccIndexOf.set(q, i);
-  }
+  // Build the chains. We need each chain's `id` known before attributing
+  // external edges, so do the per-WCC pass first and post-process edges
+  // after all chains exist.
+  const chainsByWcc = new Map<number, ComputedQuestChain>();
+  const questToChainId = new Map<number, number>();
 
-  const results: ComputedQuestChain[] = [];
-
-  for (const memberIds of wccs.values()) {
+  for (const [wccRoot, memberIds] of wccs) {
     if (memberIds.length < 2) continue;
     const memberSet = new Set(memberIds);
 
-    // SCCs touching this WCC, re-indexed to a local 1..N for the schema's
-    // `scc_id`. Acyclic singleton SCCs get `null` (sentinel 0 here).
-    const sccsInWcc = new Set<number>();
-    for (const q of memberIds) sccsInWcc.add(sccIndexOf.get(q)!);
-    const localSccId = new Map<number, number>();
-    let cycleCount = 0;
-    for (const gi of sccsInWcc) {
-      const scc = sccs[gi];
-      const cyclic = scc.length > 1 || selfLoops.has(scc[0]);
-      if (cyclic) {
-        cycleCount++;
-        localSccId.set(gi, cycleCount);
-      } else {
-        localSccId.set(gi, 0);
+    // Within-WCC adjacency for Tarjan and condensation. By construction
+    // all edges between WCC members share the WCC's parent, so this also
+    // filters out cross-parent edges.
+    const innerAdj = new Map<number, number[]>();
+    for (const q of memberIds) innerAdj.set(q, []);
+    for (const e of dedupedEdges) {
+      if (memberSet.has(e.from) && memberSet.has(e.to)) {
+        innerAdj.get(e.from)!.push(e.to);
       }
     }
 
-    // Condensation restricted to this WCC, for the depth BFS.
+    // Per-WCC Tarjan SCC. SCC indices are local to this chain — that's
+    // fine, we only persist a `scc_id` for cyclic SCCs anyway.
+    const sccs = tarjanScc(memberIds, innerAdj);
+    const sccIndexOf = new Map<number, number>();
+    for (let i = 0; i < sccs.length; i++) {
+      for (const q of sccs[i]) sccIndexOf.set(q, i);
+    }
+
+    const localSccId = new Map<number, number>();
+    let cycleCount = 0;
+    for (let i = 0; i < sccs.length; i++) {
+      const scc = sccs[i];
+      const cyclic = scc.length > 1 || selfLoops.has(scc[0]);
+      if (cyclic) {
+        cycleCount++;
+        localSccId.set(i, cycleCount);
+      } else {
+        localSccId.set(i, 0);
+      }
+    }
+
+    // Condensation graph (within this WCC).
     const condOut = new Map<number, Set<number>>();
     const condIncoming = new Map<number, number>();
-    for (const s of sccsInWcc) {
-      condOut.set(s, new Set());
-      condIncoming.set(s, 0);
+    for (let i = 0; i < sccs.length; i++) {
+      condOut.set(i, new Set());
+      condIncoming.set(i, 0);
     }
     for (const e of dedupedEdges) {
-      if (!memberSet.has(e.from)) continue;
+      if (!memberSet.has(e.from) || !memberSet.has(e.to)) continue;
       const a = sccIndexOf.get(e.from)!;
       const b = sccIndexOf.get(e.to)!;
       if (a === b) continue;
@@ -175,15 +226,13 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
       }
     }
 
-    // Multi-source BFS from every condensation root SCC. The condensation
-    // is always a DAG, so root SCCs always exist (including the trivial
-    // case where the whole WCC is one SCC).
+    // Multi-source BFS from condensation roots → per-SCC depth.
     const sccDepth = new Map<number, number>();
     const queue: number[] = [];
-    for (const s of sccsInWcc) {
-      if ((condIncoming.get(s) ?? 0) === 0) {
-        sccDepth.set(s, 0);
-        queue.push(s);
+    for (let i = 0; i < sccs.length; i++) {
+      if ((condIncoming.get(i) ?? 0) === 0) {
+        sccDepth.set(i, 0);
+        queue.push(i);
       }
     }
     while (queue.length) {
@@ -196,46 +245,35 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
         }
       }
     }
-    for (const s of sccsInWcc) if (!sccDepth.has(s)) sccDepth.set(s, 0);
+    for (let i = 0; i < sccs.length; i++) if (!sccDepth.has(i)) sccDepth.set(i, 0);
 
     let maxDepth = 0;
     for (const d of sccDepth.values()) if (d > maxDepth) maxDepth = d;
 
-    // "Root" in the user-facing sense: a quest you can start with — no
-    // incoming prereq edges at all (not even a self-loop). Distinct from
-    // the condensation's root SCCs used for layout.
+    // Roots in the user-facing sense: quests with no incoming prereq edges
+    // at all. Note this counts cross-chain edges too — a quest gated only
+    // by an external quest is NOT a start of this chain. (That external
+    // dependency is captured in `externalEdges` below.)
     const roots: number[] = [];
     for (const q of memberIds) {
       if ((incomingCount.get(q) ?? 0) === 0) roots.push(q);
     }
     const rootSet = new Set(roots);
 
-    // Critical path = the set of quests on any path from a starting quest
-    // to the chain's "final" SCC (the deepest one — the natural endpoint
-    // a player is trying to reach). Optional quests are members that
-    // don't sit on such a path; they're still part of the chain but can
-    // be skipped without blocking progress toward the final quest.
-    //
-    // We pick the final SCC as the condensation node with max depth.
-    // Tiebreak: the SCC containing the lowest min quest id — same
-    // determinism rule as chain id selection, so the choice is stable
-    // across re-derivations. Ancestors of the final SCC are marked
-    // critical via a reverse BFS over the condensation. For fully-cyclic
-    // chains the whole loop is its own ancestor set, so every member is
-    // critical (nothing to skip).
+    // Critical path: ancestors of the deepest SCC (tiebroken lowest min id).
     const condIn = new Map<number, Set<number>>();
-    for (const s of sccsInWcc) condIn.set(s, new Set());
+    for (let i = 0; i < sccs.length; i++) condIn.set(i, new Set());
     for (const [from, tos] of condOut) {
       for (const to of tos) condIn.get(to)!.add(from);
     }
     let finalScc = -1;
     let finalSccDepth = -1;
     let finalSccTiebreak = Infinity;
-    for (const s of sccsInWcc) {
-      const d = sccDepth.get(s) ?? 0;
-      const minQ = Math.min(...sccs[s]);
+    for (let i = 0; i < sccs.length; i++) {
+      const d = sccDepth.get(i) ?? 0;
+      const minQ = Math.min(...sccs[i]);
       if (d > finalSccDepth || (d === finalSccDepth && minQ < finalSccTiebreak)) {
-        finalScc = s;
+        finalScc = i;
         finalSccDepth = d;
         finalSccTiebreak = minQ;
       }
@@ -255,13 +293,12 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
       }
     }
 
-    const chainId = roots.length > 0
-      ? Math.min(...roots)
-      : Math.min(...memberIds);
+    const chainId = roots.length > 0 ? Math.min(...roots) : Math.min(...memberIds);
     const fallbackName = (id: number): string => questNames.get(id) ?? `Quest ${id}`;
-    const name = roots.length > 0
-      ? fallbackName(chainId)
-      : `Loop containing ${fallbackName(chainId)}`;
+    // Chain name is just the representative quest's name. Cyclicity is an
+    // attribute of the chain (`hasCycles`, surfaced via badges and the
+    // `Loop` info row), not part of the identifier.
+    const name = fallbackName(chainId);
     const parent = questParents.get(chainId) ?? null;
 
     const members: ComputedQuestChainMember[] = memberIds.map((q) => {
@@ -278,13 +315,14 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
 
     const chainEdges: ComputedQuestChainEdge[] = [];
     for (const e of dedupedEdges) {
-      if (!memberSet.has(e.from)) continue;
+      if (!memberSet.has(e.from) || !memberSet.has(e.to)) continue;
       const a = sccIndexOf.get(e.from)!;
-      const inCycle = a === sccIndexOf.get(e.to) && (sccs[a].length > 1 || e.from === e.to);
+      const inCycle =
+        a === sccIndexOf.get(e.to) && (sccs[a].length > 1 || e.from === e.to);
       chainEdges.push({ fromQuestId: e.from, toQuestId: e.to, inCycle });
     }
 
-    results.push({
+    const chain: ComputedQuestChain = {
       id: chainId,
       name,
       representativeRootId: chainId,
@@ -296,12 +334,56 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
       parent,
       members,
       edges: chainEdges,
-    });
+      externalEdges: [],
+    };
+    chainsByWcc.set(wccRoot, chain);
+    for (const q of memberIds) questToChainId.set(q, chainId);
   }
 
-  // Stable order — keeps test assertions clean and the index render
-  // deterministic before any SQL `ORDER BY` is applied.
+  // External edges — anything we didn't already attribute to one chain's
+  // internal edges. By the parent-bounded union-find rule, these are
+  // exactly the edges whose endpoints sit in different WCCs (either
+  // different parents, or one side isolated in a size-1 WCC). Each such
+  // edge gets recorded from both endpoints' chain perspectives so the
+  // detail page can render a coherent "Unlocked by" + "Unlocks" view.
+  const chainByQuest = (id: number): ComputedQuestChain | undefined => {
+    const wcc = find(id);
+    return chainsByWcc.get(wcc);
+  };
+  for (const e of dedupedEdges) {
+    const fromChain = chainByQuest(e.from);
+    const toChain = chainByQuest(e.to);
+    if (fromChain && toChain && fromChain === toChain) continue; // internal
+    if (fromChain) {
+      fromChain.externalEdges.push({
+        direction: 'out',
+        internalQuestId: e.from,
+        externalQuestId: e.to,
+        externalChainId: toChain?.id ?? null,
+      });
+    }
+    if (toChain) {
+      toChain.externalEdges.push({
+        direction: 'in',
+        internalQuestId: e.to,
+        externalQuestId: e.from,
+        externalChainId: fromChain?.id ?? null,
+      });
+    }
+  }
+
+  const results = [...chainsByWcc.values()];
+  // Stable order — deterministic chain order in tests and before SQL
+  // ORDER BY kicks in.
   results.sort((a, b) => a.id - b.id);
+  // External edges within a chain: stable order for the detail page.
+  for (const c of results) {
+    c.externalEdges.sort((a, b) => {
+      if (a.direction !== b.direction) return a.direction === 'in' ? -1 : 1;
+      if (a.internalQuestId !== b.internalQuestId) return a.internalQuestId - b.internalQuestId;
+      return a.externalQuestId - b.externalQuestId;
+    });
+  }
   return results;
 }
 

@@ -43,6 +43,7 @@ export function clearAllData(sql: Sqlite): void {
     // Order respects FK direction. No foreign keys are declared yet, but
     // keep the order stable for when we add them.
     const tables = [
+      'quest_chain_external_edges',
       'quest_chain_edges',
       'quest_chain_members',
       'quest_chains',

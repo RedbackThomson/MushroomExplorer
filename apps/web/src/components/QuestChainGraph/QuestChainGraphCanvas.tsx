@@ -1,6 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
-import type { QuestChainEdgeRecord, QuestChainMemberWithName } from '@/db';
+import type {
+  QuestChainEdgeRecord,
+  QuestChainExternalEdgeWithName,
+  QuestChainMemberWithName,
+} from '@/db';
 import { useShowEntityIds } from '@/stores/showEntityIds';
 import { clamp } from '@/lib/math';
 import { QuestChainGraphNode } from './QuestChainGraphNode';
@@ -9,6 +13,7 @@ import { useDagreLayout, type DagreEdge } from './useDagreLayout';
 interface Props {
   members: readonly QuestChainMemberWithName[];
   edges: readonly QuestChainEdgeRecord[];
+  externalEdges?: readonly QuestChainExternalEdgeWithName[];
 }
 
 const MIN_ZOOM = 0.25;
@@ -20,8 +25,8 @@ const MAX_ZOOM = 3;
  * drive zoom. Lifted from `MapViewerCanvas.tsx` with the WZ projection math
  * stripped — the nodes already live in dagre's pixel space.
  */
-export function QuestChainGraphCanvas({ members, edges }: Props) {
-  const layout = useDagreLayout(members, edges);
+export function QuestChainGraphCanvas({ members, edges, externalEdges }: Props) {
+  const layout = useDagreLayout(members, edges, externalEdges);
   const scrollRef = useRef<HTMLDivElement>(null);
   const showIds = useShowEntityIds((s) => s.enabled);
 
@@ -166,16 +171,17 @@ function EdgeLayer({
         const d = e.points
           .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
           .join(' ');
-        // Three styles, in priority order: cycle edges (amber dashed),
-        // optional edges (faint), and the default critical solid line.
+        // Four styles, in priority order: cycle edges (amber dashed),
+        // external edges (very faint, sparse dash), optional edges
+        // (medium faint), and the default critical solid line.
         const stroke = e.inCycle
           ? 'stroke-amber-500'
-          : e.isCritical
-            ? 'stroke-muted-foreground/60'
-            : 'stroke-muted-foreground/25';
-        // Cycle edges keep their distinctive dash; optional edges use a
-        // sparser dash to read as "secondary" without competing.
-        const dash = e.inCycle ? '4 3' : e.isCritical ? undefined : '2 4';
+          : e.isExternal
+            ? 'stroke-muted-foreground/30'
+            : e.isCritical
+              ? 'stroke-muted-foreground/60'
+              : 'stroke-muted-foreground/25';
+        const dash = e.inCycle ? '4 3' : e.isExternal ? '1 4' : e.isCritical ? undefined : '2 4';
         return (
           <path
             key={`${e.fromQuestId}-${e.toQuestId}-${i}`}

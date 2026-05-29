@@ -1,4 +1,4 @@
-import { AlertTriangle, ScrollText } from 'lucide-react';
+import { AlertTriangle, ExternalLink, ScrollText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { DagreNode } from './useDagreLayout';
@@ -13,8 +13,18 @@ interface Props {
  * we only handle the visual + the click-through. The link uses `noPreview`
  * implicitly by being a plain `<Link>` — the hover card would compete with
  * the user's pan gesture inside the viewer.
+ *
+ * External (ghost) nodes represent a quest in another chain that's
+ * connected by a cross-chain prereq edge. They render with a heavier
+ * dashed border and reduced opacity so the focal chain still reads as
+ * the primary layer.
  */
 export function QuestChainGraphNode({ node, showId }: Props) {
+  const tooltip = node.isExternal
+    ? 'External quest — belongs to another chain'
+    : node.isCritical
+      ? undefined
+      : 'Optional — skippable when racing toward the final quest';
   return (
     <Link
       to={`/quests/${node.questId}`}
@@ -29,21 +39,23 @@ export function QuestChainGraphNode({ node, showId }: Props) {
         'border-border bg-card text-card-foreground hover:bg-accent flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs shadow-sm transition-colors',
         node.isRoot && 'border-emerald-500/60 ring-2 ring-emerald-500/30',
         node.inCycle && 'border-amber-500/70 ring-2 ring-amber-500/30',
-        !node.isCritical && 'border-dashed opacity-60',
+        !node.isCritical && !node.isExternal && 'border-dashed opacity-60',
+        node.isExternal && 'border-dashed border-foreground/30 bg-muted/40 opacity-50',
       )}
-      title={
-        node.isCritical
-          ? undefined
-          : 'Optional — skippable when racing toward the final quest'
-      }
+      title={tooltip}
     >
-      {node.inCycle ? (
+      {node.isExternal ? (
+        <ExternalLink className="text-muted-foreground h-4 w-4 shrink-0" />
+      ) : node.inCycle ? (
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
       ) : (
         <ScrollText className="text-muted-foreground h-4 w-4 shrink-0" />
       )}
       <span
-        className={cn('min-w-0 flex-1 truncate font-medium', !node.isCritical && 'italic')}
+        className={cn(
+          'min-w-0 flex-1 truncate font-medium',
+          (!node.isCritical || node.isExternal) && 'italic',
+        )}
       >
         {node.name}
       </span>

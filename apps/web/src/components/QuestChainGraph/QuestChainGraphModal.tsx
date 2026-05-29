@@ -1,6 +1,7 @@
 import { Modal } from '@/components/collections/Modal';
 import type {
   QuestChainEdgeRecord,
+  QuestChainExternalEdgeWithName,
   QuestChainMemberWithName,
   QuestChainRecord,
 } from '@/db';
@@ -12,6 +13,7 @@ interface Props {
   chain: QuestChainRecord;
   members: readonly QuestChainMemberWithName[];
   edges: readonly QuestChainEdgeRecord[];
+  externalEdges?: readonly QuestChainExternalEdgeWithName[];
 }
 
 /**
@@ -19,7 +21,14 @@ interface Props {
  * `MapViewerModal` — a big panel with the canvas filling everything, plus
  * a thin title bar with the chain's summary.
  */
-export function QuestChainGraphModal({ open, onClose, chain, members, edges }: Props) {
+export function QuestChainGraphModal({
+  open,
+  onClose,
+  chain,
+  members,
+  edges,
+  externalEdges,
+}: Props) {
   const description = [
     `${chain.size} quests`,
     `${chain.maxDepth} stages`,
@@ -37,7 +46,7 @@ export function QuestChainGraphModal({ open, onClose, chain, members, edges }: P
       panelClassName="flex h-[min(90vh,900px)] w-[min(95vw,1200px)] max-w-none flex-col"
       bodyClassName="flex-1 overflow-hidden p-0"
     >
-      <QuestChainGraphCanvas members={members} edges={edges} />
+      <QuestChainGraphCanvas members={members} edges={edges} externalEdges={externalEdges} />
     </Modal>
   );
 }
