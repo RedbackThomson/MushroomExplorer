@@ -47,7 +47,7 @@ function ItemHoverCard({ id }: { id: number }) {
   const item = itemQ.data;
 
   return (
-    <div className="w-72 space-y-1.5">
+    <div className="w-72 max-w-[calc(100vw-1rem)] space-y-1.5">
       <div className="flex gap-3">
         <ItemIcon entity="item" id={id} size={64} alt={item.name} />
         <div className="min-w-0 flex-1 space-y-1.5">

@@ -51,7 +51,7 @@ function QuestHoverCard({ id }: { id: number }) {
   const q = questQ.data;
 
   return (
-    <div className="w-72 space-y-1.5">
+    <div className="w-72 max-w-[calc(100vw-1rem)] space-y-1.5">
       <div className="flex gap-3">
         <span className="bg-muted text-muted-foreground inline-flex h-16 w-16 shrink-0 items-center justify-center rounded">
           <ScrollText className="h-7 w-7" />

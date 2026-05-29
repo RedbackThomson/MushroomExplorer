@@ -61,7 +61,7 @@ function EquipHoverCard({ id }: { id: number }) {
   const jobs = e.requiredJob !== null ? parseReqJob(e.requiredJob) : null;
 
   return (
-    <div className="w-72 space-y-1.5">
+    <div className="w-72 max-w-[calc(100vw-1rem)] space-y-1.5">
       <div className="flex gap-3">
         <ItemIcon entity="equip" id={id} size={64} alt={e.name} />
         <div className="min-w-0 flex-1 space-y-1.5">

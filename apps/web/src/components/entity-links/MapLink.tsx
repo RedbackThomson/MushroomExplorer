@@ -47,7 +47,7 @@ export function MapHoverCard({ id }: { id: number }) {
   const display = m.name ?? `Map ${id}`;
 
   return (
-    <div className="w-72 space-y-1.5">
+    <div className="w-72 max-w-[calc(100vw-1rem)] space-y-1.5">
       <div className="flex gap-3">
         <EntityIcon
           entity="map-mini"

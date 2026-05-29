@@ -132,7 +132,7 @@ export function CollectionsBulkAddMenu({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search or create…"
-                  className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border pl-8 pr-2 text-xs focus-visible:outline-none focus-visible:ring-2"
+                  className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border pl-8 pr-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-xs"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !hasExactMatch && query.trim()) {
                       e.preventDefault();

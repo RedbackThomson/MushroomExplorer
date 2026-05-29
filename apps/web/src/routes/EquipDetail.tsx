@@ -127,8 +127,8 @@ export default function EquipDetail() {
       header={
         <header className="flex items-center gap-3">
           <ItemIcon entity="equip" id={e.id} size={48} alt={e.name} />
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{e.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight break-words">{e.name}</h1>
             <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-mono">{e.id}</span>
               {e.cash && <Badge tone="pink">Cash Shop (cosmetic)</Badge>}

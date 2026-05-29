@@ -253,7 +253,7 @@ export function DataTable<TData>({
                 // and uses the OS chrome rather than our token palette —
                 // override it with `appearance-none` is overkill; the
                 // explicit button below is what the user sees.
-                className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-9 pr-8 text-sm focus-visible:outline-none focus-visible:ring-2"
+                className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-9 pr-8 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
               />
               {(searchValue ?? '').length > 0 && (
                 <button
@@ -417,7 +417,7 @@ export function DataTable<TData>({
             <select
               value={state.size}
               onChange={(e) => setState({ size: Number(e.target.value), page: 1 })}
-              className="border-input bg-background h-7 rounded-md border px-1 text-xs"
+              className="border-input bg-background h-7 rounded-md border px-1 text-base sm:text-xs"
             >
               {pageSizes.map((s) => (
                 <option key={s} value={s}>

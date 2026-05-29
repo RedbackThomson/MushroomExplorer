@@ -78,8 +78,8 @@ export default function NpcDetail() {
       header={
         <header className="flex items-center gap-3">
           <EntityIcon entity="npc" id={n.id} size={96} placeholder={Users} alt={n.name} />
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{n.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight break-words">{n.name}</h1>
             <p className="text-muted-foreground font-mono text-xs">{n.id}</p>
           </div>
         </header>
@@ -154,7 +154,7 @@ export default function NpcDetail() {
                     to={`/maps/${m.id}?viewer=npc:${n.id}`}
                     aria-label={`Show ${n.name} on ${m.name ?? `Map ${m.id}`}`}
                     title="Show on map"
-                    className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
+                    className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100 max-md:opacity-100"
                   >
                     <MapPin className="h-4 w-4" />
                   </Link>

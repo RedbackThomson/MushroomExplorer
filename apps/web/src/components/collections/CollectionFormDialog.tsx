@@ -138,7 +138,7 @@ export function CollectionFormDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Boss drops to farm"
-              className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
               autoFocus
             />
           </label>
@@ -159,13 +159,13 @@ export function CollectionFormDialog({
                 submit();
               }
             }}
-            className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+            className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
           />
         </label>
 
         <fieldset className="space-y-1.5">
           <legend className="text-muted-foreground text-xs uppercase tracking-wide">Icon</legend>
-          <div className="grid grid-cols-8 gap-1">
+          <div className="grid grid-cols-6 gap-1 sm:grid-cols-8">
             {COLLECTION_ICONS.map((opt) => {
               const active = opt.name === iconName;
               return (
@@ -192,7 +192,7 @@ export function CollectionFormDialog({
 
         <fieldset className="space-y-1.5">
           <legend className="text-muted-foreground text-xs uppercase tracking-wide">Color</legend>
-          <div className="grid grid-cols-10 gap-1">
+          <div className="grid grid-cols-6 gap-1 sm:grid-cols-10">
             {COLLECTION_COLORS.map((opt) => {
               const active = opt.name === colorName;
               return (

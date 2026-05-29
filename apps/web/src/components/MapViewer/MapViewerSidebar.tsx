@@ -194,7 +194,7 @@ export function MapViewerSidebar({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
-          className="border-input bg-background focus-visible:ring-ring h-7 w-full rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1"
+          className="border-input bg-background focus-visible:ring-ring h-7 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-1 sm:text-xs"
         />
         {selection && (
           <button

@@ -200,7 +200,7 @@ function StringFilterInput({ columnId, value, mode, onChange }: StringInputProps
           onChange(columnId, next ? { kind: 'string', mode, value: next } : null);
         }}
         placeholder={`${placeholder}…`}
-        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
       />
     </div>
   );
@@ -253,7 +253,7 @@ function NumberFilterInputs({ columnId, min, max, onChange }: NumberInputProps) 
         }}
         placeholder="Min"
         aria-label="Minimum"
-        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
       />
       <span className="text-muted-foreground text-xs">–</span>
       <input
@@ -270,7 +270,7 @@ function NumberFilterInputs({ columnId, min, max, onChange }: NumberInputProps) 
         }}
         placeholder="Max"
         aria-label="Maximum"
-        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+        className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
       />
     </div>
   );
@@ -299,7 +299,7 @@ function EnumFilterSelect({ columnId, options, label, value, onChange }: EnumInp
         const next = e.target.value;
         onChange(columnId, next ? { kind: 'string', mode: 'equals', value: next } : null);
       }}
-      className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+      className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
     >
       <option value="">Any</option>
       {options.map((o) => (
@@ -329,7 +329,7 @@ function BooleanFilterSelect({ columnId, labels, value, onChange }: BooleanInput
         const n = raw === '1' ? 1 : 0;
         onChange(columnId, { kind: 'range', min: n, max: n });
       }}
-      className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+      className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-sm"
     >
       <option value="">Any</option>
       <option value="1">{labels.trueLabel}</option>

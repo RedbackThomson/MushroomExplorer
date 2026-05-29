@@ -110,7 +110,7 @@ export function CollectionPicker({ entityType, entityId, children }: CollectionP
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search or create…"
-                  className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border pl-8 pr-2 text-xs focus-visible:outline-none focus-visible:ring-2"
+                  className="border-input bg-background focus-visible:ring-ring h-8 w-full rounded-md border pl-8 pr-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-xs"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !hasExactMatch && query.trim()) {
                       e.preventDefault();
@@ -300,7 +300,7 @@ function PickerRow({
               }}
               placeholder="—"
               aria-label={`Quantity for ${collectionName}`}
-              className="border-input bg-background focus-visible:ring-ring h-6 w-20 rounded-md border px-1.5 text-[11px] tabular-nums focus-visible:outline-none focus-visible:ring-2"
+              className="border-input bg-background focus-visible:ring-ring h-6 w-20 rounded-md border px-1.5 text-base tabular-nums focus-visible:outline-none focus-visible:ring-2 sm:text-[11px]"
             />
           </label>
           <label className="flex items-center gap-2 text-[11px]">
@@ -323,7 +323,7 @@ function PickerRow({
               }}
               placeholder="Optional note"
               aria-label={`Note for ${collectionName}`}
-              className="border-input bg-background focus-visible:ring-ring h-6 min-w-0 flex-1 rounded-md border px-1.5 text-[11px] focus-visible:outline-none focus-visible:ring-2"
+              className="border-input bg-background focus-visible:ring-ring h-6 min-w-0 flex-1 rounded-md border px-1.5 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-[11px]"
             />
           </label>
         </div>

@@ -32,12 +32,12 @@ export function ListSortControl({ fields, value, onChange }: ListSortControlProp
         <Icon className="h-3.5 w-3.5" />
         Sort
       </summary>
-      <div className="border-border bg-card text-card-foreground absolute right-0 z-20 mt-1 min-w-[14rem] rounded-md border p-2 shadow-md">
+      <div className="border-border bg-card text-card-foreground absolute right-0 z-20 mt-1 min-w-[14rem] max-w-[calc(100vw-1rem)] rounded-md border p-2 shadow-md">
         <label className="text-muted-foreground block px-1 pb-1 text-xs uppercase tracking-wide">
           Sort by
         </label>
         <select
-          className="border-input bg-background mb-3 block w-full rounded-md border px-2 py-1 text-sm"
+          className="border-input bg-background mb-3 block w-full rounded-md border px-2 py-1 text-base sm:text-sm"
           value={value.field}
           onChange={(e) => onChange({ field: e.target.value, dir: value.dir ?? 'asc' })}
         >

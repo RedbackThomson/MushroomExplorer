@@ -94,9 +94,9 @@ export default function MobDetail() {
       header={
         <header className="flex items-center gap-3">
           <EntityIcon entity="mob" id={m.id} size={96} placeholder={Skull} alt={m.name} />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-tight">{m.name}</h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-tight break-words">{m.name}</h1>
               {m.isBoss && (
                 <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                   <Crown className="h-3 w-3" /> Boss
@@ -189,7 +189,7 @@ export default function MobDetail() {
                     to={`/maps/${mp.id}?viewer=mob:${m.id}`}
                     aria-label={`Show ${m.name} on ${mp.name ?? `Map ${mp.id}`}`}
                     title="Show on map"
-                    className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
+                    className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-primary/60 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100 max-md:opacity-100"
                   >
                     <MapPin className="h-4 w-4" />
                   </Link>

@@ -45,11 +45,16 @@ export function EntityIcon({
     ? { maxWidth: `${fit.maxWidth}px`, maxHeight: `${fit.maxHeight}px` }
     : { width: dim, height: dim };
 
+  // `fit` containers stretch to fill their parent up to a cap, so they should
+  // *not* be flex-shrink-locked; fixed-size icons should.
+  const shrinkClass = fit ? '' : 'shrink-0';
+
   if (!url) {
     return (
       <span
         className={cn(
           'bg-muted text-muted-foreground inline-flex items-center justify-center rounded',
+          shrinkClass,
           className,
         )}
         style={boxStyle}
@@ -67,6 +72,7 @@ export function EntityIcon({
       <span
         className={cn(
           'bg-destructive/15 text-destructive inline-flex items-center justify-center rounded',
+          shrinkClass,
           className,
         )}
         style={boxStyle}
@@ -81,7 +87,11 @@ export function EntityIcon({
     <img
       src={url}
       alt={alt ?? ''}
-      className={cn('inline-block rounded object-contain', fit ? 'h-auto w-auto' : '', className)}
+      className={cn(
+        'inline-block rounded object-contain',
+        fit ? 'h-auto w-auto' : 'shrink-0',
+        className,
+      )}
       style={boxStyle}
       onError={(e) => {
         log.warn('img onError', { entity, id, event: e.type });

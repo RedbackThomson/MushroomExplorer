@@ -147,7 +147,7 @@ export function MemberRow({ member, name }: MemberRowProps) {
             }}
             autoFocus
             placeholder="Add a note…"
-            className="border-input bg-background focus-visible:ring-ring h-7 min-w-0 flex-1 rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2"
+            className="border-input bg-background focus-visible:ring-ring h-7 min-w-0 flex-1 rounded-md border px-2 text-base focus-visible:outline-none focus-visible:ring-2 sm:text-xs"
           />
         ) : (
           <button
@@ -185,7 +185,7 @@ export function MemberRow({ member, name }: MemberRowProps) {
             }}
             placeholder="—"
             aria-label="Target quantity"
-            className="border-input bg-background focus-visible:ring-ring h-7 w-16 rounded-md border px-2 text-xs tabular-nums focus-visible:outline-none focus-visible:ring-2"
+            className="border-input bg-background focus-visible:ring-ring h-7 w-16 rounded-md border px-2 text-base tabular-nums focus-visible:outline-none focus-visible:ring-2 sm:text-xs"
           />
         </label>
       </div>

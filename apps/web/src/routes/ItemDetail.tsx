@@ -86,8 +86,8 @@ export default function ItemDetail() {
       header={
         <header className="flex items-center gap-3">
           <ItemIcon entity="item" id={item.id} size={48} alt={item.name} />
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{item.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight break-words">{item.name}</h1>
             <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-mono">{item.id}</span>
               {item.subcategory && <Badge tone="slate">{item.subcategory}</Badge>}

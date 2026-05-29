@@ -321,11 +321,14 @@ export function Sidebar({ variant = 'desktop' }: SidebarProps = {}) {
               </li>
             );
           })}
-        </ul>
-        <div className={cn('border-border mt-3 space-y-1 border-t pt-3', collapsed && 'mx-1')}>
+          <li
+            role="separator"
+            aria-hidden
+            className={cn('border-border my-2 border-t', collapsed && 'mx-1')}
+          />
           <NavItem to="/settings" icon={SettingsIcon} label="Settings" collapsed={collapsed} />
           <NavItem to="/debug" icon={Wrench} label="Diagnostics" collapsed={collapsed} />
-        </div>
+        </ul>
       </nav>
       <div className="border-border border-t">
         <OfflineIndicator collapsed={collapsed} />

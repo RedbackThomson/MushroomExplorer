@@ -157,9 +157,11 @@ export default function MapDetail() {
         maxWidth="max-w-5xl"
         header={
           <header className="flex items-center gap-3">
-            <MapIcon className="text-muted-foreground h-12 w-12" />
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">{m.name ?? `Map ${m.id}`}</h1>
+            <MapIcon className="text-muted-foreground h-12 w-12 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <h1 className="text-3xl font-semibold tracking-tight break-words">
+                {m.name ?? `Map ${m.id}`}
+              </h1>
               {m.streetName && <p className="text-muted-foreground text-sm">{m.streetName}</p>}
               <p className="text-muted-foreground font-mono text-xs">{m.id}</p>
             </div>
@@ -268,7 +270,7 @@ export default function MapDetail() {
                       onClick={() => openViewer({ kind: 'npc', key: String(n.npcId) })}
                       aria-label={`Show ${n.name ?? `NPC ${n.npcId}`} on map`}
                       title="Show on map"
-                      className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
+                      className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100 max-md:opacity-100"
                     >
                       <MapPin className="h-4 w-4" />
                     </button>
@@ -316,7 +318,7 @@ export default function MapDetail() {
                       onClick={() => openViewer({ kind: 'mob', key: String(mob.mobId) })}
                       aria-label={`Show ${mob.name ?? `Mob ${mob.mobId}`} on map`}
                       title="Show on map"
-                      className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
+                      className="text-muted-foreground hover:bg-background hover:text-foreground inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100 max-md:opacity-100"
                     >
                       <MapPin className="h-4 w-4" />
                     </button>

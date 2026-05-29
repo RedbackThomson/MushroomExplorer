@@ -41,18 +41,24 @@ export function CommandDialog({
     <Dialog {...props}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden p-0 sm:max-w-2xl"
+        // Below `md` the palette covers the whole viewport — centered modals
+        // are awkward on narrow phones where the on-screen keyboard already
+        // claims half the height. Override translate/positioning so the
+        // dialog fills the screen instead of staying centered.
+        className="flex flex-col overflow-hidden p-0 max-md:inset-0 max-md:h-[100dvh] max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none sm:max-w-2xl"
         aria-label={label ?? 'Command palette'}
       >
         <Command
           label={label ?? 'Command palette'}
           shouldFilter={shouldFilter}
-          className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          className="min-h-0 flex-1 [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           {children}
         </Command>
         {footer && (
-          <div className="border-border bg-muted/40 text-muted-foreground border-t px-3 py-2 text-[11px]">
+          // Keyboard hints aren't useful on touch — hide them on mobile so the
+          // list claims the recovered vertical space.
+          <div className="border-border bg-muted/40 text-muted-foreground hidden border-t px-3 py-2 text-[11px] md:block">
             {footer}
           </div>
         )}
@@ -70,7 +76,7 @@ export const CommandInput = forwardRef<
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        'placeholder:text-muted-foreground flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50',
+        'placeholder:text-muted-foreground flex h-11 w-full rounded-md bg-transparent py-3 text-base outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm',
         className,
       )}
       {...props}
@@ -85,7 +91,12 @@ export const CommandList = forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn('max-h-[420px] overflow-y-auto overflow-x-hidden', className)}
+    className={cn(
+      // Cap height on desktop so the dialog stays a tidy box; let the list
+      // claim the available height when the dialog fills the viewport.
+      'max-h-[420px] flex-1 overflow-y-auto overflow-x-hidden max-md:max-h-none',
+      className,
+    )}
     {...props}
   />
 ));

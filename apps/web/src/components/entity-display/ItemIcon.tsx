@@ -28,7 +28,7 @@ export function ItemIcon({ entity, id, size = 32, className, alt }: Props) {
     return (
       <span
         className={cn(
-          'bg-muted text-muted-foreground inline-flex items-center justify-center rounded',
+          'bg-muted text-muted-foreground inline-flex shrink-0 items-center justify-center rounded',
           className,
         )}
         style={{ width: dim, height: dim }}
@@ -45,7 +45,7 @@ export function ItemIcon({ entity, id, size = 32, className, alt }: Props) {
     return (
       <span
         className={cn(
-          'bg-destructive/15 text-destructive inline-flex items-center justify-center rounded',
+          'bg-destructive/15 text-destructive inline-flex shrink-0 items-center justify-center rounded',
           className,
         )}
         style={{ width: dim, height: dim }}
@@ -62,7 +62,7 @@ export function ItemIcon({ entity, id, size = 32, className, alt }: Props) {
       width={size}
       height={size}
       alt={alt ?? ''}
-      className={cn('inline-block rounded', className)}
+      className={cn('inline-block shrink-0 rounded', className)}
       style={{ width: dim, height: dim }}
       onError={(e) => {
         log.warn('img onError', { entity, id, event: e.type });

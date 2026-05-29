@@ -172,7 +172,7 @@ export default function Debug() {
             value={lookupPath}
             onChange={(e) => setLookupPath(e.target.value)}
             placeholder="e.g. String.wz/Eqp.img/Eqp/Cap/1002000/name"
-            className="border-input bg-background h-9 flex-1 rounded-md border px-3 font-mono text-sm"
+            className="border-input bg-background h-9 flex-1 rounded-md border px-3 font-mono text-base sm:text-sm"
             onKeyDown={(e) => {
               if (e.key === 'Enter') runLookup();
             }}

@@ -185,7 +185,7 @@ export function PinnedSearchesMenu({ entity, filtersActive }: Props) {
                     }}
                     placeholder="Name this search…"
                     disabled={!filtersActive}
-                    className="border-input bg-background focus-visible:ring-ring placeholder:text-muted-foreground h-7 w-full rounded-md border pl-7 pr-2 text-xs focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-input bg-background focus-visible:ring-ring placeholder:text-muted-foreground h-7 w-full rounded-md border pl-7 pr-2 text-base focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xs"
                   />
                 </div>
                 <Button
