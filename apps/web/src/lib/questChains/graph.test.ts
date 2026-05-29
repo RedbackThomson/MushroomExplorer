@@ -416,6 +416,157 @@ describe('computeQuestChains', () => {
       expect(r[0].externalEdges).toEqual([]);
     });
 
+    it('force-merges a cross-parent cycle into one chain (not two mutually-gating chains)', () => {
+      // Two quests in different parents that mutually unlock each other.
+      // Under strict parent-bounded grouping these would split into two
+      // chains that point at each other as "Unlocked by", which is
+      // unsequenceable and confusing. The SCC pre-pass force-unions any
+      // multi-quest SCC so the cycle stays inside one chain regardless of
+      // parent.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2],
+          edges: [
+            [1, 2],
+            [2, 1],
+          ],
+          names: { 1: 'X', 2: 'Y' },
+          parents: { 1: 'P1', 2: 'P2' },
+        }),
+      );
+      expect(r).toHaveLength(1);
+      const c = r[0];
+      expect(c.size).toBe(2);
+      expect(c.hasCycles).toBe(true);
+      expect(c.cycleCount).toBe(1);
+      expect(c.rootCount).toBe(0);
+      // Both edges are internal to the chain; neither escapes as an
+      // external prereq.
+      expect(c.edges).toHaveLength(2);
+      expect(c.edges.every((e) => e.inCycle)).toBe(true);
+      expect(c.externalEdges).toEqual([]);
+      // Both members share the same cyclic SCC.
+      const sccIds = new Set(c.members.map((m) => m.sccId));
+      expect(sccIds.size).toBe(1);
+      expect([...sccIds][0]).not.toBeNull();
+    });
+
+    it('force-merges a longer cross-parent cycle threading three parents', () => {
+      // A (P1) → B (P2) → C (P3) → A — three quests, three parents, one
+      // SCC. All three must collapse into one chain; no external edges.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3],
+          edges: [
+            [1, 2],
+            [2, 3],
+            [3, 1],
+          ],
+          parents: { 1: 'P1', 2: 'P2', 3: 'P3' },
+        }),
+      );
+      expect(r).toHaveLength(1);
+      const c = r[0];
+      expect(c.size).toBe(3);
+      expect(c.cycleCount).toBe(1);
+      expect(c.externalEdges).toEqual([]);
+      expect(c.members.every((m) => m.sccId !== null)).toBe(true);
+    });
+
+    it('force-merges parent-grouped chains that gate each other (chain-level SCC, no quest-level cycle)', () => {
+      // Two parent-grouped storylines that interleave:
+      //   P1: X1 → X2 → X3
+      //   P2: Y1 → Y2
+      // Cross-parent edges go both directions across the boundary:
+      //   X2 → Y1   (P1 unlocks P2)
+      //   Y1 → X3   (P2 unlocks rest of P1)
+      // No directed cycle exists at the quest level — X3 is a sink — but
+      // at the chain level the two parent-bounded chains point at each
+      // other, so they MUST collapse into one chain. Splitting them
+      // would leave each chain "unlocked by" the other with no entry.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3, 4, 5],
+          edges: [
+            [1, 2],
+            [2, 3],
+            [4, 5],
+            [2, 4], // X2 → Y1
+            [4, 3], // Y1 → X3
+          ],
+          names: { 1: 'X1', 2: 'X2', 3: 'X3', 4: 'Y1', 5: 'Y2' },
+          parents: { 1: 'P1', 2: 'P1', 3: 'P1', 4: 'P2', 5: 'P2' },
+        }),
+      );
+      expect(r).toHaveLength(1);
+      const c = r[0];
+      expect(c.size).toBe(5);
+      // No quest-level cycle exists, so no SCC of size > 1.
+      expect(c.hasCycles).toBe(false);
+      expect(c.cycleCount).toBe(0);
+      // All cross-parent edges are now internal — none surface as external.
+      expect(c.externalEdges).toEqual([]);
+    });
+
+    it('three-way chain-level cycle merges all three parent chains', () => {
+      // Three parent chains, each fans an edge to the next:
+      //   A1 → A2 (parent "A"), B1 → B2 (parent "B"), C1 → C2 (parent "C")
+      //   A2 → B1, B2 → C1, C2 → A1  — forms a cycle at the chain level.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3, 4, 5, 6],
+          edges: [
+            [1, 2],
+            [3, 4],
+            [5, 6],
+            [2, 3], // A → B
+            [4, 5], // B → C
+            [6, 1], // C → A
+          ],
+          parents: {
+            1: 'A', 2: 'A',
+            3: 'B', 4: 'B',
+            5: 'C', 6: 'C',
+          },
+        }),
+      );
+      expect(r).toHaveLength(1);
+      expect(r[0].size).toBe(6);
+      // 6→1 closes a quest-level cycle, so the cycle pre-pass kicks in.
+      expect(r[0].hasCycles).toBe(true);
+      expect(r[0].externalEdges).toEqual([]);
+    });
+
+    it('cross-parent acyclic edge still splits — only cycles force-merge', () => {
+      // Acyclic cross-parent edge A → B (no return edge). The cycle
+      // pre-pass shouldn't union these — A and B sit in their own chains
+      // (or alone) and the edge surfaces as external. This is the
+      // regression guard that the SCC pre-pass doesn't merge too eagerly.
+      const r = computeQuestChains(
+        build({
+          ids: [1, 2, 3, 4],
+          edges: [
+            [1, 2],
+            [2, 3], // cross-parent: P1 → P2
+            [3, 4],
+          ],
+          parents: { 1: 'P1', 2: 'P1', 3: 'P2', 4: 'P2' },
+        }),
+      );
+      expect(r).toHaveLength(2);
+      // Edge 2→3 surfaces as external; the two chains are not merged.
+      const a = r.find((c) => c.id === 1)!;
+      const b = r.find((c) => c.id === 3)!;
+      expect(a.size).toBe(2);
+      expect(b.size).toBe(2);
+      expect(a.externalEdges).toContainEqual({
+        direction: 'out',
+        internalQuestId: 2,
+        externalQuestId: 3,
+        externalChainId: 3,
+      });
+    });
+
     it('NULL parent does not merge with a named parent', () => {
       // Quest 1 has no parent; Quest 2 has parent="P1". Edge 1→2 must
       // stay external (different parent values, one null one not).

@@ -1,22 +1,35 @@
 // Pure (no React, no SQLite) derivation of quest "chains" from a directed
 // graph of quest prerequisites.
 //
-// A chain is a *parent-bounded* weakly-connected component: two quests are
-// in the same chain when they share the same `parent` value AND there is an
-// undirected path of prereq edges between them. Edges that cross parent
-// boundaries (e.g. one "hub" quest unlocking several unrelated storylines)
-// do NOT merge the chains — they are surfaced as external prereqs so the
+// A chain is a *parent-bounded* weakly-connected component, with two
+// overrides for cycles:
+//   1. Quests sharing a multi-quest SCC (a directed cycle in the
+//      quest-level graph, however indirect) are always in the same chain
+//      regardless of `parent`.
+//   2. After parent-bounded grouping, any chain-level cycle (chain A has
+//      an out-edge to chain B AND chain B has an out-edge back to A,
+//      possibly indirectly) is collapsed: the entire chain-level SCC
+//      merges into one chain.
+// Both overrides exist for the same reason — cycles can't be sequenced
+// one-at-a-time, so leaving them split would produce two chains that
+// mutually gate each other, which is unsequenceable and confusing.
+//
+// Concretely: two quests sit in the same chain when ANY of
+//   (a) they're members of the same multi-quest SCC (quest-level cycles merge), OR
+//   (b) they share a `parent` value and an undirected path of prereq edges
+//       connects them (the regular case — NULL counts as a value, so
+//       unlabelled quests merge among themselves but never with named
+//       parents), OR
+//   (c) their parent-bounded chains sit in the same chain-level SCC
+//       (chain-level cycles merge).
+// Edges that cross parent boundaries one-way (the "hub fanning out to
+// several storylines" case) are surfaced as external prereqs so the
 // detail page can render an "Unlocked by" / "Unlocks" section without
-// melting two storylines into one. NULL-parent quests fall back to plain
-// WCC grouping among themselves so unlabelled data still produces chains.
+// merging two storylines into one chain.
 //
 // Chains of size 1 (an isolated quest with no in-chain edges) are not
 // persisted; the smallest persisted chain has two quests.
 //
-// The directed graph is not assumed acyclic. Tarjan's SCC algorithm, run
-// per-chain on the within-chain adjacency, finds cycles; the condensation
-// gives a DAG over super-nodes; chain members in a cyclic SCC are flagged
-// so the UI can render them as a grouped block with a cycle indicator.
 // Edge direction is "prereq → dependent".
 
 export interface PrereqEdge {
@@ -130,12 +143,18 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     if (e.from === e.to) selfLoops.add(e.from);
   }
 
-  // Union-find over the undirected projection, restricted to edges whose
-  // endpoints share a parent. Two quests with the same non-null parent
-  // can be merged; two NULL-parent quests can be merged via the fallback;
-  // a NULL-parent quest never merges with a non-NULL one (since their
-  // parent values differ). `parentOf` normalises undefined → null so the
-  // comparison is consistent.
+  // Global Tarjan SCC over the full directed graph. Two roles:
+  //   1. Drives the force-union step below — any multi-quest SCC is a
+  //      cycle, and a cycle's members must share a chain regardless of
+  //      their `parent` values.
+  //   2. Provides per-chain cycle detection and `scc_id` assignment
+  //      without each chain having to re-run Tarjan locally.
+  const sccs = tarjanScc(questIds, out);
+  const sccIndexOf = new Map<number, number>();
+  for (let i = 0; i < sccs.length; i++) {
+    for (const q of sccs[i]) sccIndexOf.set(q, i);
+  }
+
   const parentOf = (id: number): string | null => questParents.get(id) ?? null;
   const ufParent = new Map<number, number>();
   for (const id of questIds) ufParent.set(id, id);
@@ -153,8 +172,60 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     const rb = find(b);
     if (ra !== rb) ufParent.set(ra, rb);
   };
+
+  // Pre-pass: force-union every multi-quest SCC. A cycle that spans
+  // parent boundaries (e.g. quest A in parent P1 unlocks quest B in P2,
+  // and B unlocks A) must produce one chain — splitting it would render
+  // two chains that mutually gate each other with no entry point. Singleton
+  // SCCs (including self-loops) don't need force-union; the parent-bounded
+  // pass below handles them.
+  for (const scc of sccs) {
+    if (scc.length <= 1) continue;
+    for (let i = 1; i < scc.length; i++) union(scc[0], scc[i]);
+  }
+
+  // Main pass: parent-bounded union. Two quests with the same non-null
+  // parent can be merged; two NULL-parent quests can be merged via the
+  // fallback; a NULL-parent quest never merges with a non-NULL one (the
+  // parent values differ). Cross-parent edges that aren't already merged
+  // by the force-union above are surfaced as external prereqs later.
   for (const e of dedupedEdges) {
     if (parentOf(e.from) === parentOf(e.to)) union(e.from, e.to);
+  }
+
+  // Chain-level SCC pass. The parent-bounded union above can produce
+  // chains that mutually gate each other (chain A has a one-way edge to
+  // chain B, and chain B has an unrelated one-way edge back to A — no
+  // quest-level cycle, but the storylines genuinely interleave). Build
+  // the condensed chain-level directed graph and force-union any SCC
+  // with more than one chain in it, so interleaved storylines collapse
+  // into one chain.
+  const chainNodes: number[] = [];
+  const chainAdj = new Map<number, number[]>();
+  {
+    const seenChains = new Set<number>();
+    for (const id of questIds) {
+      const r = find(id);
+      if (seenChains.has(r)) continue;
+      seenChains.add(r);
+      chainNodes.push(r);
+      chainAdj.set(r, []);
+    }
+    const seenChainEdges = new Set<string>();
+    for (const e of dedupedEdges) {
+      const a = find(e.from);
+      const b = find(e.to);
+      if (a === b) continue;
+      const key = `${a}>${b}`;
+      if (seenChainEdges.has(key)) continue;
+      seenChainEdges.add(key);
+      chainAdj.get(a)!.push(b);
+    }
+  }
+  const chainSccs = tarjanScc(chainNodes, chainAdj);
+  for (const scc of chainSccs) {
+    if (scc.length <= 1) continue;
+    for (let i = 1; i < scc.length; i++) union(scc[0], scc[i]);
   }
 
   const wccs = new Map<number, number[]>();
@@ -175,44 +246,35 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     if (memberIds.length < 2) continue;
     const memberSet = new Set(memberIds);
 
-    // Within-WCC adjacency for Tarjan and condensation. By construction
-    // all edges between WCC members share the WCC's parent, so this also
-    // filters out cross-parent edges.
-    const innerAdj = new Map<number, number[]>();
-    for (const q of memberIds) innerAdj.set(q, []);
-    for (const e of dedupedEdges) {
-      if (memberSet.has(e.from) && memberSet.has(e.to)) {
-        innerAdj.get(e.from)!.push(e.to);
-      }
-    }
+    // SCCs touching this WCC. By force-union construction every multi-quest
+    // SCC sits entirely within one WCC, so we just collect the SCC indices
+    // of this WCC's members.
+    const sccsInWcc = new Set<number>();
+    for (const q of memberIds) sccsInWcc.add(sccIndexOf.get(q)!);
 
-    // Per-WCC Tarjan SCC. SCC indices are local to this chain — that's
-    // fine, we only persist a `scc_id` for cyclic SCCs anyway.
-    const sccs = tarjanScc(memberIds, innerAdj);
-    const sccIndexOf = new Map<number, number>();
-    for (let i = 0; i < sccs.length; i++) {
-      for (const q of sccs[i]) sccIndexOf.set(q, i);
-    }
-
+    // Local scc_id mapping — chain-local 1..N, NULL persistence sentinel 0
+    // for non-cyclic singletons.
     const localSccId = new Map<number, number>();
     let cycleCount = 0;
-    for (let i = 0; i < sccs.length; i++) {
-      const scc = sccs[i];
+    for (const gi of sccsInWcc) {
+      const scc = sccs[gi];
       const cyclic = scc.length > 1 || selfLoops.has(scc[0]);
       if (cyclic) {
         cycleCount++;
-        localSccId.set(i, cycleCount);
+        localSccId.set(gi, cycleCount);
       } else {
-        localSccId.set(i, 0);
+        localSccId.set(gi, 0);
       }
     }
 
-    // Condensation graph (within this WCC).
+    // Condensation graph (within this WCC). All edges where both endpoints
+    // are members count — including the cross-parent edges that were
+    // force-unioned via their shared SCC.
     const condOut = new Map<number, Set<number>>();
     const condIncoming = new Map<number, number>();
-    for (let i = 0; i < sccs.length; i++) {
-      condOut.set(i, new Set());
-      condIncoming.set(i, 0);
+    for (const gi of sccsInWcc) {
+      condOut.set(gi, new Set());
+      condIncoming.set(gi, 0);
     }
     for (const e of dedupedEdges) {
       if (!memberSet.has(e.from) || !memberSet.has(e.to)) continue;
@@ -229,10 +291,10 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     // Multi-source BFS from condensation roots → per-SCC depth.
     const sccDepth = new Map<number, number>();
     const queue: number[] = [];
-    for (let i = 0; i < sccs.length; i++) {
-      if ((condIncoming.get(i) ?? 0) === 0) {
-        sccDepth.set(i, 0);
-        queue.push(i);
+    for (const gi of sccsInWcc) {
+      if ((condIncoming.get(gi) ?? 0) === 0) {
+        sccDepth.set(gi, 0);
+        queue.push(gi);
       }
     }
     while (queue.length) {
@@ -245,7 +307,7 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
         }
       }
     }
-    for (let i = 0; i < sccs.length; i++) if (!sccDepth.has(i)) sccDepth.set(i, 0);
+    for (const gi of sccsInWcc) if (!sccDepth.has(gi)) sccDepth.set(gi, 0);
 
     let maxDepth = 0;
     for (const d of sccDepth.values()) if (d > maxDepth) maxDepth = d;
@@ -261,19 +323,21 @@ export function computeQuestChains(input: QuestChainGraphInput): ComputedQuestCh
     const rootSet = new Set(roots);
 
     // Critical path: ancestors of the deepest SCC (tiebroken lowest min id).
+    // Scoped to this WCC's SCCs — the global SCC index space includes SCCs
+    // from every other chain too, which must not influence this one.
     const condIn = new Map<number, Set<number>>();
-    for (let i = 0; i < sccs.length; i++) condIn.set(i, new Set());
+    for (const gi of sccsInWcc) condIn.set(gi, new Set());
     for (const [from, tos] of condOut) {
       for (const to of tos) condIn.get(to)!.add(from);
     }
     let finalScc = -1;
     let finalSccDepth = -1;
     let finalSccTiebreak = Infinity;
-    for (let i = 0; i < sccs.length; i++) {
-      const d = sccDepth.get(i) ?? 0;
-      const minQ = Math.min(...sccs[i]);
+    for (const gi of sccsInWcc) {
+      const d = sccDepth.get(gi) ?? 0;
+      const minQ = Math.min(...sccs[gi]);
       if (d > finalSccDepth || (d === finalSccDepth && minQ < finalSccTiebreak)) {
-        finalScc = i;
+        finalScc = gi;
         finalSccDepth = d;
         finalSccTiebreak = minQ;
       }
