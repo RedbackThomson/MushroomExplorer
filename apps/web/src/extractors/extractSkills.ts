@@ -187,9 +187,11 @@ export async function extractSkills(
     // each row carries its own `level` column and gets ordered server-side
     // on read.
     const levelChildren = await source.listChildren(`${skillPath}/level`);
+    let highestLevel: number | null = null;
     for (const lvlNode of levelChildren) {
       const level = Number(lvlNode.name);
       if (!Number.isFinite(level) || level <= 0) continue;
+      if (highestLevel === null || level > highestLevel) highestLevel = level;
       const fields = await source.listChildren(lvlNode.fullPath);
       const knownNumeric: Record<string, number | null> = {};
       const unknown: Record<string, unknown> = {};
@@ -243,7 +245,7 @@ export async function extractSkills(
       name,
       description,
       tooltip,
-      maxLevel: maxLevelN,
+      maxLevel: maxLevelN ?? highestLevel,
       masterLevel: masterLevelN,
       hidden: invisibleN === 1,
       element,

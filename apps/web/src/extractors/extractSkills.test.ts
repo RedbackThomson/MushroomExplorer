@@ -214,6 +214,82 @@ describe('extractSkills', () => {
     expect(result.prerequisites).toEqual([]);
   });
 
+  it('falls back to the highest level when common/maxLevel is missing', async () => {
+    const source = makeSource(
+      {
+        'Skill.wz': [
+          { name: '700.img', fullPath: 'Skill.wz/700.img', kind: 'image', hasChildren: true },
+        ],
+        'Skill.wz/700.img/skill': [
+          { name: '7000000', fullPath: 'Skill.wz/700.img/skill/7000000', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/700.img/skill/7000000/req': [],
+        'Skill.wz/700.img/skill/7000000/level': [
+          { name: '1', fullPath: 'Skill.wz/700.img/skill/7000000/level/1', kind: 'property', hasChildren: true },
+          { name: '15', fullPath: 'Skill.wz/700.img/skill/7000000/level/15', kind: 'property', hasChildren: true },
+          { name: '20', fullPath: 'Skill.wz/700.img/skill/7000000/level/20', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/700.img/skill/7000000/level/1': [leaf('mpCon', '', 10)],
+        'Skill.wz/700.img/skill/7000000/level/15': [leaf('mpCon', '', 24)],
+        'Skill.wz/700.img/skill/7000000/level/20': [leaf('mpCon', '', 30)],
+      },
+      {
+        'String.wz/Skill.img/7000000/name': leaf('name', '', 'No Max', 'string'),
+      },
+    );
+
+    const result = await extractSkills(source);
+    expect(result.skills[0].maxLevel).toBe(20);
+  });
+
+  it('prefers common/maxLevel over the inferred highest level', async () => {
+    const source = makeSource(
+      {
+        'Skill.wz': [
+          { name: '710.img', fullPath: 'Skill.wz/710.img', kind: 'image', hasChildren: true },
+        ],
+        'Skill.wz/710.img/skill': [
+          { name: '7100000', fullPath: 'Skill.wz/710.img/skill/7100000', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/710.img/skill/7100000/req': [],
+        'Skill.wz/710.img/skill/7100000/level': [
+          { name: '1', fullPath: 'Skill.wz/710.img/skill/7100000/level/1', kind: 'property', hasChildren: true },
+          { name: '2', fullPath: 'Skill.wz/710.img/skill/7100000/level/2', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/710.img/skill/7100000/level/1': [leaf('mpCon', '', 10)],
+        'Skill.wz/710.img/skill/7100000/level/2': [leaf('mpCon', '', 12)],
+      },
+      {
+        'String.wz/Skill.img/7100000/name': leaf('name', '', 'Capped', 'string'),
+        'Skill.wz/710.img/skill/7100000/common/maxLevel': leaf('maxLevel', '', 30),
+      },
+    );
+
+    const result = await extractSkills(source);
+    expect(result.skills[0].maxLevel).toBe(30);
+  });
+
+  it('leaves maxLevel null when no levels and no common/maxLevel exist', async () => {
+    const source = makeSource(
+      {
+        'Skill.wz': [
+          { name: '720.img', fullPath: 'Skill.wz/720.img', kind: 'image', hasChildren: true },
+        ],
+        'Skill.wz/720.img/skill': [
+          { name: '7200000', fullPath: 'Skill.wz/720.img/skill/7200000', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/720.img/skill/7200000/req': [],
+        'Skill.wz/720.img/skill/7200000/level': [],
+      },
+      {
+        'String.wz/Skill.img/7200000/name': leaf('name', '', 'Empty', 'string'),
+      },
+    );
+
+    const result = await extractSkills(source);
+    expect(result.skills[0].maxLevel).toBeNull();
+  });
+
   it('orders level rows by their level number, not WZ child order', async () => {
     const source = makeSource(
       {
