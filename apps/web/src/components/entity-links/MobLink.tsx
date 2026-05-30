@@ -82,7 +82,7 @@ export function MobHoverCard({ id }: { id: number }) {
           )}
           <dl className="text-muted-foreground grid grid-cols-3 gap-1 text-[11px]">
             <div>
-              <dt className="uppercase tracking-wide">Lv</dt>
+              <dt className="uppercase tracking-wide">Lvl</dt>
               <dd className="text-foreground font-mono">{m.level ?? '—'}</dd>
             </div>
             <div>

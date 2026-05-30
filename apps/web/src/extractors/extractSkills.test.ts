@@ -110,6 +110,34 @@ describe('extractSkills', () => {
     expect(result.prerequisites).toEqual([]);
   });
 
+  it('unescapes \\n in description and tooltip strings', async () => {
+    const source = makeSource(
+      {
+        'Skill.wz': [
+          { name: '220.img', fullPath: 'Skill.wz/220.img', kind: 'image', hasChildren: true },
+        ],
+        'Skill.wz/220.img/skill': [
+          { name: '2200000', fullPath: 'Skill.wz/220.img/skill/2200000', kind: 'property', hasChildren: true },
+        ],
+        'Skill.wz/220.img/skill/2200000/req': [],
+        'Skill.wz/220.img/skill/2200000/level': [],
+      },
+      {
+        'String.wz/Skill.img/2200000/desc': leaf(
+          'desc',
+          '',
+          'First line.\\nSecond line.\\nThird line.',
+          'string',
+        ),
+        'String.wz/Skill.img/2200000/h': leaf('h', '', 'Top.\\nBottom.', 'string'),
+      },
+    );
+
+    const result = await extractSkills(source);
+    expect(result.skills[0].description).toBe('First line.\nSecond line.\nThird line.');
+    expect(result.skills[0].tooltip).toBe('Top.\nBottom.');
+  });
+
   it('falls back through h1/h2 when h is missing', async () => {
     const source = makeSource(
       {

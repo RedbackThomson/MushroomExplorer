@@ -79,7 +79,11 @@ export function SkillHoverCard({ id }: { id: number }) {
           {showIds && (
             <div className="text-muted-foreground font-mono text-[10px]">Skill #{id}</div>
           )}
-          <dl className="text-muted-foreground grid grid-cols-3 gap-1 text-[11px]">
+          <dl
+            className={`text-muted-foreground grid gap-1 text-[11px] ${
+              element ?? s.element ? 'grid-cols-3' : 'grid-cols-2'
+            }`}
+          >
             <div>
               <dt className="uppercase tracking-wide">Job</dt>
               <dd className="text-foreground">
@@ -100,10 +104,12 @@ export function SkillHoverCard({ id }: { id: number }) {
               <dt className="uppercase tracking-wide">Max</dt>
               <dd className="text-foreground font-mono">{s.maxLevel ?? '—'}</dd>
             </div>
-            <div>
-              <dt className="uppercase tracking-wide">Elem</dt>
-              <dd className="text-foreground">{element ?? s.element ?? '—'}</dd>
-            </div>
+            {(element ?? s.element) && (
+              <div>
+                <dt className="uppercase tracking-wide">Elem</dt>
+                <dd className="text-foreground">{element ?? s.element}</dd>
+              </div>
+            )}
           </dl>
           {weapon && (
             <p className="text-muted-foreground truncate text-[11px]">Needs {weapon}</p>

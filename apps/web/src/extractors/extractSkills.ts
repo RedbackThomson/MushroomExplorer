@@ -1,5 +1,6 @@
 import type { GameDataSource } from '@/parser';
 import { pathToNumber, scalarToNumber, scalarToString } from './wzCoerce';
+import { unescapeWzString } from './wzText';
 import type {
   SkillLevelRecord,
   SkillPrerequisiteRecord,
@@ -152,13 +153,14 @@ export async function extractSkills(
     ]);
 
     const name = scalarToString(nameNode?.scalar);
-    const description = scalarToString(descNode?.scalar);
+    const description = unescapeWzString(scalarToString(descNode?.scalar));
     // `h` is the canonical tooltip slot; older dumps split it into `h1`/`h2`
     // when the tooltip needed two paragraphs. Fall back in order.
-    const tooltip =
+    const tooltip = unescapeWzString(
       scalarToString(hNode?.scalar) ??
-      scalarToString(h1Node?.scalar) ??
-      scalarToString(h2Node?.scalar);
+        scalarToString(h1Node?.scalar) ??
+        scalarToString(h2Node?.scalar),
+    );
     const element = scalarToString(elemNode?.scalar);
     // `weapon` may arrive as either a number (cleaner v83 dumps) or a
     // string (some private-server repacks). Persist as a string so the

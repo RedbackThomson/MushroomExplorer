@@ -155,10 +155,14 @@ export default function SkillDetail() {
             </div>
             {showIds && <p className="text-muted-foreground font-mono text-xs">{s.id}</p>}
             {s.description && (
-              <p className="text-muted-foreground mt-2 text-sm">{s.description}</p>
+              <p className="text-muted-foreground mt-2 whitespace-pre-line text-sm leading-relaxed">
+                {s.description}
+              </p>
             )}
             {s.tooltip && s.tooltip !== s.description && (
-              <p className="text-muted-foreground mt-1 text-xs italic">{s.tooltip}</p>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs italic leading-relaxed">
+                {s.tooltip}
+              </p>
             )}
           </div>
         </header>
@@ -189,14 +193,12 @@ export default function SkillDetail() {
             {s.masterLevel !== null && (
               <InfoRow label="Master" value={String(s.masterLevel)} />
             )}
-            <InfoRow
-              label="Element"
-              value={elementLabel ?? s.element ?? '—'}
-            />
-            <InfoRow
-              label="Weapon"
-              value={weaponLabel ?? s.requiredWeapon ?? '—'}
-            />
+            {(elementLabel ?? s.element) && (
+              <InfoRow label="Element" value={elementLabel ?? s.element ?? ''} />
+            )}
+            {(weaponLabel ?? s.requiredWeapon) && (
+              <InfoRow label="Weapon" value={weaponLabel ?? s.requiredWeapon ?? ''} />
+            )}
             {s.hidden && <InfoRow label="Hidden" value="Yes" />}
           </InfoSection>
           <SourceSection path={s.sourcePath} />
@@ -218,7 +220,7 @@ export default function SkillDetail() {
             entity="skill"
             id={p.requiredSkillId}
             name={p.requiredSkillName}
-            meta={`Lv ${p.requiredLevel}`}
+            meta={`Lvl ${p.requiredLevel}`}
           />
         ))}
       </DetailListSection>
@@ -236,7 +238,7 @@ export default function SkillDetail() {
             entity="skill"
             id={p.skillId}
             name={p.requiredSkillName}
-            meta={`needs Lv ${p.requiredLevel}`}
+            meta={`needs Lvl ${p.requiredLevel}`}
           />
         ))}
       </DetailListSection>
@@ -300,7 +302,7 @@ function LevelsTable({
           <thead className="bg-muted/50">
             <tr>
               <th className="text-muted-foreground sticky left-0 z-10 bg-muted/50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">
-                Lv
+                Lvl
               </th>
               {visibleColumns.map((col) => (
                 <th

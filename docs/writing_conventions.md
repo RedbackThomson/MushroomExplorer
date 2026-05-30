@@ -133,6 +133,7 @@ Three parts, in order:
 | library / loaded data | dataset, dataset record, corpus                  | Plain                        |
 | backup file           | `.sqlite3` export, raw dump                      | Hides implementation         |
 | collection            | bookmark folder, saved list (in formal contexts) | The product term             |
+| Lvl                   | Lv, lv, Lvl., level (in compact labels)          | One abbreviation, everywhere |
 
 ---
 
@@ -162,6 +163,7 @@ The codebase used to refer to "Phase 1 / 2 / 3" implementation milestones. **Tho
 - **Counts:** singular vs. plural matters. `1 item`, `0 items`, `12 items`. Use a helper if you're branching inline.
 - **Numbers:** thousands separators in display (`12,345`), monospace font for IDs and counts.
 - **Em dashes** (`—`), not double hyphens (`--`). Curly quotes (`'`, `"`) are fine if surrounding code preserves them; ASCII (`'`, `"`) is also fine. Pick one per file and stay consistent.
+- **Level abbreviation:** `Lvl`, never `Lv` (or `Lv.`, `lv`, `lvl`). Always capital-L. Examples: `Lvl 5`, `needs Lvl 10`, table header `Lvl`. The full word `Level` / `level` is fine when there's room.
 
 ---
 
