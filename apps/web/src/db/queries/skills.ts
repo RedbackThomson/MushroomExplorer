@@ -179,15 +179,25 @@ export function getSkillsRequiring(
 
 export function getSkillQuests(sql: Sqlite, skillId: number): QuestSummary[] {
   return sql
-    .selectObjects<{ id: number; name: string; parent: string | null }>(
-      `SELECT q.id, q.name, q.parent
+    .selectObjects<{
+      id: number;
+      name: string;
+      parent: string | null;
+      required_level: number | null;
+    }>(
+      `SELECT q.id, q.name, q.parent, q.required_level
        FROM quest_rewards r
        JOIN quests q ON q.id = r.quest_id
        WHERE r.kind = 'skill' AND r.target_id = ?
        ORDER BY q.name`,
       [skillId],
     )
-    .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      parent: r.parent,
+      requiredLevel: r.required_level,
+    }));
 }
 
 export function replaceSkillRelations(

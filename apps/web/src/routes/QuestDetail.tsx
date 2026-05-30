@@ -244,6 +244,7 @@ export default function QuestDetail() {
                   entity="quest"
                   id={r.targetId}
                   name={r.targetName}
+                  meta={r.targetLevel !== null ? `Lvl ${r.targetLevel}+` : undefined}
                 />
               ),
           )}

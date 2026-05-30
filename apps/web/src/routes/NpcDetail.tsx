@@ -47,6 +47,7 @@ export default function NpcDetail() {
 
   const questsSort = useListSort(questsQ.data, [
     { id: 'name', label: 'Quest name', get: (q) => q.name },
+    { id: 'level', label: 'Required level', get: (q) => q.requiredLevel },
   ]);
   const mapsSort = useListSort(mapsQ.data, [
     { id: 'name', label: 'Map name', get: (m) => m.name },
@@ -121,7 +122,14 @@ export default function NpcDetail() {
           }
         >
           {questsSort.sorted.map((q) => (
-            <EntityRow key={q.id} entity="quest" id={q.id} name={q.name} subtitle={q.parent} />
+            <EntityRow
+              key={q.id}
+              entity="quest"
+              id={q.id}
+              name={q.name}
+              subtitle={q.parent}
+              meta={q.requiredLevel !== null ? `Lvl ${q.requiredLevel}+` : undefined}
+            />
           ))}
         </DetailListSection>
       )}

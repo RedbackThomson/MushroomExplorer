@@ -256,7 +256,14 @@ export default function SkillDetail() {
           loadingLabel="Loading quests…"
         >
           {(questsQ.data ?? []).map((q) => (
-            <EntityRow key={q.id} entity="quest" id={q.id} name={q.name} subtitle={q.parent} />
+            <EntityRow
+              key={q.id}
+              entity="quest"
+              id={q.id}
+              name={q.name}
+              subtitle={q.parent}
+              meta={q.requiredLevel !== null ? `Lvl ${q.requiredLevel}+` : undefined}
+            />
           ))}
         </DetailListSection>
       )}

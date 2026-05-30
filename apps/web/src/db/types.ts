@@ -432,9 +432,12 @@ export interface QuestRewardRecord {
 }
 
 /** A row from `quest_requirements` joined to the target item/mob/quest's
- *  display name. Targets may be null for `level` / `job` kinds. */
+ *  display name. Targets may be null for `level` / `job` kinds. For
+ *  `questPre` kind, `targetLevel` carries the prerequisite quest's own
+ *  `required_level` so callers can render it on the row. */
 export interface QuestRequirementWithName extends QuestRequirementRecord {
   targetName: string | null;
+  targetLevel: number | null;
 }
 
 /** A row from `quest_rewards` joined to the target item's display name. */
@@ -447,6 +450,7 @@ export interface QuestSummary {
   id: number;
   name: string;
   parent: string | null;
+  requiredLevel: number | null;
 }
 
 /**

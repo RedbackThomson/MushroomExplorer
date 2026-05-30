@@ -141,6 +141,7 @@ export function getQuestRequirements(sql: Sqlite, questId: number): QuestRequire
       target_id: number | null;
       amount: number | null;
       target_name: string | null;
+      target_level: number | null;
     }>(
       `SELECT
          qr.quest_id, qr.kind, qr.target_id, qr.amount,
@@ -149,7 +150,11 @@ export function getQuestRequirements(sql: Sqlite, questId: number): QuestRequire
            WHEN 'mob'  THEN m.name
            WHEN 'questPre' THEN q.name
            ELSE NULL
-         END AS target_name
+         END AS target_name,
+         CASE qr.kind
+           WHEN 'questPre' THEN q.required_level
+           ELSE NULL
+         END AS target_level
        FROM quest_requirements qr
        LEFT JOIN items  i ON qr.kind = 'item'     AND i.id = qr.target_id
        LEFT JOIN equips e ON qr.kind = 'item'     AND e.id = qr.target_id
@@ -165,6 +170,7 @@ export function getQuestRequirements(sql: Sqlite, questId: number): QuestRequire
       targetId: r.target_id,
       amount: r.amount,
       targetName: r.target_name,
+      targetLevel: r.target_level,
     }));
 }
 
@@ -212,39 +218,69 @@ export function getQuestRewards(sql: Sqlite, questId: number): QuestRewardWithNa
 
 export function getNpcQuests(sql: Sqlite, npcId: number): QuestSummary[] {
   return sql
-    .selectObjects<{ id: number; name: string; parent: string | null }>(
-      `SELECT id, name, parent FROM quests
+    .selectObjects<{
+      id: number;
+      name: string;
+      parent: string | null;
+      required_level: number | null;
+    }>(
+      `SELECT id, name, parent, required_level FROM quests
        WHERE start_npc_id = ? OR end_npc_id = ?
        ORDER BY parent NULLS LAST, name`,
       [npcId, npcId],
     )
-    .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      parent: r.parent,
+      requiredLevel: r.required_level,
+    }));
 }
 
 export function getItemQuests(sql: Sqlite, itemId: number): QuestSummary[] {
   return sql
-    .selectObjects<{ id: number; name: string; parent: string | null }>(
-      `SELECT DISTINCT q.id, q.name, q.parent
+    .selectObjects<{
+      id: number;
+      name: string;
+      parent: string | null;
+      required_level: number | null;
+    }>(
+      `SELECT DISTINCT q.id, q.name, q.parent, q.required_level
        FROM quests q
        JOIN quest_requirements qr ON qr.quest_id = q.id
        WHERE qr.kind = 'item' AND qr.target_id = ?
        ORDER BY q.parent NULLS LAST, q.name`,
       [itemId],
     )
-    .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      parent: r.parent,
+      requiredLevel: r.required_level,
+    }));
 }
 
 export function getMobQuests(sql: Sqlite, mobId: number): QuestSummary[] {
   return sql
-    .selectObjects<{ id: number; name: string; parent: string | null }>(
-      `SELECT DISTINCT q.id, q.name, q.parent
+    .selectObjects<{
+      id: number;
+      name: string;
+      parent: string | null;
+      required_level: number | null;
+    }>(
+      `SELECT DISTINCT q.id, q.name, q.parent, q.required_level
        FROM quests q
        JOIN quest_requirements qr ON qr.quest_id = q.id
        WHERE qr.kind = 'mob' AND qr.target_id = ?
        ORDER BY q.parent NULLS LAST, q.name`,
       [mobId],
     )
-    .map((r) => ({ id: r.id, name: r.name, parent: r.parent }));
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      parent: r.parent,
+      requiredLevel: r.required_level,
+    }));
 }
 
 export function replaceQuestRelations(

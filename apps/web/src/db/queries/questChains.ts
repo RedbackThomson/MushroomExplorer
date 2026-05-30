@@ -271,8 +271,9 @@ export function listQuestChains(
       quest_id: number;
       name: string;
       parent: string | null;
+      required_level: number | null;
     }>(
-      `SELECT m.chain_id, m.quest_id, q.name, q.parent
+      `SELECT m.chain_id, m.quest_id, q.name, q.parent, q.required_level
          FROM quest_chain_members m
          JOIN quests q ON q.id = m.quest_id
         WHERE m.chain_id IN (${placeholders})
@@ -281,11 +282,17 @@ export function listQuestChains(
     );
     const previewBy = new Map<number, QuestSummary[]>();
     for (const r of previewRows) {
+      const summary: QuestSummary = {
+        id: r.quest_id,
+        name: r.name,
+        parent: r.parent,
+        requiredLevel: r.required_level,
+      };
       const arr = previewBy.get(r.chain_id);
       if (arr) {
-        if (arr.length < 3) arr.push({ id: r.quest_id, name: r.name, parent: r.parent });
+        if (arr.length < 3) arr.push(summary);
       } else {
-        previewBy.set(r.chain_id, [{ id: r.quest_id, name: r.name, parent: r.parent }]);
+        previewBy.set(r.chain_id, [summary]);
       }
     }
     const rows: QuestChainListRow[] = chainRows.map((r) => ({

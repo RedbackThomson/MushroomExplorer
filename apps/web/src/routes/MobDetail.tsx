@@ -64,6 +64,7 @@ export default function MobDetail() {
   ]);
   const questsSort = useListSort(questsQ.data, [
     { id: 'name', label: 'Quest name', get: (q) => q.name },
+    { id: 'level', label: 'Required level', get: (q) => q.requiredLevel },
   ]);
 
   const paletteItems = useMemo<CommandItem[]>(
@@ -224,7 +225,14 @@ export default function MobDetail() {
           }
         >
           {questsSort.sorted.map((q) => (
-            <EntityRow key={q.id} entity="quest" id={q.id} name={q.name} subtitle={q.parent} />
+            <EntityRow
+              key={q.id}
+              entity="quest"
+              id={q.id}
+              name={q.name}
+              subtitle={q.parent}
+              meta={q.requiredLevel !== null ? `Lvl ${q.requiredLevel}+` : undefined}
+            />
           ))}
         </DetailListSection>
       )}
